@@ -18,6 +18,9 @@
 		"main": [
 			"net.f3rr3.reshaped.Reshaped"
 		],
+		"client": [
+			"net.f3rr3.reshaped.client.ReshapedClient"
+		],
 		"fabric-datagen": [
 			"net.f3rr3.reshaped.ReshapedDataGenerator"
 		]

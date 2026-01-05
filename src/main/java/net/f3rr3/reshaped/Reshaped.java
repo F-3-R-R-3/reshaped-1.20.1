@@ -5,6 +5,10 @@ import net.fabricmc.api.ModInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import net.f3rr3.reshaped.util.BlockMatrix;
+import net.f3rr3.reshaped.util.BlockRegistryScanner;
+import net.f3rr3.reshaped.registry.VerticalSlabRegistry;
+
 public class Reshaped implements ModInitializer {
 	public static final String MOD_ID = "reshaped";
 
@@ -12,13 +16,21 @@ public class Reshaped implements ModInitializer {
 	// It is considered best practice to use your mod id as the logger's name.
 	// That way, it's clear which mod wrote info, warnings, and errors.
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+	public static BlockMatrix MATRIX;
 
 	@Override
 	public void onInitialize() {
-		// This code runs as soon as Minecraft is in a mod-load-ready state.
-		// However, some things (like resources) may still be uninitialized.
-		// Proceed with mild caution.
+		LOGGER.info("Reshaping the world...");
 
-		LOGGER.info("Hello Fabric world!");
+		// Scan registry and build matrix
+		MATRIX = BlockRegistryScanner.scanAndBuildMatrix();
+		
+		// Prune columns with no variants (though Scanner currently handles this partially)
+		MATRIX.removeStandaloneColumns();
+
+		// Register vertical slabs for all blocks in the matrix
+		VerticalSlabRegistry.registerVerticalSlabs(MATRIX);
+
+		LOGGER.info("Matrix built with " + MATRIX.getMatrix().size() + " columns!");
 	}
 }
