@@ -3,7 +3,8 @@
 	"package": "net.f3rr3.reshaped.mixin",
 	"compatibilityLevel": "JAVA_17",
 	"mixins": [
-		"ExampleMixin"
+		"AbstractBlockSettingsMixin",
+		"BlockMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

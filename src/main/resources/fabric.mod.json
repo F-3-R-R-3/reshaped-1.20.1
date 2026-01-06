@@ -26,7 +26,11 @@
 		]
 	},
 	"mixins": [
-		"reshaped.mixins.json"
+		"reshaped.mixins.json",
+		{
+			"config": "reshaped.client.mixins.json",
+			"environment": "client"
+		}
 	],
 	"depends": {
 		"fabricloader": ">=0.18.4",

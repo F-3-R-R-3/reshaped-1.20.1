@@ -1,0 +1,12 @@
+{
+	"required": true,
+	"package": "net.f3rr3.reshaped.mixin.client",
+	"compatibilityLevel": "JAVA_17",
+	"mixins": [
+		"DrawContextMixin",
+		"RuntimeNameMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

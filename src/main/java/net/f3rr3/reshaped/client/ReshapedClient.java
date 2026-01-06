@@ -3,6 +3,7 @@ package net.f3rr3.reshaped.client;
 import net.f3rr3.reshaped.Reshaped;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
+import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
 import net.minecraft.block.Block;
 import net.minecraft.item.BlockItem;
 import net.minecraft.text.Text;
@@ -13,6 +14,8 @@ import java.util.List;
 public class ReshapedClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
+        ModelLoadingPlugin.register(new ReshapedModelLoadingPlugin());
+
         ItemTooltipCallback.EVENT.register((stack, context, lines) -> {
             if (stack.getItem() instanceof BlockItem blockItem) {
                 Block block = blockItem.getBlock();
