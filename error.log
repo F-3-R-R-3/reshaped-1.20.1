@@ -1,0 +1,52 @@
+
+> Configure project :
+Fabric Loom: 1.14.10
+
+> Task :compileJava FAILED
+C:\Users\ferre\Documents\Programeer projecten\reshaped-1.20.1\src\main\java\net\f3rr3\reshaped\registry\VerticalSlabRegistry.java:69: error: method get in interface Supplier<T> cannot be applied to given types;
+                Optional<Block> nextBase = Oxidizable.OXIDATION_LEVEL_INCREASES.get(baseBlock);
+                                                                               ^
+  required: no arguments
+  found:    Block
+  reason: actual and formal argument lists differ in length
+  where T is a type-variable:
+    T extends Object declared in interface Supplier
+C:\Users\ferre\Documents\Programeer projecten\reshaped-1.20.1\src\main\java\net\f3rr3\reshaped\registry\VerticalSlabRegistry.java:73: error: cannot find symbol
+                        Oxidizable.OXIDATION_LEVEL_INCREASES.put(verticalSlab, nextVerticalSlab);
+                                                            ^
+  symbol:   method put(Block,Block)
+  location: variable OXIDATION_LEVEL_INCREASES of type Supplier<BiMap<Block,Block>>
+Note: C:\Users\ferre\Documents\Programeer projecten\reshaped-1.20.1\src\main\java\net\f3rr3\reshaped\block\OxidizableVerticalSlabBlock.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+2 errors
+
+[Incubating] Problems report is available at: file:///C:/Users/ferre/Documents/Programeer%20projecten/reshaped-1.20.1/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileJava'.
+> Compilation failed; see the compiler output below.
+  Note: C:\Users\ferre\Documents\Programeer projecten\reshaped-1.20.1\src\main\java\net\f3rr3\reshaped\block\OxidizableVerticalSlabBlock.java uses or overrides a deprecated API.
+  C:\Users\ferre\Documents\Programeer projecten\reshaped-1.20.1\src\main\java\net\f3rr3\reshaped\registry\VerticalSlabRegistry.java:69: error: method get in interface Supplier<T> cannot be applied to given types;
+                  Optional<Block> nextBase = Oxidizable.OXIDATION_LEVEL_INCREASES.get(baseBlock);
+                                                                                 ^
+    required: no arguments
+    found:    Block
+    reason: actual and formal argument lists differ in length
+    where T is a type-variable:
+      T extends Object declared in interface Supplier
+  Note: Recompile with -Xlint:deprecation for details.
+  C:\Users\ferre\Documents\Programeer projecten\reshaped-1.20.1\src\main\java\net\f3rr3\reshaped\registry\VerticalSlabRegistry.java:73: error: cannot find symbol
+                          Oxidizable.OXIDATION_LEVEL_INCREASES.put(verticalSlab, nextVerticalSlab);
+                                                              ^
+    symbol:   method put(Block,Block)
+    location: variable OXIDATION_LEVEL_INCREASES of type Supplier<BiMap<Block,Block>>
+  2 errors
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to generate a Build Scan (powered by Develocity).
+
+BUILD FAILED in 1s
+1 actionable task: 1 executed
