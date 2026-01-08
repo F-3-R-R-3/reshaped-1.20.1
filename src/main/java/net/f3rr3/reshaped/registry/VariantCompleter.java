@@ -39,6 +39,7 @@ public class VariantCompleter {
                 Block existingSlab = findExistingVariant(baseId.getPath(), "slab");
                 if (existingSlab != null) {
                     variants.add(existingSlab);
+                    matrix.setReason(existingSlab, "Adopted existing slab variant based on naming pattern");
                     Reshaped.LOGGER.info("Adopted existing slab: " + Registries.BLOCK.getId(existingSlab));
                 } else {
                     Identifier id = new Identifier(Reshaped.MOD_ID, baseId.getPath() + "_slab");
@@ -46,6 +47,7 @@ public class VariantCompleter {
                     Registry.register(Registries.BLOCK, id, slab);
                     Registry.register(Registries.ITEM, id, new BlockItem(slab, new Item.Settings()));
                     variants.add(slab);
+                    matrix.setReason(slab, "Dynamically registered as missing slab variant for " + base.getName().getString());
                     Reshaped.LOGGER.info("Registered new slab: " + id);
                 }
             }
@@ -54,6 +56,7 @@ public class VariantCompleter {
                 Block existingStairs = findExistingVariant(baseId.getPath(), "stairs");
                 if (existingStairs != null) {
                     variants.add(existingStairs);
+                    matrix.setReason(existingStairs, "Adopted existing stairs variant based on naming pattern");
                     Reshaped.LOGGER.info("Adopted existing stairs: " + Registries.BLOCK.getId(existingStairs));
                 } else {
                     Identifier id = new Identifier(Reshaped.MOD_ID, baseId.getPath() + "_stairs");
@@ -61,6 +64,7 @@ public class VariantCompleter {
                     Registry.register(Registries.BLOCK, id, stairs);
                     Registry.register(Registries.ITEM, id, new BlockItem(stairs, new Item.Settings()));
                     variants.add(stairs);
+                    matrix.setReason(stairs, "Dynamically registered as missing stairs variant for " + base.getName().getString());
                     Reshaped.LOGGER.info("Registered new stairs: " + id);
                 }
             }
@@ -75,6 +79,8 @@ public class VariantCompleter {
             baseName.replace("_block", "") + "_" + suffix,       // e.g. quartz_block -> quartz_slab
             baseName.replace("bricks", "brick") + "_" + suffix,  // e.g. bricks -> brick_slab
             baseName.replace("tiles", "tile") + "_" + suffix,    // e.g. tiles -> tile_slab
+            baseName.replace("shingles", "shingle") + "_" + suffix, // create mod compat
+            baseName.replace("tiles", "tile") + "_" + suffix,    // create mod compat
             (baseName.endsWith("s") ? baseName.substring(0, baseName.length() - 1) : baseName) + "_" + suffix // generic plural
         );
 

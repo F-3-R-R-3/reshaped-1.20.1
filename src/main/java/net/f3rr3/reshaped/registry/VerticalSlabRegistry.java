@@ -46,6 +46,7 @@ public class VerticalSlabRegistry {
             Registry.register(Registries.ITEM, id, new BlockItem(verticalSlab, new Item.Settings()));
             
             entry.getValue().add(verticalSlab);
+            matrix.setReason(verticalSlab, "Dynamically registered Vertical Slab for " + baseBlock.getName().getString());
             BASE_TO_SLAB.put(baseBlock, verticalSlab);
             Reshaped.LOGGER.info("Registered vertical slab for: " + baseId);
 

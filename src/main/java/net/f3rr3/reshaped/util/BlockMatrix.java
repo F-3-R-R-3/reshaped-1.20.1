@@ -6,6 +6,7 @@ import java.util.*;
 
 public class BlockMatrix {
     private final Map<Block, List<Block>> matrix = new LinkedHashMap<>();
+    private final Map<Block, String> reasons = new HashMap<>();
     private final Set<Block> allBlocks = new HashSet<>();
 
     public void refresh() {
@@ -13,10 +14,12 @@ public class BlockMatrix {
         List<Map.Entry<Block, List<Block>>> entries = new ArrayList<>(matrix.entrySet());
         entries.sort(Comparator.comparing(e -> Registries.BLOCK.getId(e.getKey()).toString()));
         
-        // Rebuild the linked map in order
+        // Rebuild the linked map in order and sort variants
         matrix.clear();
         for (Map.Entry<Block, List<Block>> entry : entries) {
-            matrix.put(entry.getKey(), entry.getValue());
+            List<Block> variants = entry.getValue();
+            variants.sort(Comparator.comparing(b -> Registries.BLOCK.getId(b).toString()));
+            matrix.put(entry.getKey(), variants);
         }
 
         allBlocks.clear();
@@ -29,6 +32,14 @@ public class BlockMatrix {
     public void addColumn(Block baseBlock, List<Block> variants) {
         matrix.put(baseBlock, new ArrayList<>(variants));
         refresh();
+    }
+
+    public void setReason(Block block, String reason) {
+        reasons.put(block, reason);
+    }
+
+    public String getReason(Block block) {
+        return reasons.getOrDefault(block, "No reason specified");
     }
 
     public void removeStandaloneColumns() {
@@ -46,6 +57,8 @@ public class BlockMatrix {
                 List<Block> column = new ArrayList<>();
                 column.add(entry.getKey());
                 column.addAll(entry.getValue());
+                // Sort the final list including the base block
+                column.sort(Comparator.comparing(b -> Registries.BLOCK.getId(b).toString()));
                 return column;
             }
         }

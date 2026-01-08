@@ -4,7 +4,9 @@
 	"compatibilityLevel": "JAVA_17",
 	"mixins": [
 		"DrawContextMixin",
-		"RuntimeNameMixin"
+		"RuntimeNameMixin",
+		"MouseInputMixin",
+		"KeyboardInputMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

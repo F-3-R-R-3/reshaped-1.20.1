@@ -32,7 +32,24 @@ public class RuntimeResourceGenerator {
         String path = id.getPath();
 
         if (path.endsWith("_vertical_slab")) {
-            return new Identifier(Reshaped.MOD_ID, "block/" + path);
+            // Check for Double Slab property (reusing SlabType)
+            if (state.get(Properties.SLAB_TYPE) == SlabType.DOUBLE) {
+                // Return base block model - but handle blockstate redirection
+                Block base = findBaseBlock(block);
+                if (base != null) {
+                    Identifier resolvedModelId = resolveBlockModelId(base);
+                    if (resolvedModelId != null) {
+                        return resolvedModelId;
+                    }
+                    // Fallback to direct path
+                    Identifier baseId = Registries.BLOCK.getId(base);
+                    return new Identifier(baseId.getNamespace(), "block/" + baseId.getPath());
+                }
+            }
+            // Return direction-specific model to avoid UV rotation issues
+            Direction facing = state.get(Properties.HORIZONTAL_FACING);
+            String dirSuffix = "_" + facing.getName();
+            return new Identifier(Reshaped.MOD_ID, "block/" + path + dirSuffix);
         }
 
         if (block instanceof SlabBlock) {
@@ -61,13 +78,8 @@ public class RuntimeResourceGenerator {
         String path = Registries.BLOCK.getId(block).getPath();
 
         if (path.endsWith("_vertical_slab")) {
-            Direction facing = state.get(Properties.HORIZONTAL_FACING);
-            return switch (facing) {
-                case SOUTH -> ModelRotation.X0_Y180;
-                case WEST -> ModelRotation.X0_Y270;
-                case EAST -> ModelRotation.X0_Y90;
-                default -> ModelRotation.X0_Y0;
-            };
+            // No rotation needed - we use direction-specific models
+            return ModelRotation.X0_Y0;
         }
 
         if (block instanceof SlabBlock) {
@@ -123,13 +135,14 @@ public class RuntimeResourceGenerator {
             String namespace = baseId.getNamespace();
             String textureId = namespace + ":block/" + basePath;
 
-            if (blockPath.equals(basePath + "_vertical_slab")) {
+            // Generate direction-specific vertical slab models
+            if (blockPath.startsWith(basePath + "_vertical_slab")) {
                 Map<String, String> textures = getModelTextures(baseBlock);
                 
                 String particle = textures.getOrDefault("particle", textureId);
                 String all = textures.getOrDefault("all", textureId);
                 
-                // Texture resolution priority: explicit face -> alias (top/bottom) -> end (columns) -> all
+                // Texture resolution
                 String up = textures.containsKey("up") ? textures.get("up") : 
                            (textures.containsKey("top") ? textures.get("top") : 
                            (textures.containsKey("end") ? textures.get("end") : all));
@@ -140,47 +153,63 @@ public class RuntimeResourceGenerator {
                              
                 String side = textures.containsKey("side") ? textures.get("side") : all;
                 
-                // If side is not defined but we are using column-like textures (end/side), ensure we use side
-                // Logic: specific direction -> side -> all
-                String north = textures.containsKey("north") ? textures.get("north") : side; // Usually side unless specified
-                String south = textures.containsKey("south") ? textures.get("south") : side;
-                String east = textures.containsKey("east") ? textures.get("east") : side;
-                String west = textures.containsKey("west") ? textures.get("west") : side;
-
-                // For a vertical slab (assumed facing NORTH by default model, then rotated):
-                // 'up' and 'down' in the vertical model correspond to y=16 and y=0 faces.
-                // 'north' is the face at z=0 (back of the slab if it's thick at back? or front?)
-                // Wait, default vertical slab usually occupies 0,0,8 to 16,16,16 (back half).
-                // So:
-                // North face is at Z=8 (internal face). South face is at Z=16 (back face).
-                // Up is Y=16. Down is Y=0.
-                // West is X=0. East is X=16.
+                // Determine which direction model is being requested
+                String directionSuffix = blockPath.replace(basePath + "_vertical_slab", "");
                 
-                // Detailed mapping:
-                // Up -> up
-                // Down -> down
-                // South (Back) -> side/south
-                // North (Front/Cut) -> side/north (uses side texture usually)
-                // West -> side/west
-                // East -> side/east
-
-                return "{\"parent\":\"minecraft:block/block\",\"textures\":{" +
+                // Generate textures header (same for all directions)
+                String texturesJson = "{\"parent\":\"minecraft:block/block\",\"textures\":{" +
                         "\"particle\":\"" + particle + "\"," +
-                        "\"up\":\"" + up + "\"," +
-                        "\"down\":\"" + down + "\"," +
-                        "\"north\":\"" + north + "\"," +
-                        "\"south\":\"" + south + "\"," +
-                        "\"east\":\"" + east + "\"," +
-                        "\"west\":\"" + west + "\"" +
-                        "},\"elements\":[{\"from\":[0,0,8],\"to\":[16,16,16],\"faces\":{" +
-                        "\"down\":{\"uv\":[0,8,16,16],\"texture\":\"#down\",\"cullface\":\"down\"}," +
-                        "\"up\":{\"uv\":[0,0,16,8],\"texture\":\"#up\",\"cullface\":\"up\"}," +
-                        "\"north\":{\"uv\":[0,0,16,16],\"texture\":\"#north\"}," + // Internal face
-                        "\"south\":{\"uv\":[0,0,16,16],\"texture\":\"#south\",\"cullface\":\"south\"}," +
-                        "\"west\":{\"uv\":[8,0,16,16],\"texture\":\"#west\",\"cullface\":\"west\"}," +
-                        "\"east\":{\"uv\":[0,0,8,16],\"texture\":\"#east\",\"cullface\":\"east\"}" +
+                        "\"top\":\"" + up + "\"," +
+                        "\"bottom\":\"" + down + "\"," +
+                        "\"side\":\"" + side + "\"" +
+                        "}";
+                
+                // Direction-specific geometry with pre-rotated elements
+                // Top/bottom UVs must show the correct "slice" of the base texture
+                // Note: Bottom face is viewed from below, so Z appears reversed
+                if (directionSuffix.equals("_north") || directionSuffix.isEmpty()) {
+                    // NORTH: occupies z=8 to z=16 (back half)
+                    // Top shows back half [0,8,16,16], Bottom (viewed from below) shows front half [0,0,16,8]
+                    return texturesJson + ",\"elements\":[{\"from\":[0,0,8],\"to\":[16,16,16],\"faces\":{" +
+                        "\"down\":{\"uv\":[0,0,16,8],\"texture\":\"#bottom\",\"cullface\":\"down\"}," +
+                        "\"up\":{\"uv\":[0,8,16,16],\"texture\":\"#top\",\"cullface\":\"up\"}," +
+                        "\"north\":{\"uv\":[0,0,16,16],\"texture\":\"#side\"}," +
+                        "\"south\":{\"uv\":[0,0,16,16],\"texture\":\"#side\",\"cullface\":\"south\"}," +
+                        "\"west\":{\"uv\":[8,0,16,16],\"texture\":\"#side\",\"cullface\":\"west\"}," +
+                        "\"east\":{\"uv\":[0,0,8,16],\"texture\":\"#side\",\"cullface\":\"east\"}" +
                         "}}]}";
-
+                } else if (directionSuffix.equals("_south")) {
+                    // SOUTH: occupies z=0 to z=8 (front half)
+                    // Top shows front half [0,0,16,8], Bottom (viewed from below) shows back half [0,8,16,16]
+                    return texturesJson + ",\"elements\":[{\"from\":[0,0,0],\"to\":[16,16,8],\"faces\":{" +
+                        "\"down\":{\"uv\":[0,8,16,16],\"texture\":\"#bottom\",\"cullface\":\"down\"}," +
+                        "\"up\":{\"uv\":[0,0,16,8],\"texture\":\"#top\",\"cullface\":\"up\"}," +
+                        "\"north\":{\"uv\":[0,0,16,16],\"texture\":\"#side\",\"cullface\":\"north\"}," +
+                        "\"south\":{\"uv\":[0,0,16,16],\"texture\":\"#side\"}," +
+                        "\"west\":{\"uv\":[0,0,8,16],\"texture\":\"#side\",\"cullface\":\"west\"}," +
+                        "\"east\":{\"uv\":[8,0,16,16],\"texture\":\"#side\",\"cullface\":\"east\"}" +
+                        "}}]}";
+                } else if (directionSuffix.equals("_east")) {
+                    // EAST: occupies x=0 to x=8 (west half of block)
+                    return texturesJson + ",\"elements\":[{\"from\":[0,0,0],\"to\":[8,16,16],\"faces\":{" +
+                        "\"down\":{\"uv\":[0,0,8,16],\"texture\":\"#bottom\",\"cullface\":\"down\"}," +
+                        "\"up\":{\"uv\":[0,0,8,16],\"texture\":\"#top\",\"cullface\":\"up\"}," +
+                        "\"north\":{\"uv\":[8,0,16,16],\"texture\":\"#side\",\"cullface\":\"north\"}," +
+                        "\"south\":{\"uv\":[0,0,8,16],\"texture\":\"#side\",\"cullface\":\"south\"}," +
+                        "\"west\":{\"uv\":[0,0,16,16],\"texture\":\"#side\",\"cullface\":\"west\"}," +
+                        "\"east\":{\"uv\":[0,0,16,16],\"texture\":\"#side\"}" +
+                        "}}]}";
+                } else if (directionSuffix.equals("_west")) {
+                    // WEST: occupies x=8 to x=16 (east half of block)
+                    return texturesJson + ",\"elements\":[{\"from\":[8,0,0],\"to\":[16,16,16],\"faces\":{" +
+                        "\"down\":{\"uv\":[8,0,16,16],\"texture\":\"#bottom\",\"cullface\":\"down\"}," +
+                        "\"up\":{\"uv\":[8,0,16,16],\"texture\":\"#top\",\"cullface\":\"up\"}," +
+                        "\"north\":{\"uv\":[0,0,8,16],\"texture\":\"#side\",\"cullface\":\"north\"}," +
+                        "\"south\":{\"uv\":[8,0,16,16],\"texture\":\"#side\",\"cullface\":\"south\"}," +
+                        "\"west\":{\"uv\":[0,0,16,16],\"texture\":\"#side\"}," +
+                        "\"east\":{\"uv\":[0,0,16,16],\"texture\":\"#side\",\"cullface\":\"east\"}" +
+                        "}}]}";
+                }
             } else if (blockPath.equals(basePath + "_slab_top")) {
                 return "{\"parent\":\"minecraft:block/slab_top\",\"textures\":{\"bottom\":\"" + textureId + "\",\"top\":\"" + textureId + "\",\"side\":\"" + textureId + "\"}}";
             } else if (blockPath.equals(basePath + "_slab")) {
@@ -277,6 +306,62 @@ public class RuntimeResourceGenerator {
         for (Map.Entry<Block, List<Block>> entry : Reshaped.MATRIX.getMatrix().entrySet()) {
             if (entry.getValue().contains(variant)) return entry.getKey();
         }
+        return null;
+    }
+
+    /**
+     * Resolves the actual model ID for a block, handling blockstate redirection.
+     * Returns null if direct model exists or if resolution fails.
+     */
+    private static Identifier resolveBlockModelId(Block block) {
+        Identifier blockId = Registries.BLOCK.getId(block);
+        
+        // First check if direct model exists
+        Identifier directModelId = new Identifier(blockId.getNamespace(), "models/block/" + blockId.getPath() + ".json");
+        Optional<Resource> directResource = MinecraftClient.getInstance().getResourceManager().getResource(directModelId);
+        if (directResource.isPresent()) {
+            // Direct model exists, return standard path
+            return new Identifier(blockId.getNamespace(), "block/" + blockId.getPath());
+        }
+        
+        // Check blockstate for model redirection
+        Identifier blockstateId = new Identifier(blockId.getNamespace(), "blockstates/" + blockId.getPath() + ".json");
+        Optional<Resource> bsResource = MinecraftClient.getInstance().getResourceManager().getResource(blockstateId);
+        
+        if (bsResource.isPresent()) {
+            try (InputStreamReader reader = new InputStreamReader(bsResource.get().getInputStream())) {
+                JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
+                String variantModel = null;
+
+                if (json.has("variants")) {
+                    JsonObject variants = json.getAsJsonObject("variants");
+                    if (variants.has("")) {
+                        JsonObject variant = variants.get("").isJsonObject() ? variants.getAsJsonObject("") : null;
+                        if (variant != null && variant.has("model")) {
+                            variantModel = variant.get("model").getAsString();
+                        }
+                    } else if (!variants.keySet().isEmpty()) {
+                        String firstKey = variants.keySet().iterator().next();
+                        if (variants.get(firstKey).isJsonObject()) {
+                            JsonObject variant = variants.getAsJsonObject(firstKey);
+                            if (variant.has("model")) {
+                                variantModel = variant.get("model").getAsString();
+                            }
+                        }
+                    }
+                }
+                
+                if (variantModel != null) {
+                    // Parse the model path (e.g., "minecraft:block/copper_block")
+                    String namespace = variantModel.contains(":") ? variantModel.split(":")[0] : "minecraft";
+                    String modelPath = variantModel.contains(":") ? variantModel.split(":")[1] : variantModel;
+                    return new Identifier(namespace, modelPath);
+                }
+            } catch (Exception e) {
+                Reshaped.LOGGER.error("Failed to resolve model for block: " + blockId, e);
+            }
+        }
+        
         return null;
     }
 }

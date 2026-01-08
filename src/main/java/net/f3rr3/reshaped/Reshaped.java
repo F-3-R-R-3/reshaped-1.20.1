@@ -10,6 +10,7 @@ import net.f3rr3.reshaped.util.BlockRegistryScanner;
 import net.f3rr3.reshaped.registry.VerticalSlabRegistry;
 import net.f3rr3.reshaped.registry.VariantCompleter;
 import net.f3rr3.reshaped.command.MatrixCommand;
+import net.f3rr3.reshaped.network.NetworkHandler;
 
 public class Reshaped implements ModInitializer {
 	public static final String MOD_ID = "reshaped";
@@ -42,6 +43,9 @@ public class Reshaped implements ModInitializer {
 
 		// Register commands
 		MatrixCommand.register();
+
+		// Register network receivers
+		NetworkHandler.registerServerReceivers();
 
 		LOGGER.info("Matrix built with " + MATRIX.getMatrix().size() + " columns!");
 	}

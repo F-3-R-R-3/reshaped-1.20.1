@@ -13,12 +13,14 @@ public class BlockRegistryScanner {
     public static BlockMatrix scanAndBuildMatrix() {
         BlockMatrix matrix = new BlockMatrix();
         Map<Block, List<Block>> groupings = new HashMap<>();
+        Map<Block, String> reasons = new HashMap<>();
 
         for (Block block : Registries.BLOCK) {
             // CRITICAL: Never process AIR or non-standard blocks as variants
             if (block == null || block == Blocks.AIR) continue;
             
             Block base = null;
+            String reason = null;
 
             // Method 1: Reflection for Stairs (Highly Accurate)
             if (block instanceof StairsBlock) {
@@ -28,6 +30,7 @@ public class BlockRegistryScanner {
                     BlockState state = (BlockState) field.get(block);
                     if (state != null && state.getBlock() != null && state.getBlock() != Blocks.AIR) {
                         base = state.getBlock();
+                        reason = "Classified as Stairs based on its baseBlockState (" + base.getName().getString() + ")";
                     }
                 } catch (Exception e) {
                     // Fallback to Mixin if reflection fails
@@ -38,6 +41,9 @@ public class BlockRegistryScanner {
             if (base == null && (block instanceof SlabBlock || block instanceof StairsBlock)) {
                 if (block instanceof BlockSourceTracker tracker) {
                     base = tracker.reshaped$getSourceBlock();
+                    if (base != null) {
+                        reason = "Tracked via Mixin as a variant of " + base.getName().getString() + " (copied settings)";
+                    }
                 }
             }
 
@@ -47,12 +53,18 @@ public class BlockRegistryScanner {
                 // We only want the immediate full block. If 'base' is itself a slab or stair, ignore it.
                 if (!(base instanceof SlabBlock) && !(base instanceof StairsBlock)) {
                     groupings.computeIfAbsent(base, k -> new ArrayList<>()).add(block);
+                    reasons.put(block, reason);
+                    reasons.putIfAbsent(base, "Base block for the group");
                 }
             }
         }
 
         for (Map.Entry<Block, List<Block>> entry : groupings.entrySet()) {
             matrix.addColumn(entry.getKey(), entry.getValue());
+            for (Block block : entry.getValue()) {
+                matrix.setReason(block, reasons.get(block));
+            }
+            matrix.setReason(entry.getKey(), reasons.get(entry.getKey()));
         }
 
         return matrix;
