@@ -58,16 +58,6 @@ public class BlockRegistryScanner {
             }
         }
 
-        // Method 2: Mixin tracking (Only for known variant types)
-        if (base == null && (block instanceof SlabBlock || block instanceof StairsBlock)) {
-            if (block instanceof net.f3rr3.reshaped.util.BlockSourceTracker tracker) {
-                base = tracker.reshaped$getSourceBlock();
-                if (base != null) {
-                    reason = "Tracked via Mixin as a variant of " + base.getName().getString() + " (copied settings)";
-                }
-            }
-        }
-
         // Validation: Ensure valid base, no self-mapping, no AIR, and no chaining
         if (base != null && base != block && base != Blocks.AIR) {
             // IMPORTANT: Prevent "chaining" (e.g. Copper -> Cut Copper -> Cut Copper Slab)
