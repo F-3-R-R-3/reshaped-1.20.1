@@ -1,8 +1,0 @@
-
-> Configure project :
-Fabric Loom: 1.14.10
-
-> Task :compileJava FAILED
-
-[Incubating] Problems report is available at: file:///C:/Users/ferre/Documents/Programeer%20projecten/reshaped-1.20.1/build/reports/problems/problems-report.html
-1 actionable task: 1 executed
