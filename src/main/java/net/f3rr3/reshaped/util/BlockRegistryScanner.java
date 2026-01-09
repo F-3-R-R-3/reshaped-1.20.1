@@ -10,6 +10,7 @@ import net.minecraft.block.StairsBlock;
 import net.minecraft.block.Blocks;
 import net.minecraft.registry.Registries;
 import net.minecraft.block.BlockState;
+import net.minecraft.util.Identifier;
 import java.lang.reflect.Field;
 import java.util.*;
 
@@ -55,6 +56,58 @@ public class BlockRegistryScanner {
                 }
             } catch (Exception e) {
                 // Fallback to Mixin if reflection fails
+            }
+        }
+        if (block instanceof SlabBlock) {
+            try {
+                Identifier id = Registries.BLOCK.getId(block);
+                String path = id.getPath();
+                String namespace = id.getNamespace();
+                String baseName = null;
+
+                if (path.endsWith("_slab")) {
+                    baseName = path.substring(0, path.length() - 5);
+                } else if (path.endsWith("_slabs")) {
+                    baseName = path.substring(0, path.length() - 6);
+                }
+
+                if (baseName != null) {
+                    List<String> candidates = Arrays.asList(
+                        baseName + "_planks",
+                        baseName + "_block",
+                        baseName + "s",
+                        baseName.replace("_brick", "_bricks"),
+                        baseName.replace("_tile", "_tiles"),
+                        baseName.replace("_shingle", "_shingles"),
+                        baseName
+                    );
+
+                    for (String candidate : candidates) {
+                        Identifier candidateId = new Identifier(namespace, candidate);
+                        Block b = Registries.BLOCK.get(candidateId);
+                        if (b != Blocks.AIR && !(b instanceof SlabBlock) && !(b instanceof StairsBlock)) {
+                            base = b;
+                            break;
+                        }
+                    }
+
+                    if (base == null && !namespace.equals("minecraft")) {
+                        for (String candidate : candidates) {
+                            Identifier candidateId = new Identifier("minecraft", candidate);
+                            Block b = Registries.BLOCK.get(candidateId);
+                            if (b != Blocks.AIR && !(b instanceof SlabBlock) && !(b instanceof StairsBlock)) {
+                                base = b;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (base != null) {
+                        reason = "Classified as Slab based on its name matching base block: " + Registries.BLOCK.getId(base);
+                    }
+                }
+            } catch (Exception e) {
+                Reshaped.LOGGER.error("Failed to resolve base block for slab: {}", block, e);
             }
         }
 

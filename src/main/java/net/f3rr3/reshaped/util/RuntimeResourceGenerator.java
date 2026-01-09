@@ -92,17 +92,19 @@ public class RuntimeResourceGenerator {
 
             if (half == BlockHalf.TOP) {
                 return switch (facing) {
-                    case SOUTH -> ModelRotation.X180_Y180;
-                    case WEST -> ModelRotation.X180_Y270;
-                    case NORTH -> ModelRotation.X180_Y0;
-                    default -> ModelRotation.X180_Y90; // EAST
+                    case EAST -> ModelRotation.X180_Y0;
+                    case SOUTH -> ModelRotation.X180_Y90;
+                    case WEST -> ModelRotation.X180_Y180;
+                    case NORTH -> ModelRotation.X180_Y270;
+                    default -> ModelRotation.X180_Y0;
                 };
             } else {
                 return switch (facing) {
-                    case SOUTH -> ModelRotation.X0_Y180;
-                    case WEST -> ModelRotation.X0_Y270;
-                    case NORTH -> ModelRotation.X0_Y0;
-                    default -> ModelRotation.X0_Y90; // EAST
+                    case EAST -> ModelRotation.X0_Y0;
+                    case SOUTH -> ModelRotation.X0_Y90;
+                    case WEST -> ModelRotation.X0_Y180;
+                    case NORTH -> ModelRotation.X0_Y270;
+                    default -> ModelRotation.X0_Y0;
                 };
             }
         }
