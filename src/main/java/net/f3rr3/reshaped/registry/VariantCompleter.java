@@ -19,30 +19,39 @@ import java.util.Map;
 
 public class VariantCompleter {
     public static void completeMatrix(BlockMatrix matrix) {
-        for (Map.Entry<Block, List<Block>> entry : matrix.getMatrix().entrySet()) {
-            Block base = entry.getKey();
-            if (base == Blocks.AIR) continue; // Safety first
+        for (Block base : matrix.getMatrix().keySet()) {
+            completeVariant(base, matrix);
+        }
+    }
 
-            List<Block> variants = entry.getValue();
+    public static void completeVariant(Block base, BlockMatrix matrix) {
+        if (base == Blocks.AIR) return;
 
-            boolean hasSlab = false;
-            boolean hasStair = false;
+        List<Block> variants = matrix.getMatrix().get(base);
+        if (variants == null) return;
 
-            for (Block v : variants) {
-                if (v instanceof SlabBlock) hasSlab = true;
-                if (v instanceof StairsBlock) hasStair = true;
-            }
+        boolean hasSlab = false;
+        boolean hasStair = false;
 
-            Identifier baseId = Registries.BLOCK.getId(base);
+        for (Block v : variants) {
+            if (v instanceof SlabBlock) hasSlab = true;
+            if (v instanceof StairsBlock) hasStair = true;
+        }
 
-            if (!hasSlab) {
-                Block existingSlab = findExistingVariant(baseId.getPath(), "slab");
-                if (existingSlab != null) {
+        Identifier baseId = Registries.BLOCK.getId(base);
+
+        if (!hasSlab) {
+            Block existingSlab = findExistingVariant(baseId.getPath(), "slab");
+            if (existingSlab != null) {
+                if (!variants.contains(existingSlab)) {
                     variants.add(existingSlab);
                     matrix.setReason(existingSlab, "Adopted existing slab variant based on naming pattern");
                     Reshaped.LOGGER.info("Adopted existing slab: " + Registries.BLOCK.getId(existingSlab));
-                } else {
-                    Identifier id = new Identifier(Reshaped.MOD_ID, baseId.getPath() + "_slab");
+                }
+            } else {
+                Identifier id = new Identifier(Reshaped.MOD_ID, baseId.getPath() + "_slab");
+                // Check if already registered (could happen with dynamic loading if not careful)
+                if (Registries.BLOCK.get(id) == Blocks.AIR) {
                     SlabBlock slab = new SlabBlock(AbstractBlock.Settings.copy(base));
                     Registry.register(Registries.BLOCK, id, slab);
                     Registry.register(Registries.ITEM, id, new BlockItem(slab, new Item.Settings()));
@@ -51,15 +60,19 @@ public class VariantCompleter {
                     Reshaped.LOGGER.info("Registered new slab: " + id);
                 }
             }
+        }
 
-            if (!hasStair) {
-                Block existingStairs = findExistingVariant(baseId.getPath(), "stairs");
-                if (existingStairs != null) {
+        if (!hasStair) {
+            Block existingStairs = findExistingVariant(baseId.getPath(), "stairs");
+            if (existingStairs != null) {
+                if (!variants.contains(existingStairs)) {
                     variants.add(existingStairs);
                     matrix.setReason(existingStairs, "Adopted existing stairs variant based on naming pattern");
                     Reshaped.LOGGER.info("Adopted existing stairs: " + Registries.BLOCK.getId(existingStairs));
-                } else {
-                    Identifier id = new Identifier(Reshaped.MOD_ID, baseId.getPath() + "_stairs");
+                }
+            } else {
+                Identifier id = new Identifier(Reshaped.MOD_ID, baseId.getPath() + "_stairs");
+                if (Registries.BLOCK.get(id) == Blocks.AIR) {
                     StairsBlock stairs = new StairsBlock(base.getDefaultState(), AbstractBlock.Settings.copy(base));
                     Registry.register(Registries.BLOCK, id, stairs);
                     Registry.register(Registries.ITEM, id, new BlockItem(stairs, new Item.Settings()));

@@ -25,21 +25,11 @@ public class Reshaped implements ModInitializer {
 	public void onInitialize() {
 		LOGGER.info("Reshaping the world...");
 
-		// Scan registry and build matrix
-		MATRIX = BlockRegistryScanner.scanAndBuildMatrix();
+		// Initialize matrix immediately
+		MATRIX = new BlockMatrix();
 		
-		// Prune columns with no variants (though Scanner currently handles this partially)
-		MATRIX.removeStandaloneColumns();
-
-		// Complete missing variants (slabs/stairs)
-		VariantCompleter.completeMatrix(MATRIX);
-
-		// Register vertical slabs for all blocks in the matrix
-		VerticalSlabRegistry.registerVerticalSlabs(MATRIX);
-
-		// FINAL REFRESH: Ensure all dynamically added blocks (slabs, stairs, vertical slabs) 
-		// are added to the fast-lookup set for the overlay and tooltips.
-		MATRIX.refresh();
+		// Start reactive block scanning and registration
+		BlockRegistryScanner.init(MATRIX);
 
 		// Register commands
 		MatrixCommand.register();
@@ -47,6 +37,6 @@ public class Reshaped implements ModInitializer {
 		// Register network receivers
 		NetworkHandler.registerServerReceivers();
 
-		LOGGER.info("Matrix built with " + MATRIX.getMatrix().size() + " columns!");
+		LOGGER.info("Reshaping complete - Block matrix is now reactive.");
 	}
 }

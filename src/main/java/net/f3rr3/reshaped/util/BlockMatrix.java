@@ -8,18 +8,25 @@ public class BlockMatrix {
     private final Map<Block, List<Block>> matrix = new LinkedHashMap<>();
     private final Map<Block, String> reasons = new HashMap<>();
     private final Set<Block> allBlocks = new HashSet<>();
+    private final Map<Block, Block> variantToBase = new HashMap<>();
 
     public void refresh() {
         // Sort the matrix entries by their base block ID path
-        List<Map.Entry<Block, List<Block>>> entries = new ArrayList<>(matrix.entrySet());
+        List<Map.Entry<Block, List<Block>> > entries = new ArrayList<>(matrix.entrySet());
         entries.sort(Comparator.comparing(e -> Registries.BLOCK.getId(e.getKey()).toString()));
         
         // Rebuild the linked map in order and sort variants
         matrix.clear();
+        variantToBase.clear();
         for (Map.Entry<Block, List<Block>> entry : entries) {
             List<Block> variants = entry.getValue();
             variants.sort(Comparator.comparing(b -> Registries.BLOCK.getId(b).toString()));
             matrix.put(entry.getKey(), variants);
+            
+            // Map variants back to base for fast lookup
+            for (Block variant : variants) {
+                variantToBase.put(variant, entry.getKey());
+            }
         }
 
         allBlocks.clear();
@@ -29,8 +36,18 @@ public class BlockMatrix {
         }
     }
 
+    public Block getBaseBlock(Block variant) {
+        return variantToBase.get(variant);
+    }
+
     public void addColumn(Block baseBlock, List<Block> variants) {
-        matrix.put(baseBlock, new ArrayList<>(variants));
+        List<Block> existing = matrix.getOrDefault(baseBlock, new ArrayList<>());
+        for (Block v : variants) {
+            if (!existing.contains(v)) {
+                existing.add(v);
+            }
+        }
+        matrix.put(baseBlock, existing);
         refresh();
     }
 

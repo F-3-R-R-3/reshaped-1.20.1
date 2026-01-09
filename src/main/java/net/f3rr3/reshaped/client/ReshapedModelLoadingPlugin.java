@@ -19,30 +19,33 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
 
     @Override
     public void onInitializeModelLoader(Context context) {
-        // Register block state resolvers for all reshaped blocks
-        if (Reshaped.MATRIX != null) {
-            for (List<Block> column : Reshaped.MATRIX.getMatrix().values()) {
-                for (Block block : column) {
-                    Identifier id = Registries.BLOCK.getId(block);
-                    if (id.getNamespace().equals(Reshaped.MOD_ID)) {
-                        context.registerBlockStateResolver(block, resolverContext -> {
-                            for (BlockState state : block.getStateManager().getStates()) {
-                                Identifier modelId = RuntimeResourceGenerator.getVariantModelId(state);
-                                ModelRotation rotation = RuntimeResourceGenerator.getVariantRotation(state);
-                                
-                                // In 1.20.1 Yarn, ModelVariant is a record that expects AffineTransformation (getRotation())
-                                ModelVariant variant = new ModelVariant(modelId, rotation.getRotation(), false, 1);
-                                // registerBlockStateResolver requires an UnbakedModel. WeightedUnbakedModel implements UnbakedModel.
-                                resolverContext.setModel(state, new WeightedUnbakedModel(Collections.singletonList(variant)));
-                            }
-                        });
+        // Register block state resolvers for all reshaped blocks currently in registry
+        for (Block block : Registries.BLOCK) {
+            Identifier id = Registries.BLOCK.getId(block);
+            if (id.getNamespace().equals(Reshaped.MOD_ID)) {
+                context.registerBlockStateResolver(block, resolverContext -> {
+                    for (BlockState state : block.getStateManager().getStates()) {
+                        Identifier modelId = RuntimeResourceGenerator.getVariantModelId(state);
+                        ModelRotation rotation = RuntimeResourceGenerator.getVariantRotation(state);
                         
-                        // Pre-register all possible geometry models
-                        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath()));
-                        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_top"));
-                        context.addModels(new Identifier(Reshaped.MOD_ID, "item/" + id.getPath()));
+                        // In 1.20.1 Yarn, ModelVariant is a record that expects AffineTransformation (getRotation())
+                        ModelVariant variant = new ModelVariant(modelId, rotation.getRotation(), false, 1);
+                        // registerBlockStateResolver requires an UnbakedModel. WeightedUnbakedModel implements UnbakedModel.
+                        resolverContext.setModel(state, new WeightedUnbakedModel(Collections.singletonList(variant)));
                     }
+                });
+                
+                // Pre-register all possible geometry models
+                context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath()));
+                context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_top"));
+                // Vertical slabs also need their direction-specific models registered
+                if (id.getPath().endsWith("_vertical_slab")) {
+                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_north"));
+                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_south"));
+                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_east"));
+                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_west"));
                 }
+                context.addModels(new Identifier(Reshaped.MOD_ID, "item/" + id.getPath()));
             }
         }
 
