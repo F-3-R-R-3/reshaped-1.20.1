@@ -11,6 +11,9 @@ public class BlockMatrix {
     private final Map<Block, Block> variantToBase = new HashMap<>();
 
     public void refresh() {
+        // Skip if empty to avoid unnecessary work
+        if (matrix.isEmpty()) return;
+
         // Sort the matrix entries by their base block ID path
         List<Map.Entry<Block, List<Block>> > entries = new ArrayList<>(matrix.entrySet());
         entries.sort(Comparator.comparing(e -> Registries.BLOCK.getId(e.getKey()).toString()));
@@ -18,21 +21,21 @@ public class BlockMatrix {
         // Rebuild the linked map in order and sort variants
         matrix.clear();
         variantToBase.clear();
+        allBlocks.clear();
+
         for (Map.Entry<Block, List<Block>> entry : entries) {
+            Block base = entry.getKey();
             List<Block> variants = entry.getValue();
             variants.sort(Comparator.comparing(b -> Registries.BLOCK.getId(b).toString()));
-            matrix.put(entry.getKey(), variants);
+            
+            matrix.put(base, variants);
+            allBlocks.add(base);
             
             // Map variants back to base for fast lookup
             for (Block variant : variants) {
-                variantToBase.put(variant, entry.getKey());
+                variantToBase.put(variant, base);
+                allBlocks.add(variant);
             }
-        }
-
-        allBlocks.clear();
-        for (Map.Entry<Block, List<Block>> entry : matrix.entrySet()) {
-            allBlocks.add(entry.getKey());
-            allBlocks.addAll(entry.getValue());
         }
     }
 
@@ -41,14 +44,22 @@ public class BlockMatrix {
     }
 
     public void addColumn(Block baseBlock, List<Block> variants) {
+        addColumn(baseBlock, variants, true);
+    }
+
+    public void addColumn(Block baseBlock, List<Block> variants, boolean shouldRefresh) {
         List<Block> existing = matrix.getOrDefault(baseBlock, new ArrayList<>());
+        boolean added = false;
         for (Block v : variants) {
             if (!existing.contains(v)) {
                 existing.add(v);
+                added = true;
             }
         }
-        matrix.put(baseBlock, existing);
-        refresh();
+        if (added || !matrix.containsKey(baseBlock)) {
+            matrix.put(baseBlock, existing);
+            if (shouldRefresh) refresh();
+        }
     }
 
     public void setReason(Block block, String reason) {

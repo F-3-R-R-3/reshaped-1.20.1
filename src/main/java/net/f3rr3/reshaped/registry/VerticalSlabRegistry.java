@@ -34,8 +34,23 @@ public class VerticalSlabRegistry {
 
     public static void registerVerticalSlabForBase(Block baseBlock, BlockMatrix matrix) {
         Identifier baseId = Registries.BLOCK.getId(baseBlock);
-        String path = baseId.getNamespace() + "_" + baseId.getPath() + "_vertical_slab";
+        
+        // Cleaner naming: reshaped:oak_vertical_slab instead of reshaped:minecraft_oak_planks_vertical_slab
+        String baseName = baseId.getPath().replace("_planks", "").replace("_block", "");
+        String path = baseName + "_vertical_slab";
         Identifier id = new Identifier(Reshaped.MOD_ID, path);
+
+        // Check if this ID is already taken by a block for a DIFFERENT base block
+        // (If it's the same base block, we'll handle it in the next check)
+        Block existingAtId = Registries.BLOCK.get(id);
+        if (existingAtId != Blocks.AIR) {
+            Block existingBase = matrix.getBaseBlock(existingAtId);
+            if (existingBase != null && existingBase != baseBlock) {
+                // Collision! Fallback to namespace-prefixed name
+                path = baseId.getNamespace() + "_" + baseId.getPath() + "_vertical_slab";
+                id = new Identifier(Reshaped.MOD_ID, path);
+            }
+        }
 
         // Check if already registered
         if (Registries.BLOCK.get(id) != Blocks.AIR) {

@@ -128,99 +128,95 @@ public class RuntimeResourceGenerator {
         String blockPath = path;
         if (blockPath.startsWith("block/")) blockPath = blockPath.substring(6);
 
-        // Precise matching for vertical slabs: pattern "namespace_path_vertical_slab"
-        if (blockPath.endsWith("_vertical_slab") || 
-            blockPath.contains("_vertical_slab_")) {
+        // Efficient handling for vertical slabs
+        if (blockPath.contains("_vertical_slab")) {
+            // Extract the core block path (ignoring direction suffixes)
+            String corePath = blockPath;
+            String directionSuffix = "";
             
-            // Extract the base block part by iterating through the matrix
-            for (Map.Entry<Block, List<Block>> entry : Reshaped.MATRIX.getMatrix().entrySet()) {
-                Block baseBlock = entry.getKey();
+            // Try matching suffixes: _north, _south, _east, _west
+            if (corePath.endsWith("_north")) { directionSuffix = "_north"; corePath = corePath.substring(0, corePath.length() - 6); }
+            else if (corePath.endsWith("_south")) { directionSuffix = "_south"; corePath = corePath.substring(0, corePath.length() - 6); }
+            else if (corePath.endsWith("_east")) { directionSuffix = "_east"; corePath = corePath.substring(0, corePath.length() - 5); }
+            else if (corePath.endsWith("_west")) { directionSuffix = "_west"; corePath = corePath.substring(0, corePath.length() - 5); }
+
+            Identifier blockId = new Identifier(Reshaped.MOD_ID, corePath);
+            Block block = Registries.BLOCK.get(blockId);
+            Block baseBlock = Reshaped.MATRIX.getBaseBlock(block);
+
+            if (baseBlock != null) {
                 Identifier baseId = Registries.BLOCK.getId(baseBlock);
-                String expectedPrefix = baseId.getNamespace() + "_" + baseId.getPath() + "_vertical_slab";
+                Map<String, String> textures = getModelTextures(baseBlock);
+                String textureId = baseId.getNamespace() + ":block/" + baseId.getPath();
                 
-                if (blockPath.startsWith(expectedPrefix)) {
-                    Map<String, String> textures = getModelTextures(baseBlock);
-                    Identifier baseIdFinal = baseId; // for lambda closure if needed
-                    String textureId = baseId.getNamespace() + ":block/" + baseId.getPath();
-                    
-                    String particle = textures.getOrDefault("particle", textureId);
-                    String all = textures.getOrDefault("all", textureId);
-                    
-                    // Texture resolution
-                    String up = textures.containsKey("up") ? textures.get("up") : 
-                               (textures.containsKey("top") ? textures.get("top") : 
-                               (textures.containsKey("end") ? textures.get("end") : all));
-                               
-                    String down = textures.containsKey("down") ? textures.get("down") : 
-                                 (textures.containsKey("bottom") ? textures.get("bottom") : 
-                                 (textures.containsKey("end") ? textures.get("end") : all));
-                                 
-                    String side = textures.containsKey("side") ? textures.get("side") : all;
-                    
-                    // Determine which direction model is being requested
-                    String directionSuffix = blockPath.replace(expectedPrefix, "");
-                    
-                    // Generate textures header (same for all directions)
-                    String texturesJson = "{\"parent\":\"minecraft:block/block\",\"textures\":{" +
-                            "\"particle\":\"" + particle + "\"," +
-                            "\"top\":\"" + up + "\"," +
-                            "\"bottom\":\"" + down + "\"," +
-                            "\"side\":\"" + side + "\"" +
-                            "}";
-                    
-                    if (directionSuffix.equals("_north") || directionSuffix.isEmpty()) {
-                        return texturesJson + ",\"elements\":[{\"from\":[0,0,8],\"to\":[16,16,16],\"faces\":{" +
-                            "\"down\":{\"uv\":[0,0,16,8],\"texture\":\"#bottom\",\"cullface\":\"down\"}," +
-                            "\"up\":{\"uv\":[0,8,16,16],\"texture\":\"#top\",\"cullface\":\"up\"}," +
-                            "\"north\":{\"uv\":[0,0,16,16],\"texture\":\"#side\"}," +
-                            "\"south\":{\"uv\":[0,0,16,16],\"texture\":\"#side\",\"cullface\":\"south\"}," +
-                            "\"west\":{\"uv\":[8,0,16,16],\"texture\":\"#side\",\"cullface\":\"west\"}," +
-                            "\"east\":{\"uv\":[0,0,8,16],\"texture\":\"#side\",\"cullface\":\"east\"}" +
-                            "}}]}";
-                    } else if (directionSuffix.equals("_south")) {
-                        return texturesJson + ",\"elements\":[{\"from\":[0,0,0],\"to\":[16,16,8],\"faces\":{" +
-                            "\"down\":{\"uv\":[0,8,16,16],\"texture\":\"#bottom\",\"cullface\":\"down\"}," +
-                            "\"up\":{\"uv\":[0,0,16,8],\"texture\":\"#top\",\"cullface\":\"up\"}," +
-                            "\"north\":{\"uv\":[0,0,16,16],\"texture\":\"#side\",\"cullface\":\"north\"}," +
-                            "\"south\":{\"uv\":[0,0,16,16],\"texture\":\"#side\"}," +
-                            "\"west\":{\"uv\":[0,0,8,16],\"texture\":\"#side\",\"cullface\":\"west\"}," +
-                            "\"east\":{\"uv\":[8,0,16,16],\"texture\":\"#side\",\"cullface\":\"east\"}" +
-                            "}}]}";
-                    } else if (directionSuffix.equals("_east")) {
-                        return texturesJson + ",\"elements\":[{\"from\":[0,0,0],\"to\":[8,16,16],\"faces\":{" +
-                            "\"down\":{\"uv\":[0,0,8,16],\"texture\":\"#bottom\",\"cullface\":\"down\"}," +
-                            "\"up\":{\"uv\":[0,0,8,16],\"texture\":\"#top\",\"cullface\":\"up\"}," +
-                            "\"north\":{\"uv\":[8,0,16,16],\"texture\":\"#side\",\"cullface\":\"north\"}," +
-                            "\"south\":{\"uv\":[0,0,8,16],\"texture\":\"#side\",\"cullface\":\"south\"}," +
-                            "\"west\":{\"uv\":[0,0,16,16],\"texture\":\"#side\",\"cullface\":\"west\"}," +
-                            "\"east\":{\"uv\":[0,0,16,16],\"texture\":\"#side\"}" +
-                            "}}]}";
-                    } else if (directionSuffix.equals("_west")) {
-                        return texturesJson + ",\"elements\":[{\"from\":[8,0,0],\"to\":[16,16,16],\"faces\":{" +
-                            "\"down\":{\"uv\":[8,0,16,16],\"texture\":\"#bottom\",\"cullface\":\"down\"}," +
-                            "\"up\":{\"uv\":[8,0,16,16],\"texture\":\"#top\",\"cullface\":\"up\"}," +
-                            "\"north\":{\"uv\":[0,0,8,16],\"texture\":\"#side\",\"cullface\":\"north\"}," +
-                            "\"south\":{\"uv\":[8,0,16,16],\"texture\":\"#side\",\"cullface\":\"south\"}," +
-                            "\"west\":{\"uv\":[0,0,16,16],\"texture\":\"#side\"}," +
-                            "\"east\":{\"uv\":[0,0,16,16],\"texture\":\"#side\",\"cullface\":\"east\"}" +
-                            "}}]}";
-                    }
+                String particle = textures.getOrDefault("particle", textureId);
+                String all = textures.getOrDefault("all", textureId);
+                
+                String up = textures.getOrDefault("up", textures.getOrDefault("top", textures.getOrDefault("end", all)));
+                String down = textures.getOrDefault("down", textures.getOrDefault("bottom", textures.getOrDefault("end", all)));
+                String side = textures.getOrDefault("side", all);
+                
+                String texturesJson = "{\"parent\":\"minecraft:block/block\",\"textures\":{" +
+                        "\"particle\":\"" + particle + "\"," +
+                        "\"top\":\"" + up + "\"," +
+                        "\"bottom\":\"" + down + "\"," +
+                        "\"side\":\"" + side + "\"" +
+                        "}";
+                
+                if (directionSuffix.isEmpty() || directionSuffix.equals("_north")) {
+                    return texturesJson + ",\"elements\":[{\"from\":[0,0,8],\"to\":[16,16,16],\"faces\":{" +
+                        "\"down\":{\"uv\":[0,0,16,8],\"texture\":\"#bottom\",\"cullface\":\"down\"}," +
+                        "\"up\":{\"uv\":[0,8,16,16],\"texture\":\"#top\",\"cullface\":\"up\"}," +
+                        "\"north\":{\"uv\":[0,0,16,16],\"texture\":\"#side\"}," +
+                        "\"south\":{\"uv\":[0,0,16,16],\"texture\":\"#side\",\"cullface\":\"south\"}," +
+                        "\"west\":{\"uv\":[8,0,16,16],\"texture\":\"#side\",\"cullface\":\"west\"}," +
+                        "\"east\":{\"uv\":[0,0,8,16],\"texture\":\"#side\",\"cullface\":\"east\"}" +
+                        "}}]}";
+                } else if (directionSuffix.equals("_south")) {
+                    return texturesJson + ",\"elements\":[{\"from\":[0,0,0],\"to\":[16,16,8],\"faces\":{" +
+                        "\"down\":{\"uv\":[0,8,16,16],\"texture\":\"#bottom\",\"cullface\":\"down\"}," +
+                        "\"up\":{\"uv\":[0,0,16,8],\"texture\":\"#top\",\"cullface\":\"up\"}," +
+                        "\"north\":{\"uv\":[0,0,16,16],\"texture\":\"#side\",\"cullface\":\"north\"}," +
+                        "\"south\":{\"uv\":[0,0,16,16],\"texture\":\"#side\"}," +
+                        "\"west\":{\"uv\":[0,0,8,16],\"texture\":\"#side\",\"cullface\":\"west\"}," +
+                        "\"east\":{\"uv\":[8,0,16,16],\"texture\":\"#side\",\"cullface\":\"east\"}" +
+                        "}}]}";
+                } else if (directionSuffix.equals("_east")) {
+                    return texturesJson + ",\"elements\":[{\"from\":[0,0,0],\"to\":[8,16,16],\"faces\":{" +
+                        "\"down\":{\"uv\":[0,0,8,16],\"texture\":\"#bottom\",\"cullface\":\"down\"}," +
+                        "\"up\":{\"uv\":[0,0,8,16],\"texture\":\"#top\",\"cullface\":\"up\"}," +
+                        "\"north\":{\"uv\":[8,0,16,16],\"texture\":\"#side\",\"cullface\":\"north\"}," +
+                        "\"south\":{\"uv\":[0,0,8,16],\"texture\":\"#side\",\"cullface\":\"south\"}," +
+                        "\"west\":{\"uv\":[0,0,16,16],\"texture\":\"#side\",\"cullface\":\"west\"}," +
+                        "\"east\":{\"uv\":[0,0,16,16],\"texture\":\"#side\"}" +
+                        "}}]}";
+                } else if (directionSuffix.equals("_west")) {
+                    return texturesJson + ",\"elements\":[{\"from\":[8,0,0],\"to\":[16,16,16],\"faces\":{" +
+                        "\"down\":{\"uv\":[8,0,16,16],\"texture\":\"#bottom\",\"cullface\":\"down\"}," +
+                        "\"up\":{\"uv\":[8,0,16,16],\"texture\":\"#top\",\"cullface\":\"up\"}," +
+                        "\"north\":{\"uv\":[0,0,8,16],\"texture\":\"#side\",\"cullface\":\"north\"}," +
+                        "\"south\":{\"uv\":[8,0,16,16],\"texture\":\"#side\",\"cullface\":\"south\"}," +
+                        "\"west\":{\"uv\":[0,0,16,16],\"texture\":\"#side\"}," +
+                        "\"east\":{\"uv\":[0,0,16,16],\"texture\":\"#side\",\"cullface\":\"east\"}" +
+                        "}}]}";
                 }
             }
         }
 
-        // Slab and Stair fallbacks (simpler matching)
-        for (Map.Entry<Block, List<Block>> entry : Reshaped.MATRIX.getMatrix().entrySet()) {
-            Block baseBlock = entry.getKey();
-            Identifier baseId = Registries.BLOCK.getId(baseBlock);
-            String basePath = baseId.getPath();
-            String textureId = baseId.getNamespace() + ":block/" + basePath;
+        // Slab and Stair fallbacks (Efficient lookup)
+        Identifier blockId = new Identifier(Reshaped.MOD_ID, blockPath.replace("_top", ""));
+        Block block = Registries.BLOCK.get(blockId);
+        Block baseBlock = Reshaped.MATRIX.getBaseBlock(block);
 
-            if (blockPath.equals(basePath + "_slab_top")) {
+        if (baseBlock != null) {
+            Identifier baseId = Registries.BLOCK.getId(baseBlock);
+            String textureId = baseId.getNamespace() + ":block/" + baseId.getPath();
+
+            if (blockPath.endsWith("_slab_top")) {
                 return "{\"parent\":\"minecraft:block/slab_top\",\"textures\":{\"bottom\":\"" + textureId + "\",\"top\":\"" + textureId + "\",\"side\":\"" + textureId + "\"}}";
-            } else if (blockPath.equals(basePath + "_slab")) {
+            } else if (blockPath.endsWith("_slab")) {
                 return "{\"parent\":\"minecraft:block/slab\",\"textures\":{\"bottom\":\"" + textureId + "\",\"top\":\"" + textureId + "\",\"side\":\"" + textureId + "\"}}";
-            } else if (blockPath.equals(basePath + "_stairs")) {
+            } else if (blockPath.endsWith("_stairs")) {
                 return "{\"parent\":\"minecraft:block/stairs\",\"textures\":{\"bottom\":\"" + textureId + "\",\"top\":\"" + textureId + "\",\"side\":\"" + textureId + "\"}}";
             }
         }
@@ -364,7 +360,7 @@ public class RuntimeResourceGenerator {
                     return new Identifier(namespace, modelPath);
                 }
             } catch (Exception e) {
-                Reshaped.LOGGER.error("Failed to resolve model for block: " + blockId, e);
+                Reshaped.LOGGER.error("Failed to resolve model for block: {}", blockId, e);
             }
         }
         

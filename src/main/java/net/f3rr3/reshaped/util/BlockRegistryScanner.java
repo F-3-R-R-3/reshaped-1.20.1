@@ -16,19 +16,24 @@ import java.util.*;
 public class BlockRegistryScanner {
     public static void init(BlockMatrix matrix) {
         // 1. Process blocks already in the registry
+        // We use a copy of the list to avoid concurrent modification if completeVariant registers new blocks
+        List<Block> initialBlocks = new ArrayList<>();
         for (Block block : Registries.BLOCK) {
-            processBlock(block, matrix);
+            initialBlocks.add(block);
         }
+
+        for (Block block : initialBlocks) {
+            processBlock(block, matrix, false); // Don't refresh inside the loop
+        }
+        matrix.refresh();
 
         // 2. Reactively process blocks added later
         RegistryEntryAddedCallback.event(Registries.BLOCK).register((rawId, id, block) -> {
-            processBlock(block, matrix);
-            // After adding a new block and potentially its variants, refresh the matrix
-            matrix.refresh();
+            processBlock(block, matrix, true); // Refresh for individual additions
         });
     }
 
-    private static void processBlock(Block block, BlockMatrix matrix) {
+    private static void processBlock(Block block, BlockMatrix matrix, boolean shouldRefresh) {
         // CRITICAL: Never process AIR or non-standard blocks as variants
         if (block == null || block == Blocks.AIR) return;
         
@@ -55,7 +60,7 @@ public class BlockRegistryScanner {
 
         // Method 2: Mixin tracking (Only for known variant types)
         if (base == null && (block instanceof SlabBlock || block instanceof StairsBlock)) {
-            if (block instanceof BlockSourceTracker tracker) {
+            if (block instanceof net.f3rr3.reshaped.util.BlockSourceTracker tracker) {
                 base = tracker.reshaped$getSourceBlock();
                 if (base != null) {
                     reason = "Tracked via Mixin as a variant of " + base.getName().getString() + " (copied settings)";
@@ -63,7 +68,7 @@ public class BlockRegistryScanner {
             }
         }
 
-        // Validation: Ensure valid base, no self-mapping, and no AIR
+        // Validation: Ensure valid base, no self-mapping, no AIR, and no chaining
         if (base != null && base != block && base != Blocks.AIR) {
             // IMPORTANT: Prevent "chaining" (e.g. Copper -> Cut Copper -> Cut Copper Slab)
             // We only want the immediate full block. If 'base' is itself a slab or stair, ignore it.
@@ -71,15 +76,19 @@ public class BlockRegistryScanner {
                 // We found a variant!
                 List<Block> variants = new ArrayList<>();
                 variants.add(block);
-                matrix.addColumn(base, variants);
+                matrix.addColumn(base, variants, shouldRefresh);
                 matrix.setReason(block, reason);
                 matrix.setReason(base, "Base block for the group");
 
                 // Now that we have a base block, complete its other variants (slabs/stairs)
+                // This will also check for existing ones before registering
                 VariantCompleter.completeVariant(base, matrix);
                 
                 // And register its vertical slab
                 VerticalSlabRegistry.registerVerticalSlabForBase(base, matrix);
+
+                // Ensure the matrix and its reverse mapping are up to date
+                if (shouldRefresh) matrix.refresh();
             }
         }
     }
