@@ -110,6 +110,71 @@ public class BlockRegistryScanner {
                 Reshaped.LOGGER.error("Failed to resolve base block for slab: {}", block, e);
             }
         }
+        if (!(block instanceof StairsBlock || block instanceof SlabBlock)) {
+            try {
+                Identifier id = Registries.BLOCK.getId(block);
+                String path = id.getPath();
+                String namespace = id.getNamespace();
+
+                String[] suffixes = {
+                        "_fence",
+                        "_wall",
+                        "_trapdoor",
+                        "_door",
+                        "_pressure_plate",
+                        "_fence_gate",
+                        "_button",
+                        "_bars"
+                };
+
+                String baseName = null;
+                for (String suffix : suffixes) {
+                    if (path.endsWith(suffix)) {
+                        baseName = path.substring(0, path.length() - suffix.length());
+                        break;
+                    }
+                }
+
+
+                if (baseName != null) {
+                    List<String> candidates = Arrays.asList(
+                            baseName + "_planks",
+                            baseName + "_block",
+                            baseName + "s",
+                            baseName.replace("_brick", "_bricks"),
+                            baseName.replace("_tile", "_tiles"),
+                            baseName.replace("_shingle", "_shingles"),
+                            baseName
+                    );
+
+                    for (String candidate : candidates) {
+                        Identifier candidateId = new Identifier(namespace, candidate);
+                        Block b = Registries.BLOCK.get(candidateId);
+                        if (b != Blocks.AIR && !(b instanceof SlabBlock) && !(b instanceof StairsBlock)) {
+                            base = b;
+                            break;
+                        }
+                    }
+
+                    if (base == null && !namespace.equals("minecraft")) {
+                        for (String candidate : candidates) {
+                            Identifier candidateId = new Identifier("minecraft", candidate);
+                            Block b = Registries.BLOCK.get(candidateId);
+                            if (b != Blocks.AIR && !(b instanceof SlabBlock) && !(b instanceof StairsBlock)) {
+                                base = b;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (base != null) {
+                        reason = "Classified as Other variant based on its name matching base block: " + Registries.BLOCK.getId(base);
+                    }
+                }
+            } catch (Exception e) {
+                Reshaped.LOGGER.error("Failed to resolve base block for other variant of block: {}", block, e);
+            }
+        }
 
         // Validation: Ensure valid base, no self-mapping, no AIR, and no chaining
         if (base != null && base != block && base != Blocks.AIR) {
