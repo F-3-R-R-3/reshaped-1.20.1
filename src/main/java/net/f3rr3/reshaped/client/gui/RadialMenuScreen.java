@@ -22,11 +22,13 @@ public class RadialMenuScreen extends Screen {
     private final List<Block> blocks;
     private final int slot;
     private int hoveredIndex = -1;
+    private final Block currentBlock;
 
-    public RadialMenuScreen(List<Block> blocks, int slot) {
+    public RadialMenuScreen(List<Block> blocks, int slot, Block currentBlock) {
         super(Text.literal("Radial Menu"));
         this.blocks = blocks;
         this.slot = slot;
+        this.currentBlock = currentBlock;
     }
 
     @Override
@@ -95,13 +97,23 @@ public class RadialMenuScreen extends Screen {
             ItemStack stack = new ItemStack(block);
 
             // Draw selection highlight
-            if (i == hoveredIndex) {
+            if (block == currentBlock) {
                 // Subtle highlight around the item
                 context.fill(x - 4, y - 4, x + 20, y + 20, 0x40FFFFFF);
             }
+            if (i == hoveredIndex) {
+                // draw center block at a scale
+                float scale = 6.0f;
+                context.getMatrices().push();
+                context.getMatrices().scale(scale, scale, scale);
+                int scaledX = Math.round( (centerX / scale) - 8 );
+                int scaledY = Math.round( (centerY / scale) - 8 );
+                context.drawItem(stack, scaledX, scaledY);
+                context.getMatrices().pop();
+            } else {
+                context.drawItem(stack, x, y);
+            }
 
-            context.drawItem(stack, x, y);
-            
             if (i == hoveredIndex) {
                 String reason = Reshaped.MATRIX != null ? Reshaped.MATRIX.getReason(block) : "Unknown reason";
                 context.drawTooltip(this.textRenderer, 
@@ -109,7 +121,7 @@ public class RadialMenuScreen extends Screen {
                         block.getName(), 
                         Text.literal(reason).formatted(Formatting.GRAY, Formatting.ITALIC)
                     ), 
-                    mouseX, mouseY);
+                    -8, 16);
             }
         }
 

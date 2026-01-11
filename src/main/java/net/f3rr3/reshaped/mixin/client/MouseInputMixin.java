@@ -37,7 +37,7 @@ public abstract class MouseInputMixin {
                         if (!column.isEmpty()) {
                             int slot = client.player.getInventory().selectedSlot;
                             client.execute(() -> {
-                                client.setScreen(new RadialMenuScreen(column, slot));
+                                client.setScreen(new RadialMenuScreen(column, slot, block));
                             });
                             ci.cancel();
                         }
