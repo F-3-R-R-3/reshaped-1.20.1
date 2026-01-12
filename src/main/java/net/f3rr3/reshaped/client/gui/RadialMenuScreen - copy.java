@@ -105,7 +105,8 @@ public class RadialMenuScreen extends Screen {
         }
 
         // Draw circular background
-        drawHollowCircle(context, centerX, centerY, radius, 0f, 0xDC143C, 32);
+        context.fill(centerX - radius, centerY - radius, centerX + radius, centerY + radius, 0xFFFFFFFF);
+        drawHollowCircle(context, centerX, centerY, radius, 0f, 0xFFFFFFFF, 32);
 
         for (int i = 0; i < blocks.size(); i++) {
             double angle = i * angleStep;
@@ -164,35 +165,26 @@ public class RadialMenuScreen extends Screen {
         RenderSystem.disableDepthTest();
         RenderSystem.setShader(GameRenderer::getPositionColorProgram);
 
-        context.getMatrices().push();
-
         BufferBuilder buffer = Tessellator.getInstance().getBuffer();
-        buffer.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR);
+        buffer.begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_COLOR);
 
+        // Draw triangles from center to outer points
         for (int i = 0; i < segments; i++) {
             double angle1 = 2 * Math.PI * i / segments;
             double angle2 = 2 * Math.PI * (i + 1) / segments;
 
-            float x1Outer = centerX + radius * (float)Math.cos(angle1);
-            float y1Outer = centerY + radius * (float)Math.sin(angle1);
-            float x2Outer = centerX + radius * (float)Math.cos(angle2);
-            float y2Outer = centerY + radius * (float)Math.sin(angle2);
+            float x1 = centerX + radius * (float)Math.cos(angle1);
+            float y1 = centerY + radius * (float)Math.sin(angle1);
+            float x2 = centerX + radius * (float)Math.cos(angle2);
+            float y2 = centerY + radius * (float)Math.sin(angle2);
 
-            float x1Inner = centerX + innerRadius * (float)Math.cos(angle1);
-            float y1Inner = centerY + innerRadius * (float)Math.sin(angle1);
-            float x2Inner = centerX + innerRadius * (float)Math.cos(angle2);
-            float y2Inner = centerY + innerRadius * (float)Math.sin(angle2);
-
-            // quad tussen inner en outer circle
-            buffer.vertex(x1Outer, y1Outer, 0).color(red, green, blue, alpha).next();
-            buffer.vertex(x2Outer, y2Outer, 0).color(red, green, blue, alpha).next();
-            buffer.vertex(x2Inner, y2Inner, 0).color(red, green, blue, alpha).next();
-            buffer.vertex(x1Inner, y1Inner, 0).color(red, green, blue, alpha).next();
+            buffer.vertex(centerX, centerY, 0).color(red, green, blue, alpha).next();
+            buffer.vertex(x1, y1, 0).color(red, green, blue, alpha).next();
+            buffer.vertex(x2, y2, 0).color(red, green, blue, alpha).next();
         }
 
         Tessellator.getInstance().draw();
 
-        context.getMatrices().pop();
         RenderSystem.enableDepthTest();
     }
 
