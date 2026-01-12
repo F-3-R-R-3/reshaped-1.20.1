@@ -36,6 +36,18 @@ public class RadialMenuScreen extends Screen {
         super.init();
     }
 
+    private static void drawScaledItem(DrawContext context, ItemStack stack, int centerX, int centerY, float scale) {
+        // draws a centered block at a scale
+        context.getMatrices().push();
+        context.getMatrices().scale(scale, scale, scale);
+
+        int scaledX = Math.round((centerX / scale) - 8);
+        int scaledY = Math.round((centerY / scale) - 8);
+
+        context.drawItem(stack, scaledX, scaledY);
+        context.getMatrices().pop();
+    }
+
     @Override
     public void tick() {
         super.tick();
@@ -103,15 +115,9 @@ public class RadialMenuScreen extends Screen {
             }
             if (i == hoveredIndex) {
                 // draw center block at a scale
-                float scale = 6.0f;
-                context.getMatrices().push();
-                context.getMatrices().scale(scale, scale, scale);
-                int scaledX = Math.round( (centerX / scale) - 8 );
-                int scaledY = Math.round( (centerY / scale) - 8 );
-                context.drawItem(stack, scaledX, scaledY);
-                context.getMatrices().pop();
+                drawScaledItem(context, stack, centerX, centerY, 6.0f);
             } else {
-                context.drawItem(stack, x, y);
+                drawScaledItem(context, stack, x+8, y+8, 1.0f);
             }
 
             if (i == hoveredIndex) {
