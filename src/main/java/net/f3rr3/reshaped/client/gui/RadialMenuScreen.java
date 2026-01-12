@@ -22,12 +22,14 @@ public class RadialMenuScreen extends Screen {
     private final int slot;
     private int hoveredIndex = -1;
     private final Block currentBlock;
+    private final Block baseBlock;
 
-    public RadialMenuScreen(List<Block> blocks, int slot, Block currentBlock) {
+    public RadialMenuScreen(List<Block> blocks, int slot, Block currentBlock, Block baseBlock) {
         super(Text.literal("Radial Menu"));
         this.blocks = blocks;
         this.slot = slot;
         this.currentBlock = currentBlock;
+        this.baseBlock = baseBlock;
     }
 
     @Override
@@ -102,23 +104,37 @@ public class RadialMenuScreen extends Screen {
 
         for (int i = 0; i < blocks.size(); i++) {
             double angle = i * angleStep;
-            int x = centerX + (int) (radius * Math.cos(angle)) - 8;
-            int y = centerY + (int) (radius * Math.sin(angle)) - 8;
-            
+
             Block block = blocks.get(i);
             ItemStack stack = new ItemStack(block);
+
+            int x;
+            int y;
+            float scale;
+
+            if (i == hoveredIndex) {
+                // draw center block at a scale
+                x = centerX;
+                y = centerY;
+                scale = 6.0f;
+                drawScaledItem(context, stack, centerX, centerY, 6.0f);
+            } else {
+                x = centerX + (int) (radius * Math.cos(angle));
+                y = centerY + (int) (radius * Math.sin(angle));
+                if (baseBlock == block) {
+                    scale = 1.5f;
+                } else {
+                    scale = 1.0f;
+                }
+            }
 
             // Draw selection highlight
             if (block == currentBlock) {
                 // Subtle highlight around the item
-                context.fill(x - 4, y - 4, x + 20, y + 20, 0x40FFFFFF);
+                context.fill(x - 12, y - 12, x + 12, y + 12, 0x40FFFFFF);
             }
-            if (i == hoveredIndex) {
-                // draw center block at a scale
-                drawScaledItem(context, stack, centerX, centerY, 6.0f);
-            } else {
-                drawScaledItem(context, stack, x+8, y+8, 1.0f);
-            }
+
+            drawScaledItem(context, stack, x, y, scale);
 
             if (i == hoveredIndex) {
                 String reason = Reshaped.MATRIX != null ? Reshaped.MATRIX.getReason(block) : "Unknown reason";
