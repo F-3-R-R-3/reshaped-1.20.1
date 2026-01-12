@@ -12,7 +12,6 @@ import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.MathHelper;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
@@ -54,6 +53,7 @@ public class RadialMenuScreen extends Screen {
         
         // Check if the trigger key/button is still held
         boolean isHeld = false;
+        assert this.client != null;
         long handle = this.client.getWindow().getHandle();
         InputUtil.Key boundKey = ModKeybindings.OPEN_RADIAL_MENU.getDefaultKey();
         
