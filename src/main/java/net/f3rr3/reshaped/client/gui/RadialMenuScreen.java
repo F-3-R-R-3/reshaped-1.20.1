@@ -195,10 +195,6 @@ public class RadialMenuScreen extends Screen {
         context.drawText(this.textRenderer, debugText, textX, textY, 0xFFFFFF, false);
     }
 
-    private void drawHollowCircle(DrawContext context, int centerX, int centerY, float radius, float innerRadius, int color, int segments) {
-        // Legacy method - replaced with texture-based rendering
-    }
-
     private void drawTextureCircle(DrawContext context, int centerX, int centerY, CircleTexture.CachedCircle circle) {
         // Draw a pre-baked circle texture
         int size = circle.size;
