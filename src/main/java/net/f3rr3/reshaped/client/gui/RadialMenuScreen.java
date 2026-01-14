@@ -11,7 +11,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 import java.awt.*;
@@ -91,10 +90,6 @@ public class RadialMenuScreen extends Screen {
         int centerX = this.width / 2;
         int centerY = this.height / 2;
         int radius = 80;
-        
-        // Draw background texture
-        //int bgSize = 256;
-        //context.drawTexture(BACKGROUND_TEXTURE, centerX - bgSize / 2, centerY - bgSize / 2, 0, 0, bgSize, bgSize, bgSize, bgSize);
 
         if (blocks.isEmpty()) return;
 
@@ -198,18 +193,6 @@ public class RadialMenuScreen extends Screen {
         int textY = centerY + radius + 20;
         context.fill(textX - 2, textY - 2, textX + 150, textY + 12, 0xFF000000);
         context.drawText(this.textRenderer, debugText, textX, textY, 0xFFFFFF, false);
-    }
-
-    private void drawTextureCircle(DrawContext context, int centerX, int centerY, CircleTexture.CachedCircle circle) {
-        // Draw a pre-baked circle texture
-        int size = circle.size;
-        int x0 = centerX - size / 2;
-        int y0 = centerY - size / 2;
-        context.drawTexture(circle.textureId, x0, y0, 0, 0, size, size, size, size);
-    }
-
-    private void drawFilledCircle(DrawContext context, int centerX, int centerY, float radius, int color, int segments) {
-        // Legacy method - replaced with texture-based rendering
     }
 
     @Override
