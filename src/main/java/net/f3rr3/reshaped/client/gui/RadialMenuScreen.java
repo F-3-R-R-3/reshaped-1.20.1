@@ -13,15 +13,14 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.lwjgl.glfw.GLFW;
 
-import java.awt.*;
 import java.util.List;
 
 public class RadialMenuScreen extends Screen {
     private final List<Block> blocks;
     private final int slot;
-    private int hoveredIndex = -1;
     private final Block currentBlock;
     private final Block baseBlock;
+    private int hoveredIndex = -1;
 
     public RadialMenuScreen(List<Block> blocks, int slot, Block currentBlock, Block baseBlock) {
         super(Text.literal("Radial Menu"));
@@ -29,11 +28,6 @@ public class RadialMenuScreen extends Screen {
         this.slot = slot;
         this.currentBlock = currentBlock;
         this.baseBlock = baseBlock;
-    }
-
-    @Override
-    protected void init() {
-        super.init();
     }
 
     private static void drawScaledItem(DrawContext context, ItemStack stack, int centerX, int centerY, float scale) {
@@ -47,12 +41,13 @@ public class RadialMenuScreen extends Screen {
         context.drawItem(stack, scaledX, scaledY);
         context.getMatrices().pop();
     }
+
     private static void DrawCircleSlice(DrawContext context, int centerX, int centerY, int OuterRadius, int innerRadius, int slice, int NoOfSlices, int color) {
         // Draw hollow circular background using texture-based rendering (full circle)
         // innerRadius = radius - 16 creates a 16-pixel thick ring
-        float sectionWidth = 360f/NoOfSlices;
-        float startAngle = sectionWidth*(slice-0.5f);
-        float endAngle = sectionWidth*(slice+0.5f);
+        float sectionWidth = 360f / NoOfSlices;
+        float startAngle = sectionWidth * (slice - 0.5f);
+        float endAngle = sectionWidth * (slice + 0.5f);
         CircleTexture.CachedCircle circle = CircleTexture.getOrCreateCircle(OuterRadius, innerRadius, color, 0.7f, 1f, startAngle, endAngle);
         // Draw a pre-baked circle texture
         int size = circle.size;
@@ -62,15 +57,20 @@ public class RadialMenuScreen extends Screen {
     }
 
     @Override
+    protected void init() {
+        super.init();
+    }
+
+    @Override
     public void tick() {
         super.tick();
-        
+
         // Check if the trigger key/button is still held
         boolean isHeld = false;
         assert this.client != null;
         long handle = this.client.getWindow().getHandle();
         InputUtil.Key boundKey = ModKeybindings.OPEN_RADIAL_MENU.getDefaultKey();
-        
+
         if (boundKey.getCategory() == InputUtil.Type.KEYSYM) {
             isHeld = InputUtil.isKeyPressed(handle, boundKey.getCode());
         } else if (boundKey.getCategory() == InputUtil.Type.MOUSE) {
@@ -86,7 +86,7 @@ public class RadialMenuScreen extends Screen {
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         this.renderBackground(context);
-        
+
         int centerX = this.width / 2;
         int centerY = this.height / 2;
         int radius = 80;
@@ -100,11 +100,11 @@ public class RadialMenuScreen extends Screen {
         double dx = mouseX - centerX;
         double dy = mouseY - centerY;
         double distSq = dx * dx + dy * dy;
-        
+
         if (distSq > 400 && distSq < 15000) { // Only if mouse is within a certain distance from center
             double mouseAngle = Math.atan2(dy, dx);
             if (mouseAngle < 0) mouseAngle += 2 * Math.PI;
-            
+
             // Re-map angle so that the segments line up with visuals if needed
             // Currently using i * angleStep, so segment 0 is at 3 o'clock
             hoveredIndex = (int) Math.round(mouseAngle / angleStep) % blocks.size();
@@ -123,6 +123,8 @@ public class RadialMenuScreen extends Screen {
             if (i == hoveredIndex) {
                 // draw center block at a scale
                 drawScaledItem(context, stack, centerX, centerY, 6.0f);
+            } else if (block == currentBlock && hoveredIndex == -1) {
+                drawScaledItem(context, stack, centerX, centerY, 6.0f);
             }
 
             int x;
@@ -132,18 +134,10 @@ public class RadialMenuScreen extends Screen {
             x = centerX + (int) (radius * Math.cos(angle));
             y = centerY + (int) (radius * Math.sin(angle));
 
-
-
             if (baseBlock == block) {
-                    scale = 1.5f;
+                scale = 1.5f;
             } else {
-                    scale = 1.0f;
-            }
-
-            // Draw selection highlight
-            if (block == currentBlock) {
-                // Subtle highlight around the item
-                context.fill(x - 12, y - 12, x + 12, y + 12, 0x40FFFFFF);
+                scale = 1.0f;
             }
 
             int innerDiam = radius - 10;
@@ -156,34 +150,32 @@ public class RadialMenuScreen extends Screen {
                 DrawCircleSlice(context, centerX, centerY, outerDiam + 6, innerDiam - 4, i, blocks.size(), 0x40FFFFFF);
 
 
-
                 String reason = Reshaped.MATRIX != null ? Reshaped.MATRIX.getReason(block) : "Unknown reason";
                 context.drawTooltip(this.textRenderer,
-                    List.of(
-                        block.getName(),
-                        Text.literal(reason).formatted(Formatting.GRAY, Formatting.ITALIC)
-                    ),
-                    -8, 16);
+                        List.of(
+                                block.getName(),
+                                Text.literal(reason).formatted(Formatting.GRAY, Formatting.ITALIC)
+                        ),
+                        -8, 16);
             } else {
                 DrawCircleSlice(context, centerX, centerY, outerDiam, innerDiam, i, blocks.size(), 0x7F000000);
             }
         }
-        
+
         // Debug rendering
         if (isCtrlPressed()) {
             renderDebugInfo(context, centerX, centerY, radius);
         }
-        
+
         super.render(context, mouseX, mouseY, delta);
     }
-
 
 
     private boolean isCtrlPressed() {
         assert this.client != null;
         long handle = this.client.getWindow().getHandle();
         return GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS ||
-               GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS;
+                GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS;
     }
 
     private void renderDebugInfo(DrawContext context, int centerX, int centerY, int radius) {
