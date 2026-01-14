@@ -28,12 +28,14 @@ public class CircleTexture {
     }
     
     /**
-     * Gets or creates a cached circle texture
+     * Gets or creates a cached circle slice texture
      * @param outerRadius outer radius of the circle in pixels
      * @param innerRadius inner radius for ring style (set to 0 for filled circle)
      * @param color RGB color (e.g., 0xFFFFFF for white)
      * @param alpha opacity (0.0 - 1.0)
      * @param outlineThickness outline thickness in pixels (0 for no outline)
+     * @param startAngle start angle in degrees (0 = right, 90 = down, 180 = left, 270 = up)
+     * @param stopAngle stop angle in degrees
      * @return cached circle texture
      */
     public static CachedCircle getOrCreateCircle(
@@ -41,10 +43,13 @@ public class CircleTexture {
             int innerRadius,
             int color,
             float alpha,
-            float outlineThickness
+            float outlineThickness,
+            float startAngle,
+            float stopAngle
     ) {
         String key = outerRadius + "|" + innerRadius + "|" + color + "|" + 
-                Math.round(alpha * 1000) + "|" + Math.round(outlineThickness * 10);
+                Math.round(alpha * 1000) + "|" + Math.round(outlineThickness * 10) + "|" +
+                Math.round(startAngle * 100) + "|" + Math.round(stopAngle * 100);
         
         if (CACHE.containsKey(key)) {
             return CACHE.get(key);
@@ -67,33 +72,43 @@ public class CircleTexture {
         float inner = Math.max(0, innerRadius);
         float aa = 1.5f; // anti-alias smoothness
         
-        // Draw circle/ring
+        // Convert angles to radians
+        float startRad = (float) Math.toRadians(startAngle);
+        float stopRad = (float) Math.toRadians(stopAngle);
+        
+        // Draw circle slice/ring
         for (int y = 0; y < size; y++) {
             for (int x = 0; x < size; x++) {
                 float dx = (x + 0.5f) - cx;
                 float dy = (y + 0.5f) - cy;
                 float dist = (float) Math.sqrt(dx * dx + dy * dy);
+                float angle = (float) Math.atan2(dy, dx);
                 
                 float a = 0f;
                 
-                // Fill
-                if (innerRadius > 0) {
-                    // Ring
-                    if (dist >= inner && dist <= outer) {
-                        a = alpha * smoothstep(0f, aa, (outer + aa) - dist) 
-                            * smoothstep(0f, aa, dist - (inner - aa));
-                    }
-                } else {
-                    // Filled circle
-                    if (dist <= outer) {
-                        a = alpha * smoothstep(0f, aa, (outer + aa) - dist);
-                    }
-                }
+                // Check if angle is within the slice range
+                boolean inAngleRange = isAngleInRange(angle, startRad, stopRad);
                 
-                // Outline
-                if (outlineThickness > 0) {
-                    float outlineAlpha = smoothstep(outlineThickness + aa, outlineThickness - aa, Math.abs(dist - outer));
-                    a = Math.max(a, outlineAlpha);
+                if (inAngleRange) {
+                    // Fill
+                    if (innerRadius > 0) {
+                        // Ring slice
+                        if (dist >= inner && dist <= outer) {
+                            a = alpha * smoothstep(0f, aa, (outer + aa) - dist) 
+                                * smoothstep(0f, aa, dist - (inner - aa));
+                        }
+                    } else {
+                        // Filled circle slice
+                        if (dist <= outer) {
+                            a = alpha * smoothstep(0f, aa, (outer + aa) - dist);
+                        }
+                    }
+                    
+                    // Outline
+                    if (outlineThickness > 0) {
+                        float outlineAlpha = smoothstep(outlineThickness + aa, outlineThickness - aa, Math.abs(dist - outer));
+                        a = Math.max(a, outlineAlpha);
+                    }
                 }
                 
                 int alpha8bit = Math.min(255, Math.round(a * 255f));
@@ -111,6 +126,49 @@ public class CircleTexture {
         CachedCircle cached = new CachedCircle(textureId, size);
         CACHE.put(key, cached);
         return cached;
+    }
+    
+    /**
+     * Gets or creates a cached full circle texture
+     * @param outerRadius outer radius of the circle in pixels
+     * @param innerRadius inner radius for ring style (set to 0 for filled circle)
+     * @param color RGB color (e.g., 0xFFFFFF for white)
+     * @param alpha opacity (0.0 - 1.0)
+     * @param outlineThickness outline thickness in pixels (0 for no outline)
+     * @return cached circle texture
+     */
+    public static CachedCircle getOrCreateCircle(
+            int outerRadius,
+            int innerRadius,
+            int color,
+            float alpha,
+            float outlineThickness
+    ) {
+        return getOrCreateCircle(outerRadius, innerRadius, color, alpha, outlineThickness, 0f, 360f);
+    }
+    
+    /**
+     * Checks if an angle is within the slice range
+     * @param angle angle in radians
+     * @param startAngle start angle in radians
+     * @param stopAngle stop angle in radians
+     * @return true if angle is within the range
+     */
+    private static boolean isAngleInRange(float angle, float startAngle, float stopAngle) {
+        // Normalize angles to [-π, π]
+        while (angle < -Math.PI) angle += 2 * Math.PI;
+        while (angle > Math.PI) angle -= 2 * Math.PI;
+        while (startAngle < -Math.PI) startAngle += 2 * Math.PI;
+        while (startAngle > Math.PI) startAngle -= 2 * Math.PI;
+        while (stopAngle < -Math.PI) stopAngle += 2 * Math.PI;
+        while (stopAngle > Math.PI) stopAngle -= 2 * Math.PI;
+        
+        if (startAngle <= stopAngle) {
+            return angle >= startAngle && angle <= stopAngle;
+        } else {
+            // Range wraps around
+            return angle >= startAngle || angle <= stopAngle;
+        }
     }
     
     /**

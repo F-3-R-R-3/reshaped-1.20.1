@@ -1,13 +1,11 @@
 package net.f3rr3.reshaped.client.gui;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.f3rr3.reshaped.Reshaped;
 import net.f3rr3.reshaped.client.ModKeybindings;
 import net.f3rr3.reshaped.network.NetworkHandler;
 import net.minecraft.block.Block;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.render.*;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
@@ -16,6 +14,7 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
+import java.awt.*;
 import java.util.List;
 
 public class RadialMenuScreen extends Screen {
@@ -50,6 +49,19 @@ public class RadialMenuScreen extends Screen {
 
         context.drawItem(stack, scaledX, scaledY);
         context.getMatrices().pop();
+    }
+    private static void DrawCircleSlice(DrawContext context, int centerX, int centerY, int OuterRadius, int innerRadius, int slice, int NoOfSlices, int color) {
+        // Draw hollow circular background using texture-based rendering (full circle)
+        // innerRadius = radius - 16 creates a 16-pixel thick ring
+        float sectionWidth = 360f/NoOfSlices;
+        float startAngle = sectionWidth*(slice-0.5f);
+        float endAngle = sectionWidth*(slice+0.5f);
+        CircleTexture.CachedCircle circle = CircleTexture.getOrCreateCircle(OuterRadius, innerRadius, color, 0.7f, 1f, startAngle, endAngle);
+        // Draw a pre-baked circle texture
+        int size = circle.size;
+        int x0 = centerX - size / 2;
+        int y0 = centerY - size / 2;
+        context.drawTexture(circle.textureId, x0, y0, 0, 0, size, size, size, size);
     }
 
     @Override
@@ -105,10 +117,6 @@ public class RadialMenuScreen extends Screen {
             hoveredIndex = (int) Math.round(mouseAngle / angleStep) % blocks.size();
         }
 
-        // Draw hollow circular background using texture-based rendering (full circle)
-        // innerRadius = radius - 16 creates a 16-pixel thick ring
-        CircleTexture.CachedCircle bgCircle = CircleTexture.getOrCreateCircle(radius, radius - 16, 0x4A4A4A, 0.7f, 1f);
-        drawTextureCircle(context, centerX, centerY, bgCircle);
 
         // Draw individual segments per item (will be drawn on top of background)
         // Non-hovered segments are rendered in red
@@ -119,40 +127,43 @@ public class RadialMenuScreen extends Screen {
             Block block = blocks.get(i);
             ItemStack stack = new ItemStack(block);
 
+            if (i == hoveredIndex) {
+                // draw center block at a scale
+                drawScaledItem(context, stack, centerX, centerY, 6.0f);
+            }
+
             int x;
             int y;
             float scale;
 
-            if (i == hoveredIndex) {
-                // draw center block at a scale
-                x = centerX;
-                y = centerY;
-                scale = 6.0f;
-                drawScaledItem(context, stack, centerX, centerY, 6.0f);
-            } else {
-                x = centerX + (int) (radius * Math.cos(angle));
-                y = centerY + (int) (radius * Math.sin(angle));
-                if (baseBlock == block) {
+            x = centerX + (int) (radius * Math.cos(angle));
+            y = centerY + (int) (radius * Math.sin(angle));
+
+
+
+            if (baseBlock == block) {
                     scale = 1.5f;
-                } else {
+            } else {
                     scale = 1.0f;
-                }
             }
+
             // Draw selection highlight
             if (block == currentBlock) {
                 // Subtle highlight around the item
                 context.fill(x - 12, y - 12, x + 12, y + 12, 0x40FFFFFF);
             }
 
-            int innerDiam = radius - 16;
-            int outerDiam = radius + 16;
-            if (i != hoveredIndex) {
-                drawCircleSegment(context, centerX, centerY, i, blocks.size(), innerDiam, outerDiam, 0xFFDC143C, -90f);
-            }
+            int innerDiam = radius - 10;
+            int outerDiam = radius + 10;
 
             drawScaledItem(context, stack, x, y, scale);
 
             if (i == hoveredIndex) {
+
+                DrawCircleSlice(context, centerX, centerY, outerDiam + 6, innerDiam - 4, i, blocks.size(), 0x40FFFFFF);
+
+
+
                 String reason = Reshaped.MATRIX != null ? Reshaped.MATRIX.getReason(block) : "Unknown reason";
                 context.drawTooltip(this.textRenderer,
                     List.of(
@@ -160,6 +171,8 @@ public class RadialMenuScreen extends Screen {
                         Text.literal(reason).formatted(Formatting.GRAY, Formatting.ITALIC)
                     ),
                     -8, 16);
+            } else {
+                DrawCircleSlice(context, centerX, centerY, outerDiam, innerDiam, i, blocks.size(), 0x7F000000);
             }
         }
         
@@ -171,6 +184,8 @@ public class RadialMenuScreen extends Screen {
         super.render(context, mouseX, mouseY, delta);
     }
 
+
+
     private boolean isCtrlPressed() {
         assert this.client != null;
         long handle = this.client.getWindow().getHandle();
@@ -179,14 +194,6 @@ public class RadialMenuScreen extends Screen {
     }
 
     private void renderDebugInfo(DrawContext context, int centerX, int centerY, int radius) {
-        // Draw debug circles to visualize the interactive area
-        drawDebugCircle(context, centerX, centerY, 20, 0xFFFF0000); // Center point - red
-        drawDebugCircle(context, centerX, centerY, (int) Math.sqrt(400), 0xFF00FF00); // Min distance - green
-        drawDebugCircle(context, centerX, centerY, (int) Math.sqrt(15000), 0xFF0000FF); // Max distance - blue
-        
-        // Draw radius outline
-        drawDebugCircle(context, centerX, centerY, radius, 0xFFFFFF00); // Radius - yellow
-        
         // Draw debug text
         String debugText = "Radial: Hover " + hoveredIndex + " | Items: " + blocks.size();
         int textX = centerX - 150;
@@ -203,103 +210,8 @@ public class RadialMenuScreen extends Screen {
         context.drawTexture(circle.textureId, x0, y0, 0, 0, size, size, size, size);
     }
 
-    /**
-     * Draws a single segment (wedge) of a circular ring.
-     * Now uses CircleTexture's pre-baked approach for reliable rendering.
-     * 
-     * @param context the DrawContext for rendering
-     * @param centerX center X coordinate
-     * @param centerY center Y coordinate
-     * @param segmentIndex the index of the segment to draw (0 to totalSegments-1)
-     * @param totalSegments total number of segments in the circle
-     * @param innerDiameter inner diameter of the ring (0 for filled circle)
-     * @param outerDiameter outer diameter of the ring
-     * @param color ARGB color (e.g., 0xFF4A4A4A for gray)
-     * @param startRotationDeg optional rotation offset in degrees (0 = default)
-     */
-    public void drawCircleSegment(DrawContext context, int centerX, int centerY, 
-                                   int segmentIndex, int totalSegments,
-                                   int innerDiameter, int outerDiameter,
-                                   int color, float startRotationDeg) {
-        // Create a full circle in the segment's color and draw it clipped
-        int outerRadius = outerDiameter / 2;
-        int innerRadius = innerDiameter / 2;
-        float alpha = ((color >> 24) & 0xFF) / 255f;
-        int colorRGB = color & 0xFFFFFF;
-        
-        // Get a full circle texture in our color
-        CircleTexture.CachedCircle circle = CircleTexture.getOrCreateCircle(
-            outerRadius, innerRadius, colorRGB, alpha, 1f
-        );
-        
-        // Calculate segment angles
-        float segmentAngle = 360f / totalSegments;
-        float startAngle = segmentIndex * segmentAngle + startRotationDeg;
-        
-        // Enable scissor test to clip the circle to only the segment
-        int size = circle.size;
-        int x0 = centerX - size / 2;
-        int y0 = centerY - size / 2;
-        
-        var matrices = context.getMatrices();
-        matrices.push();
-        
-        // Rotate the matrix so our segment is correctly oriented
-        matrices.translate(centerX, centerY, 0);
-        // Note: Would need proper rotation support - for now, draw the full circle
-        // with a visual indicator that it's been rotated
-        matrices.translate(-centerX, -centerY, 0);
-        
-        // Draw the full textured circle (rotation will be added in final implementation)
-        context.drawTexture(circle.textureId, x0, y0, 0, 0, size, size, size, size);
-        
-        matrices.pop();
-    }
-
-    /**
-     * Simplified overload for drawing circle segments with default rotation
-     */
-    public void drawCircleSegment(DrawContext context, int centerX, int centerY,
-                                   int segmentIndex, int totalSegments,
-                                   int innerDiameter, int outerDiameter, int color) {
-        drawCircleSegment(context, centerX, centerY, segmentIndex, totalSegments, 
-                         innerDiameter, outerDiameter, color, 0f);
-    }
-
     private void drawFilledCircle(DrawContext context, int centerX, int centerY, float radius, int color, int segments) {
         // Legacy method - replaced with texture-based rendering
-    }
-
-    private void drawDebugCircle(DrawContext context, int centerX, int centerY, int radius, int color) {
-        // Draw a thin outline circle for debugging purposes
-        float alpha = ((color >> 24) & 0xFF) / 255f;
-        float red   = ((color >> 16) & 0xFF) / 255f;
-        float green = ((color >> 8)  & 0xFF) / 255f;
-        float blue  = (color & 0xFF) / 255f;
-
-        var matrices = context.getMatrices();
-        matrices.push();
-
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.disableDepthTest();
-        RenderSystem.setShader(GameRenderer::getPositionColorProgram);
-
-        BufferBuilder buffer = Tessellator.getInstance().getBuffer();
-        buffer.begin(VertexFormat.DrawMode.LINE_STRIP, VertexFormats.POSITION_COLOR);
-
-        int segments = 64;
-        for (int i = 0; i <= segments; i++) {
-            double angle = 2 * Math.PI * i / segments;
-            float x = centerX + radius * (float) Math.cos(angle);
-            float y = centerY + radius * (float) Math.sin(angle);
-            buffer.vertex(x, y, 0).color(red, green, blue, alpha).next();
-        }
-
-        BufferRenderer.drawWithGlobalProgram(buffer.end());
-
-        RenderSystem.enableDepthTest();
-        matrices.pop();
     }
 
     @Override
