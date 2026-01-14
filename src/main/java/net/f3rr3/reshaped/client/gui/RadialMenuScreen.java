@@ -18,13 +18,11 @@ import java.awt.*;
 import java.util.List;
 
 public class RadialMenuScreen extends Screen {
-    private static final Identifier BACKGROUND_TEXTURE = new Identifier(Reshaped.MOD_ID, "textures/gui/radial_menu_bg.png");
     private final List<Block> blocks;
     private final int slot;
     private int hoveredIndex = -1;
     private final Block currentBlock;
     private final Block baseBlock;
-    private static final boolean DEBUG_MODE = true; // Set to true to see debug circles
 
     public RadialMenuScreen(List<Block> blocks, int slot, Block currentBlock, Block baseBlock) {
         super(Text.literal("Radial Menu"));
