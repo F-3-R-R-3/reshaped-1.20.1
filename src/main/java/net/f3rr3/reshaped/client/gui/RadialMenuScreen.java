@@ -110,10 +110,10 @@ public class RadialMenuScreen extends Screen {
             hoveredIndex = (int) Math.round(mouseAngle / angleStep) % blocks.size();
         }
 
-
         // Draw individual segments per item (will be drawn on top of background)
         // Non-hovered segments are rendered in red
-
+        int innerDiam = radius - 10;
+        int outerDiam = radius + 10;
         for (int i = 0; i < blocks.size(); i++) {
             double angle = i * angleStep;
 
@@ -127,12 +127,9 @@ public class RadialMenuScreen extends Screen {
                 drawScaledItem(context, stack, centerX, centerY, 6.0f);
             }
 
-            int x;
-            int y;
+            int x = centerX + (int) (radius * Math.cos(angle));
+            int y = centerY + (int) (radius * Math.sin(angle));
             float scale;
-
-            x = centerX + (int) (radius * Math.cos(angle));
-            y = centerY + (int) (radius * Math.sin(angle));
 
             if (baseBlock == block) {
                 scale = 1.5f;
@@ -140,16 +137,9 @@ public class RadialMenuScreen extends Screen {
                 scale = 1.0f;
             }
 
-            int innerDiam = radius - 10;
-            int outerDiam = radius + 10;
-
             drawScaledItem(context, stack, x, y, scale);
 
             if (i == hoveredIndex) {
-
-                DrawCircleSlice(context, centerX, centerY, outerDiam + 6, innerDiam - 4, i, blocks.size(), 0x40FFFFFF);
-
-
                 String reason = Reshaped.MATRIX != null ? Reshaped.MATRIX.getReason(block) : "Unknown reason";
                 context.drawTooltip(this.textRenderer,
                         List.of(
@@ -158,8 +148,12 @@ public class RadialMenuScreen extends Screen {
                         ),
                         -8, 16);
             } else {
-                DrawCircleSlice(context, centerX, centerY, outerDiam, innerDiam, i, blocks.size(), 0x7F000000);
+                DrawCircleSlice(context, centerX, centerY, outerDiam, innerDiam, i, blocks.size(), 0x7F333333);
             }
+        }
+
+        if (!(hoveredIndex == -1)) {
+            DrawCircleSlice(context, centerX, centerY, outerDiam + 6, innerDiam - 4, hoveredIndex, blocks.size(), 0x40666666);
         }
 
         // Debug rendering
