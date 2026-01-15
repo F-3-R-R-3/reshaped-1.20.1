@@ -7,6 +7,7 @@ import net.minecraft.block.Block;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
@@ -22,6 +23,9 @@ public class RadialMenuScreen extends Screen {
     private final Block baseBlock;
     private int hoveredIndex = -1;
 
+    // Action to perform during the render cycle to ensure safe screen transitions
+    private Runnable pendingAction;
+
     public RadialMenuScreen(List<Block> blocks, int slot, Block currentBlock, Block baseBlock) {
         super(Text.literal("Radial Menu"));
         this.blocks = blocks;
@@ -31,7 +35,6 @@ public class RadialMenuScreen extends Screen {
     }
 
     private static void drawScaledItem(DrawContext context, ItemStack stack, int centerX, int centerY, float scale) {
-        // draws a centered block at a scale
         context.getMatrices().push();
         context.getMatrices().scale(scale, scale, scale);
 
@@ -43,13 +46,11 @@ public class RadialMenuScreen extends Screen {
     }
 
     private static void DrawCircleSlice(DrawContext context, int centerX, int centerY, int OuterRadius, int innerRadius, int slice, int NoOfSlices, int color) {
-        // Draw hollow circular background using texture-based rendering (full circle)
-        // innerRadius = radius - 16 creates a 16-pixel thick ring
         float sectionWidth = 360f / NoOfSlices;
         float startAngle = sectionWidth * (slice - 0.5f);
         float endAngle = sectionWidth * (slice + 0.5f);
         CircleTexture.CachedCircle circle = CircleTexture.getOrCreateCircle(OuterRadius, innerRadius, color, 0.7f, 1f, startAngle, endAngle);
-        // Draw a pre-baked circle texture
+
         int size = circle.size;
         int x0 = centerX - size / 2;
         int y0 = centerY - size / 2;
@@ -67,14 +68,15 @@ public class RadialMenuScreen extends Screen {
 
         // Check if the trigger key/button is still held
         boolean isHeld = false;
-        assert this.client != null;
-        long handle = this.client.getWindow().getHandle();
-        InputUtil.Key boundKey = ModKeybindings.OPEN_RADIAL_MENU.getDefaultKey();
+        if (this.client != null) {
+            long handle = this.client.getWindow().getHandle();
+            InputUtil.Key boundKey = ModKeybindings.OPEN_RADIAL_MENU.getDefaultKey();
 
-        if (boundKey.getCategory() == InputUtil.Type.KEYSYM) {
-            isHeld = InputUtil.isKeyPressed(handle, boundKey.getCode());
-        } else if (boundKey.getCategory() == InputUtil.Type.MOUSE) {
-            isHeld = org.lwjgl.glfw.GLFW.glfwGetMouseButton(handle, boundKey.getCode()) == org.lwjgl.glfw.GLFW.GLFW_PRESS;
+            if (boundKey.getCategory() == InputUtil.Type.KEYSYM) {
+                isHeld = InputUtil.isKeyPressed(handle, boundKey.getCode());
+            } else if (boundKey.getCategory() == InputUtil.Type.MOUSE) {
+                isHeld = org.lwjgl.glfw.GLFW.glfwGetMouseButton(handle, boundKey.getCode()) == org.lwjgl.glfw.GLFW.GLFW_PRESS;
+            }
         }
 
         if (!isHeld) {
@@ -85,6 +87,8 @@ public class RadialMenuScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+
+
         this.renderBackground(context);
 
         int centerX = this.width / 2;
@@ -101,17 +105,13 @@ public class RadialMenuScreen extends Screen {
         double dy = mouseY - centerY;
         double distSq = dx * dx + dy * dy;
 
-        if (distSq > 400 && distSq < 15000) { // Only if mouse is within a certain distance from center
+        if (distSq > 400 && distSq < 15000) {
             double mouseAngle = Math.atan2(dy, dx);
             if (mouseAngle < 0) mouseAngle += 2 * Math.PI;
 
-            // Re-map angle so that the segments line up with visuals if needed
-            // Currently using i * angleStep, so segment 0 is at 3 o'clock
             hoveredIndex = (int) Math.round(mouseAngle / angleStep) % blocks.size();
         }
 
-        // Draw individual segments per item (will be drawn on top of background)
-        // Non-hovered segments are rendered in red
         int innerDiam = radius - 10;
         int outerDiam = radius + 10;
         for (int i = 0; i < blocks.size(); i++) {
@@ -121,7 +121,6 @@ public class RadialMenuScreen extends Screen {
             ItemStack stack = new ItemStack(block);
 
             if (i == hoveredIndex) {
-                // draw center block at a scale
                 drawScaledItem(context, stack, centerX, centerY, 6.0f);
             } else if (block == currentBlock && hoveredIndex == -1) {
                 drawScaledItem(context, stack, centerX, centerY, 6.0f);
@@ -152,7 +151,7 @@ public class RadialMenuScreen extends Screen {
             }
         }
 
-        if (!(hoveredIndex == -1)) {
+        if (hoveredIndex != -1) {
             DrawCircleSlice(context, centerX, centerY, outerDiam + 6, innerDiam - 4, hoveredIndex, blocks.size(), 0x40666666);
         }
 
@@ -162,18 +161,21 @@ public class RadialMenuScreen extends Screen {
         }
 
         super.render(context, mouseX, mouseY, delta);
+
+        if (this.pendingAction != null) {
+            this.pendingAction.run();
+            this.pendingAction = null;
+        }
     }
 
-
     private boolean isCtrlPressed() {
-        assert this.client != null;
+        if (this.client == null) return false;
         long handle = this.client.getWindow().getHandle();
         return GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS ||
                 GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS;
     }
 
     private void renderDebugInfo(DrawContext context, int centerX, int centerY, int radius) {
-        // Draw debug text
         String debugText = "Radial: Hover " + hoveredIndex + " | Items: " + blocks.size();
         int textX = centerX - 150;
         int textY = centerY + radius + 20;
@@ -183,7 +185,6 @@ public class RadialMenuScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        // Fallback: If user clicks while menu is open, select and close
         if (button == 0 || button == 1) {
             selectHovered();
             return true;
@@ -192,12 +193,62 @@ public class RadialMenuScreen extends Screen {
     }
 
     @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+        if (this.client != null && this.client.player != null) {
+            int i = this.client.player.getInventory().selectedSlot;
+            int j = (int) Math.signum(amount);
+            int newSlot = i - j;
+            while (newSlot < 0) {
+                newSlot += 9;
+            }
+            while (newSlot >= 9) {
+                newSlot -= 9;
+            }
+            this.changeSlot(newSlot);
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, amount);
+    }
+
+    private void changeSlot(int newSlot) {
+        if (this.client != null && this.client.player != null) {
+            this.client.player.getInventory().selectedSlot = newSlot;
+
+            // Defer the screen change to the render loop to avoid crashing if called from an input event
+            this.pendingAction = () -> {
+                ItemStack stack = this.client.player.getMainHandStack();
+                if (stack.getItem() instanceof BlockItem blockItem) {
+                    Block block = blockItem.getBlock();
+                    if (Reshaped.MATRIX != null && Reshaped.MATRIX.hasBlock(block)) {
+                        List<Block> column = Reshaped.MATRIX.getColumn(block);
+                        if (!column.isEmpty()) {
+                            Block baseBlock = Reshaped.MATRIX.getBaseBlock(block);
+                            this.client.setScreen(new RadialMenuScreen(column, newSlot, block, baseBlock));
+                            return;
+                        }
+                    }
+                }
+                this.close();
+            };
+        }
+    }
+
+    @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        // Allow escape to close without selecting
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             this.close();
             return true;
         }
+
+        if (this.client != null && this.client.options != null) {
+            for (int i = 0; i < 9; i++) {
+                if (this.client.options.hotbarKeys[i].matchesKey(keyCode, scanCode)) {
+                    this.changeSlot(i);
+                    return true;
+                }
+            }
+        }
+
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
