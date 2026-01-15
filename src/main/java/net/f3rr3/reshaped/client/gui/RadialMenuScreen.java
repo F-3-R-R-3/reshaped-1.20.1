@@ -88,9 +88,6 @@ public class RadialMenuScreen extends Screen {
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
 
-
-        this.renderBackground(context);
-
         int centerX = this.width / 2;
         int centerY = this.height / 2;
         int radius = 80;
