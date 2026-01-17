@@ -1,5 +1,6 @@
 package net.f3rr3.reshaped.client.gui;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.f3rr3.reshaped.Reshaped;
 import net.f3rr3.reshaped.client.ModKeybindings;
 import net.f3rr3.reshaped.network.NetworkHandler;
@@ -7,6 +8,7 @@ import net.minecraft.block.Block;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.render.DiffuseLighting;
 import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.item.ItemRenderer;
@@ -18,6 +20,7 @@ import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.RotationAxis;
+import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
@@ -54,20 +57,28 @@ public class RadialMenuScreen extends Screen {
 
     public static void renderRotatingItem(DrawContext context, ItemStack stack, int x, int y, float angleRad, float scale1, float scale2, float scale3) {
         var matrices = context.getMatrices();
-        VertexConsumerProvider vertexConsumers = context.getVertexConsumers();
         ItemRenderer itemRenderer = MinecraftClient.getInstance().getItemRenderer();
 
         matrices.push();
 
+        // Set STATIC shader lights for top-left lighting direction
+        // Testing negative X to move light to the Left.
+        // Y is kept at -1.0f (Top).
+        Vector3f lightDir1 = new Vector3f(0.2F, -1.0F, -0.7F).normalize();
+        Vector3f lightDir2 = new Vector3f(-0.2F, -1.0F, 0.7F).normalize();  // Lighting taken from the minecraft source code wih reversed y
+        RenderSystem.setShaderLights(lightDir1, lightDir2);
+
         // Zet het item in het midden van de positie en schaal het
-        matrices.translate(x + 8, y + 8, 100); // 100 = diepte boven UI
+        matrices.translate(x, y, 100); // 100 = diepte boven UI
         matrices.scale(scale1 * 16f, scale2 * 16f, scale3 * 16f);
 
         // Rotatie rond Y-as
-        matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(180f));
+
         matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(30));
         matrices.multiply(RotationAxis.POSITIVE_Y.rotation(angleRad));
 
+        // Use immediate vertex consumer to ensure our shader lights are applied
+        VertexConsumerProvider.Immediate immediate = MinecraftClient.getInstance().getBufferBuilders().getEntityVertexConsumers();
 
         // Render call met World en seed
         itemRenderer.renderItem(
@@ -76,11 +87,18 @@ public class RadialMenuScreen extends Screen {
                 0xF000F0,                    // light
                 OverlayTexture.DEFAULT_UV,    // overlay
                 matrices,
-                vertexConsumers,
+                immediate,
                 MinecraftClient.getInstance().world, // world
                 0                               // seed
         );
+
+        // Draw the buffered content with our custom lighting
+        immediate.draw();
+
         matrices.pop();
+
+        // Restore default GUI depth lighting after rendering
+        DiffuseLighting.enableGuiDepthLighting();
     }
 
     private static void DrawCircleSlice(DrawContext context, int centerX, int centerY, int OuterRadius, int innerRadius, int slice, int NoOfSlices, int color) {
