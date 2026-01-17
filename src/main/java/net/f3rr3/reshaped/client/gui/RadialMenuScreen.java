@@ -225,8 +225,6 @@ public class RadialMenuScreen extends Screen {
 
         // Debug rendering
         if (isCtrlPressed()) {
-            float yDiff = mouseY - centerY;
-            float xDiff = mouseX - centerX;
             float relativeAngle = getRelativeAngleToMouse(centerX, centerY, mouseX, mouseY);
             renderDebugInfo(context, centerX, centerY, radius, relativeAngle);
         }
