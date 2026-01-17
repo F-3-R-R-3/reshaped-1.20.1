@@ -4,14 +4,20 @@ import net.f3rr3.reshaped.Reshaped;
 import net.f3rr3.reshaped.client.ModKeybindings;
 import net.f3rr3.reshaped.network.NetworkHandler;
 import net.minecraft.block.Block;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.render.OverlayTexture;
+import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.item.ItemRenderer;
+import net.minecraft.client.render.model.json.ModelTransformationMode;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.math.RotationAxis;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
@@ -35,14 +41,46 @@ public class RadialMenuScreen extends Screen {
     }
 
     private static void drawScaledItem(DrawContext context, ItemStack stack, int centerX, int centerY, float scale) {
-        context.getMatrices().push();
-        context.getMatrices().scale(scale, scale, scale);
+        var matrices = context.getMatrices();
+        matrices.push();
+        matrices.scale(scale, scale, scale);
 
         int scaledX = Math.round((centerX / scale) - 8);
         int scaledY = Math.round((centerY / scale) - 8);
 
         context.drawItem(stack, scaledX, scaledY);
-        context.getMatrices().pop();
+        matrices.pop();
+    }
+
+    public static void renderRotatingItem(DrawContext context, ItemStack stack, int x, int y, float angleRad, float scale1, float scale2, float scale3) {
+        var matrices = context.getMatrices();
+        VertexConsumerProvider vertexConsumers = context.getVertexConsumers();
+        ItemRenderer itemRenderer = MinecraftClient.getInstance().getItemRenderer();
+
+        matrices.push();
+
+        // Zet het item in het midden van de positie en schaal het
+        matrices.translate(x + 8, y + 8, 100); // 100 = diepte boven UI
+        matrices.scale(scale1 * 16f, scale2 * 16f, scale3 * 16f);
+
+        // Rotatie rond Y-as
+        matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(180f));
+        matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(30));
+        matrices.multiply(RotationAxis.POSITIVE_Y.rotation(angleRad));
+
+
+        // Render call met World en seed
+        itemRenderer.renderItem(
+                stack,
+                ModelTransformationMode.FIXED,
+                0xF000F0,                    // light
+                OverlayTexture.DEFAULT_UV,    // overlay
+                matrices,
+                vertexConsumers,
+                MinecraftClient.getInstance().world, // world
+                0                               // seed
+        );
+        matrices.pop();
     }
 
     private static void DrawCircleSlice(DrawContext context, int centerX, int centerY, int OuterRadius, int innerRadius, int slice, int NoOfSlices, int color) {
@@ -55,6 +93,12 @@ public class RadialMenuScreen extends Screen {
         int x0 = centerX - size / 2;
         int y0 = centerY - size / 2;
         context.drawTexture(circle.textureId, x0, y0, 0, 0, size, size, size, size);
+    }
+
+    private static float getRelativeAngleToMouse(int xOrigin, int yOrigin, int xTarget, int yTarget) {
+        float yDiff = yTarget - yOrigin;
+        float xDiff = xTarget - xOrigin;
+        return (float) Math.atan2(yDiff, xDiff);
     }
 
     @Override
@@ -117,8 +161,17 @@ public class RadialMenuScreen extends Screen {
             Block block = blocks.get(i);
             ItemStack stack = new ItemStack(block);
 
-            if (i == hoveredIndex) {
-                drawScaledItem(context, stack, centerX, centerY, 6.0f);
+            if (baseBlock == block) {
+                float relativeAngle = getRelativeAngleToMouse(centerX, centerY, mouseX, mouseY);
+                renderRotatingItem(context, stack, centerX, centerY, relativeAngle, 1f, 1f, 1f);
+                renderRotatingItem(context, stack, centerX + 16, centerY, relativeAngle, -1f, 1f, 1f);
+                renderRotatingItem(context, stack, centerX, centerY + 16, relativeAngle, 1f, -1f, 1f);
+                renderRotatingItem(context, stack, centerX + 16, centerY + 16, relativeAngle, -1f, -1f, 1f);
+
+                renderRotatingItem(context, stack, centerX - 32, centerY - 32, relativeAngle, 1f, 1f, -1f);
+                renderRotatingItem(context, stack, centerX - 16, centerY, relativeAngle, -1f, 1f, -1f);
+                renderRotatingItem(context, stack, centerX, centerY - 16, relativeAngle, 1f, -1f, -1f);
+                renderRotatingItem(context, stack, centerX - 16, centerY - 16, relativeAngle, -1f, -1f, -1f);
             } else if (block == currentBlock && hoveredIndex == -1) {
                 drawScaledItem(context, stack, centerX, centerY, 6.0f);
             }
@@ -154,7 +207,10 @@ public class RadialMenuScreen extends Screen {
 
         // Debug rendering
         if (isCtrlPressed()) {
-            renderDebugInfo(context, centerX, centerY, radius);
+            float yDiff = mouseY - centerY;
+            float xDiff = mouseX - centerX;
+            float relativeAngle = getRelativeAngleToMouse(centerX, centerY, mouseX, mouseY);
+            renderDebugInfo(context, centerX, centerY, radius, relativeAngle);
         }
 
         super.render(context, mouseX, mouseY, delta);
@@ -172,13 +228,14 @@ public class RadialMenuScreen extends Screen {
                 GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS;
     }
 
-    private void renderDebugInfo(DrawContext context, int centerX, int centerY, int radius) {
-        String debugText = "Radial: Hover " + hoveredIndex + " | Items: " + blocks.size();
+    private void renderDebugInfo(DrawContext context, int centerX, int centerY, int radius, float relativeAngle) {
+        String debugText = "Radial: Hover " + hoveredIndex + " | Items: " + blocks.size() + " | relativeAngle: " + relativeAngle;
         int textX = centerX - 150;
         int textY = centerY + radius + 20;
         context.fill(textX - 2, textY - 2, textX + 150, textY + 12, 0xFF000000);
         context.drawText(this.textRenderer, debugText, textX, textY, 0xFFFFFF, false);
     }
+
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
