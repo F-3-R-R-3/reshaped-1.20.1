@@ -5,6 +5,7 @@ import net.f3rr3.reshaped.util.RuntimeResourceGenerator;
 import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.StairsBlock;
 import net.minecraft.client.render.model.ModelRotation;
 import net.minecraft.client.render.model.json.JsonUnbakedModel;
 import net.minecraft.client.render.model.json.ModelVariant;
@@ -38,6 +39,11 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                 // Pre-register all possible geometry models
                 context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath()));
                 context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_top"));
+                // Stairs need inner and outer variants for proper shape connections
+                if (id.getPath().endsWith("_stairs")) {
+                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_inner"));
+                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_outer"));
+                }
                 // Vertical slabs also need their direction-specific models registered
                 if (id.getPath().endsWith("_vertical_slab")) {
                     context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_north"));
