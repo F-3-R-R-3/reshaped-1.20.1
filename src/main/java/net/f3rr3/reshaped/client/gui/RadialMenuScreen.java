@@ -59,7 +59,7 @@ public class RadialMenuScreen extends Screen {
         matrices.pop();
     }
 
-    public static void renderRotatingItem(DrawContext context, ItemStack stack, int x, int y, float angleRad, float scale1, float scale2, float scale3) {
+    public static void renderRotatingItem(DrawContext context, ItemStack stack, int x, int y, float angleRad, float scale) {
         var matrices = context.getMatrices();
         ItemRenderer itemRenderer = MinecraftClient.getInstance().getItemRenderer();
 
@@ -73,8 +73,8 @@ public class RadialMenuScreen extends Screen {
         RenderSystem.setShaderLights(lightDir1, lightDir2);
 
         // Places the item in the center of the position and scales it
-        matrices.translate(x, y, 100); // 100 = depth above UI
-        matrices.scale(scale1 * 16f, scale2 * 16f, scale3 * 16f);
+        matrices.translate(x, y - 16, 100); // 100 = depth above UI
+        matrices.scale(scale * 16f, scale * -16f, scale * 16f); // y-axis multiplied by -1 to translate between UI and render code.
 
         // Rotation around Y-as
 
@@ -211,20 +211,10 @@ public class RadialMenuScreen extends Screen {
 
             Block block = blocks.get(i);
             ItemStack stack = new ItemStack(block);
+            relativeAngle = getRelativeAngleToMouse(centerX, centerY, mouseX, mouseY);
 
-            if (baseBlock == block) {
-                relativeAngle = getRelativeAngleToMouse(centerX, centerY, mouseX, mouseY);
-                renderRotatingItem(context, stack, centerX, centerY, centerBlockAngle, 1f, 1f, 1f);
-                renderRotatingItem(context, stack, centerX + 16, centerY, centerBlockAngle, -1f, 1f, 1f);
-                renderRotatingItem(context, stack, centerX, centerY + 16, centerBlockAngle, 1f, -1f, 1f);
-                renderRotatingItem(context, stack, centerX + 16, centerY + 16, centerBlockAngle, -1f, -1f, 1f);
-
-                renderRotatingItem(context, stack, centerX - 32, centerY - 32, centerBlockAngle, 1f, 1f, -1f);
-                renderRotatingItem(context, stack, centerX - 16, centerY, centerBlockAngle, -1f, 1f, -1f);
-                renderRotatingItem(context, stack, centerX, centerY - 16, centerBlockAngle, 1f, -1f, -1f);
-                renderRotatingItem(context, stack, centerX - 16, centerY - 16, centerBlockAngle, -1f, -1f, -1f);
-            } else if (block == currentBlock && hoveredIndex == -1) {
-                drawScaledItem(context, stack, centerX, centerY, 6.0f);
+            if ((i == hoveredIndex) || (block == currentBlock && hoveredIndex == -1)) {
+                renderRotatingItem(context, stack, centerX, centerY + 16, -centerBlockAngle, 8f);
             }
 
             int x = centerX + (int) (radius * Math.cos(angle));
