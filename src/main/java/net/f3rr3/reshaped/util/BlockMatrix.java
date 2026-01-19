@@ -2,6 +2,7 @@ package net.f3rr3.reshaped.util;
 
 import net.minecraft.block.Block;
 import net.minecraft.registry.Registries;
+
 import java.util.*;
 
 public class BlockMatrix {
@@ -15,9 +16,9 @@ public class BlockMatrix {
         if (matrix.isEmpty()) return;
 
         // Sort the matrix entries by their base block ID path
-        List<Map.Entry<Block, List<Block>> > entries = new ArrayList<>(matrix.entrySet());
+        List<Map.Entry<Block, List<Block>>> entries = new ArrayList<>(matrix.entrySet());
         entries.sort(Comparator.comparing(e -> Registries.BLOCK.getId(e.getKey()).toString()));
-        
+
         // Rebuild the linked map in order and sort variants
         matrix.clear();
         variantToBase.clear();
@@ -27,10 +28,10 @@ public class BlockMatrix {
             Block base = entry.getKey();
             List<Block> variants = entry.getValue();
             variants.sort(Comparator.comparing(b -> Registries.BLOCK.getId(b).toString()));
-            
+
             matrix.put(base, variants);
             allBlocks.add(base);
-            
+
             // Map variants back to base for fast lookup
             for (Block variant : variants) {
                 variantToBase.put(variant, base);
@@ -41,10 +42,6 @@ public class BlockMatrix {
 
     public Block getBaseBlock(Block variant) {
         return variantToBase.get(variant);
-    }
-
-    public void addColumn(Block baseBlock, List<Block> variants) {
-        addColumn(baseBlock, variants, true);
     }
 
     public void addColumn(Block baseBlock, List<Block> variants, boolean shouldRefresh) {
@@ -70,11 +67,6 @@ public class BlockMatrix {
         return reasons.getOrDefault(block, "No reason specified");
     }
 
-    public void removeStandaloneColumns() {
-        matrix.entrySet().removeIf(entry -> entry.getValue().isEmpty());
-        refresh();
-    }
-
     public boolean hasBlock(Block block) {
         return allBlocks.contains(block);
     }
@@ -86,7 +78,11 @@ public class BlockMatrix {
                 column.add(entry.getKey());
                 column.addAll(entry.getValue());
                 // Sort the final list including the base block
-                column.sort(Comparator.comparing(b -> Registries.BLOCK.getId(b).toString()));
+                column.sort(
+                        Comparator
+                                .comparing((Block b) -> b.getClass().getSimpleName())
+                                .thenComparing(b -> Registries.BLOCK.getId(b).toString())
+                );
                 return column;
             }
         }

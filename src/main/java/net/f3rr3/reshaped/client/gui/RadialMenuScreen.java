@@ -208,12 +208,18 @@ public class RadialMenuScreen extends Screen {
 
             if (i == hoveredIndex) {
                 String reason = Reshaped.MATRIX != null ? Reshaped.MATRIX.getReason(block) : "Unknown reason";
-                context.drawTooltip(this.textRenderer,
-                        List.of(
-                                block.getName(),
-                                Text.literal(reason).formatted(Formatting.GRAY, Formatting.ITALIC)
-                        ),
-                        -8, 16);
+                String blockInstance = block.getClass().getSimpleName();
+                List<Text> tooltip = new java.util.ArrayList<>();
+                tooltip.add(block.getName());
+                if (isCtrlPressed()) {
+                    tooltip.addAll(List.of(
+                                    Text.literal(blockInstance).formatted(Formatting.GRAY, Formatting.ITALIC),
+                                    Text.literal(reason).formatted(Formatting.GRAY, Formatting.ITALIC)
+                            )
+
+                    );
+                }
+                context.drawTooltip(this.textRenderer, tooltip, -8, 16);
             } else {
                 DrawCircleSlice(context, centerX, centerY, outerDiam, innerDiam, i, blocks.size(), 0x7F333333);
             }
