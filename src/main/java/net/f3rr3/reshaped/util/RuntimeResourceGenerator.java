@@ -151,12 +151,18 @@ public class RuntimeResourceGenerator {
                 Map<String, String> textures = getModelTextures(baseBlock);
                 String textureId = baseId.getNamespace() + ":block/" + baseId.getPath();
                 
-                String particle = textures.getOrDefault("particle", textureId);
                 String all = textures.getOrDefault("all", textureId);
                 
                 String up = textures.getOrDefault("up", textures.getOrDefault("top", textures.getOrDefault("end", all)));
                 String down = textures.getOrDefault("down", textures.getOrDefault("bottom", textures.getOrDefault("end", all)));
                 String side = textures.getOrDefault("side", all);
+                
+                // For particle, try "particle" first, then fall back to side texture
+                // This ensures valid texture references instead of missing texture
+                String particle = textures.get("particle");
+                if (particle == null) {
+                    particle = side;
+                }
                 
                 String texturesJson = "{\"parent\":\"minecraft:block/block\",\"textures\":{" +
                         "\"particle\":\"" + particle + "\"," +
