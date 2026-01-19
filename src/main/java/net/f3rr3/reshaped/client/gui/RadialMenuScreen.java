@@ -30,7 +30,6 @@ public class RadialMenuScreen extends Screen {
     private final int slot;
     private final Block currentBlock;
     private final Block baseBlock;
-    private final float animationTime = 0f;
     private int hoveredIndex = -1;
     private float centerBlockAngle = 0f; // in rad
     private float angularSpeed = 0.0f; // angular speed (rad/s)
@@ -73,11 +72,11 @@ public class RadialMenuScreen extends Screen {
         Vector3f lightDir2 = new Vector3f(-0.2F, -1.0F, 0.7F).normalize();  // Lighting taken from the minecraft source code wih reversed y
         RenderSystem.setShaderLights(lightDir1, lightDir2);
 
-        // Zet het item in het midden van de positie en schaal het
-        matrices.translate(x, y, 100); // 100 = diepte boven UI
+        // Places the item in the center of the position and scales it
+        matrices.translate(x, y, 100); // 100 = depth above UI
         matrices.scale(scale1 * 16f, scale2 * 16f, scale3 * 16f);
 
-        // Rotatie rond Y-as
+        // Rotation around Y-as
 
         matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(30));
         matrices.multiply(RotationAxis.POSITIVE_Y.rotation(angleRad));
@@ -147,17 +146,17 @@ public class RadialMenuScreen extends Screen {
         lastRelativeAngle = relativeAngle;
 
 
-        // hoeksnelheid (rad/s)
-        float angularSpeed_target = 0.5f;
+        // settings
+        float angularSpeed_target = 0.5f; // angular speed (rad/s)
         float k = 2.0f;              // strength
         float dt = 0.05f;            // 50 ms
 
 
-        // weerstand / regeling
+        // friction / settings
         float torque = k * (angularSpeed_target - angularSpeed);
         angularSpeed += torque * dt;
 
-        // hoek integreren
+        // integrate angle
         centerBlockAngle += angularSpeed * dt;
 
 
