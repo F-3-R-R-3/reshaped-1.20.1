@@ -30,7 +30,12 @@ public class RadialMenuScreen extends Screen {
     private final int slot;
     private final Block currentBlock;
     private final Block baseBlock;
+    private final float animationTime = 0f;
     private int hoveredIndex = -1;
+    private float centerBlockAngle = 0f; // in rad
+    private float angularSpeed = 0.0f; // angular speed (rad/s)
+    private float lastRelativeAngle = 0f;
+    private float relativeAngle = 0f;
 
     // Action to perform during the render cycle to ensure safe screen transitions
     private Runnable pendingAction;
@@ -128,6 +133,34 @@ public class RadialMenuScreen extends Screen {
     public void tick() {
         super.tick();
 
+
+        float delta = relativeAngle - lastRelativeAngle;
+
+        // normalise to [-PI, PI]
+        if (delta > Math.PI) {
+            delta -= (float) (2 * Math.PI);
+        } else if (delta < -Math.PI) {
+            delta += (float) (2 * Math.PI);
+        }
+
+        angularSpeed += delta;
+        lastRelativeAngle = relativeAngle;
+
+
+        // hoeksnelheid (rad/s)
+        float angularSpeed_target = 0.5f;
+        float k = 2.0f;              // strength
+        float dt = 0.05f;            // 50 ms
+
+
+        // weerstand / regeling
+        float torque = k * (angularSpeed_target - angularSpeed);
+        angularSpeed += torque * dt;
+
+        // hoek integreren
+        centerBlockAngle += angularSpeed * dt;
+
+
         // Check if the trigger key/button is still held
         boolean isHeld = false;
         if (this.client != null) {
@@ -140,6 +173,7 @@ public class RadialMenuScreen extends Screen {
                 isHeld = org.lwjgl.glfw.GLFW.glfwGetMouseButton(handle, boundKey.getCode()) == org.lwjgl.glfw.GLFW.GLFW_PRESS;
             }
         }
+        lastRelativeAngle = relativeAngle;
 
         if (!isHeld) {
             // Key was released, select hovered and close
@@ -180,16 +214,16 @@ public class RadialMenuScreen extends Screen {
             ItemStack stack = new ItemStack(block);
 
             if (baseBlock == block) {
-                float relativeAngle = getRelativeAngleToMouse(centerX, centerY, mouseX, mouseY);
-                renderRotatingItem(context, stack, centerX, centerY, relativeAngle, 1f, 1f, 1f);
-                renderRotatingItem(context, stack, centerX + 16, centerY, relativeAngle, -1f, 1f, 1f);
-                renderRotatingItem(context, stack, centerX, centerY + 16, relativeAngle, 1f, -1f, 1f);
-                renderRotatingItem(context, stack, centerX + 16, centerY + 16, relativeAngle, -1f, -1f, 1f);
+                relativeAngle = getRelativeAngleToMouse(centerX, centerY, mouseX, mouseY);
+                renderRotatingItem(context, stack, centerX, centerY, centerBlockAngle, 1f, 1f, 1f);
+                renderRotatingItem(context, stack, centerX + 16, centerY, centerBlockAngle, -1f, 1f, 1f);
+                renderRotatingItem(context, stack, centerX, centerY + 16, centerBlockAngle, 1f, -1f, 1f);
+                renderRotatingItem(context, stack, centerX + 16, centerY + 16, centerBlockAngle, -1f, -1f, 1f);
 
-                renderRotatingItem(context, stack, centerX - 32, centerY - 32, relativeAngle, 1f, 1f, -1f);
-                renderRotatingItem(context, stack, centerX - 16, centerY, relativeAngle, -1f, 1f, -1f);
-                renderRotatingItem(context, stack, centerX, centerY - 16, relativeAngle, 1f, -1f, -1f);
-                renderRotatingItem(context, stack, centerX - 16, centerY - 16, relativeAngle, -1f, -1f, -1f);
+                renderRotatingItem(context, stack, centerX - 32, centerY - 32, centerBlockAngle, 1f, 1f, -1f);
+                renderRotatingItem(context, stack, centerX - 16, centerY, centerBlockAngle, -1f, 1f, -1f);
+                renderRotatingItem(context, stack, centerX, centerY - 16, centerBlockAngle, 1f, -1f, -1f);
+                renderRotatingItem(context, stack, centerX - 16, centerY - 16, centerBlockAngle, -1f, -1f, -1f);
             } else if (block == currentBlock && hoveredIndex == -1) {
                 drawScaledItem(context, stack, centerX, centerY, 6.0f);
             }
