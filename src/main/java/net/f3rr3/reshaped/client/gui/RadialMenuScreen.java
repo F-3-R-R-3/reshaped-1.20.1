@@ -73,7 +73,7 @@ public class RadialMenuScreen extends Screen {
         RenderSystem.setShaderLights(lightDir1, lightDir2);
 
         // Places the item in the center of the position and scales it
-        matrices.translate(x, y - 16, 100); // 100 = depth above UI
+        matrices.translate(x, y - 16, -100); // -100 = depth above UI
         matrices.scale(scale * 16f, scale * -16f, scale * 16f); // y-axis multiplied by -1 to translate between UI and render code.
 
         // Rotation around Y-as
