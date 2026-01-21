@@ -42,6 +42,7 @@ public class RadialMenuScreen extends Screen {
     private float relativeAngle = 0f;
     // Action to perform during the render cycle to ensure safe screen transitions
     private Runnable pendingAction;
+    private int selectedSlotInSortedHotbar;
 
     public RadialMenuScreen(List<Block> blocks, int slot, Block currentBlock, Block baseBlock) {
         super(Text.literal("Radial Menu"));
@@ -208,7 +209,7 @@ public class RadialMenuScreen extends Screen {
 
         if (!isHeld) {
             // Key was released, select hovered and close
-            selectHovered();
+            selectHovered(true);
         }
     }
 
@@ -323,7 +324,7 @@ public class RadialMenuScreen extends Screen {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0 || button == 1) {
-            selectHovered();
+            selectHovered(true);
             return true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
@@ -332,14 +333,25 @@ public class RadialMenuScreen extends Screen {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
         if (this.client != null && this.client.player != null) {
+            if (hoveredIndex != -1) {
+                selectHovered(false);
+            }
+            List<ItemStack> filtered = generateFilteredHotbar();
+            if (filtered.isEmpty()) return true;
             int i = this.client.player.getInventory().selectedSlot;
             int j = (int) Math.signum(amount);
-            int newSlot = i - j;
-            while (newSlot < 0) {
-                newSlot += 9;
-            }
-            while (newSlot >= 9) {
-                newSlot -= 9;
+            int newSlot = i;
+            while (true) {
+                // verander slot in de richting van het scrollen
+                newSlot -= j;
+                // begrens slot in de bestaande hotbar slots
+                while (newSlot < 0) newSlot += 9;
+                while (newSlot >= 9) newSlot -= 9;
+                // haal item in slot op
+                ItemStack stack = this.client.player.getInventory().getStack(newSlot);
+                Block block = stack.getItem() instanceof BlockItem blockItem ? blockItem.getBlock() : null;
+                // test of het is wat we zoeken
+                if (!stack.isEmpty() && Reshaped.MATRIX.hasBlock(block)) break;
             }
             this.changeSlot(newSlot);
             return true;
@@ -389,12 +401,12 @@ public class RadialMenuScreen extends Screen {
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
-    private void selectHovered() {
+    private void selectHovered(boolean close) {
         if (hoveredIndex != -1) {
             Block selectedBlock = blocks.get(hoveredIndex);
             NetworkHandler.sendConvertBlockPacket(Registries.BLOCK.getId(selectedBlock), slot);
         }
-        this.close();
+        if (close) this.close();
     }
 
     @Override
@@ -405,22 +417,8 @@ public class RadialMenuScreen extends Screen {
     private void filteredHotbarRender(DrawContext context) {
         MinecraftClient client = MinecraftClient.getInstance();
         assert client.player != null;
-        PlayerInventory inv = client.player.getInventory();
 
-        List<ItemStack> filtered = new ArrayList<>();
-        int selectedSlotInSortedHotbar = 0;
-        int selectedSlot = client.player.getInventory().selectedSlot;
-
-        for (int i = 0; i < 9; i++) {
-            ItemStack stack = inv.getStack(i);
-            Block block = stack.getItem() instanceof BlockItem blockItem ? blockItem.getBlock() : null;
-            if (!stack.isEmpty() && Reshaped.MATRIX.hasBlock(block)) {
-                filtered.add(stack);
-                if (i == selectedSlot) {
-                    selectedSlotInSortedHotbar = filtered.size() - 1;
-                }
-            }
-        }
+        List<ItemStack> filtered = generateFilteredHotbar();
         if (filtered.isEmpty()) return;
 
         int screenWidth = client.getWindow().getScaledWidth();
@@ -452,5 +450,25 @@ public class RadialMenuScreen extends Screen {
         y = screenHeight - 22;
         drawHotbarTexture(context, -1, x, y);
 
+    }
+
+    private List<ItemStack> generateFilteredHotbar() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        assert client.player != null;
+        PlayerInventory inv = client.player.getInventory();
+
+        List<ItemStack> filtered = new ArrayList<>();
+        int selectedSlot = client.player.getInventory().selectedSlot;
+        for (int i = 0; i < 9; i++) {
+            ItemStack stack = inv.getStack(i);
+            Block block = stack.getItem() instanceof BlockItem blockItem ? blockItem.getBlock() : null;
+            if (!stack.isEmpty() && Reshaped.MATRIX.hasBlock(block)) {
+                filtered.add(stack);
+                if (i == selectedSlot) {
+                    selectedSlotInSortedHotbar = filtered.size() - 1;
+                }
+            }
+        }
+        return filtered;
     }
 }
