@@ -14,18 +14,22 @@ import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.item.ItemRenderer;
 import net.minecraft.client.render.model.json.ModelTransformationMode;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.RotationAxis;
 import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class RadialMenuScreen extends Screen {
+    private static final Identifier HOTBAR_TEXTURE = new Identifier("minecraft", "textures/gui/widgets.png");
     private final List<Block> blocks;
     private final int slot;
     private final Block currentBlock;
@@ -35,7 +39,6 @@ public class RadialMenuScreen extends Screen {
     private float angularSpeed = 0.0f; // angular speed (rad/s)
     private float lastRelativeAngle = 0f;
     private float relativeAngle = 0f;
-
     // Action to perform during the render cycle to ensure safe screen transitions
     private Runnable pendingAction;
 
@@ -123,6 +126,11 @@ public class RadialMenuScreen extends Screen {
         return (float) Math.atan2(yDiff, xDiff);
     }
 
+    public static boolean isOpen() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        return client.currentScreen instanceof RadialMenuScreen;
+    }
+
     @Override
     protected void init() {
         super.init();
@@ -169,7 +177,7 @@ public class RadialMenuScreen extends Screen {
             if (boundKey.getCategory() == InputUtil.Type.KEYSYM) {
                 isHeld = InputUtil.isKeyPressed(handle, boundKey.getCode());
             } else if (boundKey.getCategory() == InputUtil.Type.MOUSE) {
-                isHeld = org.lwjgl.glfw.GLFW.glfwGetMouseButton(handle, boundKey.getCode()) == org.lwjgl.glfw.GLFW.GLFW_PRESS;
+                isHeld = GLFW.glfwGetMouseButton(handle, boundKey.getCode()) == GLFW.GLFW_PRESS;
             }
         }
         lastRelativeAngle = relativeAngle;
@@ -192,6 +200,7 @@ public class RadialMenuScreen extends Screen {
         double angleStep = (2 * Math.PI) / blocks.size();
         hoveredIndex = -1;
 
+        filteredHotbarRender(context);
         // Calculate hovered index based on mouse angle
         double dx = mouseX - centerX;
         double dy = mouseY - centerY;
@@ -232,7 +241,7 @@ public class RadialMenuScreen extends Screen {
             if (i == hoveredIndex) {
                 String reason = Reshaped.MATRIX != null ? Reshaped.MATRIX.getReason(block) : "Unknown reason";
                 String blockInstance = block.getClass().getSimpleName();
-                List<Text> tooltip = new java.util.ArrayList<>();
+                List<Text> tooltip = new ArrayList<>();
                 tooltip.add(block.getName());
                 if (isCtrlPressed()) {
                     tooltip.addAll(List.of(
@@ -280,7 +289,6 @@ public class RadialMenuScreen extends Screen {
         context.fill(textX - 2, textY - 2, textX + 150, textY + 12, 0xFF000000);
         context.drawText(this.textRenderer, debugText, textX, textY, 0xFFFFFF, false);
     }
-
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
@@ -363,4 +371,70 @@ public class RadialMenuScreen extends Screen {
     public boolean shouldPause() {
         return false;
     }
+
+    private void filteredHotbarRender(DrawContext context) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        assert client.player != null;
+        PlayerInventory inv = client.player.getInventory();
+
+        List<ItemStack> filtered = new ArrayList<>();
+        int selectedSlotInSortedHotbar = 0;
+        int selectedSlot = client.player.getInventory().selectedSlot;
+
+        for (int i = 0; i < 9; i++) {
+            ItemStack stack = inv.getStack(i);
+            Block block = stack.getItem() instanceof BlockItem blockItem ? blockItem.getBlock() : null;
+            if (!stack.isEmpty() && Reshaped.MATRIX.hasBlock(block)) {
+                filtered.add(stack);
+            }
+            if (i == selectedSlot) {
+                selectedSlotInSortedHotbar = filtered.size() - 1;
+            }
+        }
+        if (filtered.isEmpty()) return;
+
+        int screenWidth = client.getWindow().getScaledWidth();
+        int screenHeight = client.getWindow().getScaledHeight();
+
+        int slotSize = 20;
+        int totalWidth = filtered.size() * slotSize;
+        int xStart = (screenWidth - totalWidth) / 2;
+        int y = screenHeight - 22;
+
+        int slotCount = filtered.size();
+        int slotWidth = 20;
+        for (int i = 0; i < filtered.size(); i++) {
+            int x = xStart + i * slotWidth;
+            int u; // UV-x in widgets.png
+            int v = 0; // UV-y in widgets.png
+            int tileWidth = slotWidth;
+            int tileHeight = 22;
+            // Kies texture per slot positie
+            if (i == 0) {
+                u = 0; // eerste slot (linker rand)
+                x -= 1;
+                tileWidth += 1;
+            } else if (i == slotCount - 1) {
+                u = 161; // laatste slot (rechter rand)
+                tileWidth += 1;
+            } else {
+                u = 21; // tussenliggende slot
+            }
+
+
+            context.drawTexture(HOTBAR_TEXTURE, x, y, u, v, tileWidth, tileHeight);
+
+            // render item
+            ItemStack stack = filtered.get(i);
+            if (i == 0) x += 1; // correctie voor eerste slot
+            context.drawItem(stack, x + 2, y + 3);
+            context.drawItemInSlot(this.textRenderer, stack, x + 2, y + 3);
+        }
+
+        int x = xStart + selectedSlotInSortedHotbar * slotWidth;
+        y = screenHeight - 22;
+        context.drawTexture(HOTBAR_TEXTURE, x - 2, y - 1, 0, 22, 24, 22);
+    }
 }
+// eerste item heeft foute x
+// geen transparantie
