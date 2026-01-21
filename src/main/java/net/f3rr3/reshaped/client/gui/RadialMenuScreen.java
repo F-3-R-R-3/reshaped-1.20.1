@@ -230,6 +230,9 @@ public class RadialMenuScreen extends Screen {
         double dy = mouseY - centerY;
         double distSq = dx * dx + dy * dy;
 
+        // Update relative angle once per frame
+        relativeAngle = getRelativeAngleToMouse(centerX, centerY, mouseX, mouseY);
+
         if (distSq > 400 && distSq < 15000) {
             double mouseAngle = Math.atan2(dy, dx);
             if (mouseAngle < 0) mouseAngle += 2 * Math.PI;
@@ -239,12 +242,21 @@ public class RadialMenuScreen extends Screen {
 
         int innerDiam = radius - 10;
         int outerDiam = radius + 10;
+
+        // Pass 1: Draw Background Slices
+        for (int i = 0; i < blocks.size(); i++) {
+            if (i == hoveredIndex) {
+                 DrawCircleSlice(context, centerX, centerY, outerDiam + 6, innerDiam - 4, i, blocks.size(), 0x40666666);
+            } else {
+                 DrawCircleSlice(context, centerX, centerY, outerDiam, innerDiam, i, blocks.size(), 0x7F333333);
+            }
+        }
+
+        // Pass 2: Draw Items
         for (int i = 0; i < blocks.size(); i++) {
             double angle = i * angleStep;
-
             Block block = blocks.get(i);
             ItemStack stack = new ItemStack(block);
-            relativeAngle = getRelativeAngleToMouse(centerX, centerY, mouseX, mouseY);
 
             if ((i == hoveredIndex) || (block == currentBlock && hoveredIndex == -1)) {
                 drawRotatedItem(context, stack, centerX, centerY + 16, -centerBlockAngle, 8f);
@@ -261,33 +273,27 @@ public class RadialMenuScreen extends Screen {
             }
 
             drawScaledItem(context, stack, x, y, scale);
-
-            if (i == hoveredIndex) {
-                String reason = Reshaped.MATRIX != null ? Reshaped.MATRIX.getReason(block) : "Unknown reason";
-                String blockInstance = block.getClass().getSimpleName();
-                List<Text> tooltip = new ArrayList<>();
-                tooltip.add(block.getName());
-                if (isCtrlPressed()) {
-                    tooltip.addAll(List.of(
-                                    Text.literal(blockInstance).formatted(Formatting.GRAY, Formatting.ITALIC),
-                                    Text.literal(reason).formatted(Formatting.GRAY, Formatting.ITALIC)
-                            )
-
-                    );
-                }
-                context.drawTooltip(this.textRenderer, tooltip, -8, 16);
-            } else {
-                DrawCircleSlice(context, centerX, centerY, outerDiam, innerDiam, i, blocks.size(), 0x7F333333);
-            }
         }
 
+        // Pass 3: Draw Tooltip
         if (hoveredIndex != -1) {
-            DrawCircleSlice(context, centerX, centerY, outerDiam + 6, innerDiam - 4, hoveredIndex, blocks.size(), 0x40666666);
+            Block block = blocks.get(hoveredIndex);
+            String reason = Reshaped.MATRIX != null ? Reshaped.MATRIX.getReason(block) : "Unknown reason";
+            String blockInstance = block.getClass().getSimpleName();
+            List<Text> tooltip = new ArrayList<>();
+            tooltip.add(block.getName());
+            if (isCtrlPressed()) {
+                tooltip.addAll(List.of(
+                                Text.literal(blockInstance).formatted(Formatting.GRAY, Formatting.ITALIC),
+                                Text.literal(reason).formatted(Formatting.GRAY, Formatting.ITALIC)
+                        )
+                );
+            }
+            context.drawTooltip(this.textRenderer, tooltip, -8, 16);
         }
 
         // Debug rendering
         if (isCtrlPressed()) {
-            float relativeAngle = getRelativeAngleToMouse(centerX, centerY, mouseX, mouseY);
             renderDebugInfo(context, centerX, centerY, radius, relativeAngle);
         }
 
