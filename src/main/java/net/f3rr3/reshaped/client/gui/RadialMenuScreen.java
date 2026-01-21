@@ -9,6 +9,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.render.DiffuseLighting;
+import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.item.ItemRenderer;
@@ -62,7 +63,7 @@ public class RadialMenuScreen extends Screen {
         matrices.pop();
     }
 
-    public static void renderRotatingItem(DrawContext context, ItemStack stack, int x, int y, float angleRad, float scale) {
+    public static void drawRotatedItem(DrawContext context, ItemStack stack, int x, int y, float angleRad, float scale) {
         var matrices = context.getMatrices();
         ItemRenderer itemRenderer = MinecraftClient.getInstance().getItemRenderer();
 
@@ -109,6 +110,7 @@ public class RadialMenuScreen extends Screen {
     }
 
     private static void DrawCircleSlice(DrawContext context, int centerX, int centerY, int OuterRadius, int innerRadius, int slice, int NoOfSlices, int color) {
+        resetRender();
         float sectionWidth = 360f / NoOfSlices;
         float startAngle = sectionWidth * (slice - 0.5f);
         float endAngle = sectionWidth * (slice + 0.5f);
@@ -144,6 +146,13 @@ public class RadialMenuScreen extends Screen {
         int tileHeight = 22;
         if (slot == 1) x -= 1;
         context.drawTexture(HOTBAR_TEXTURE, x, y, u, v, tileWidth, tileHeight);
+    }
+
+    private static void resetRender() {
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.disableDepthTest();
+        RenderSystem.setShader(GameRenderer::getPositionTexProgram); // GUI shader
     }
 
     @Override
@@ -238,7 +247,7 @@ public class RadialMenuScreen extends Screen {
             relativeAngle = getRelativeAngleToMouse(centerX, centerY, mouseX, mouseY);
 
             if ((i == hoveredIndex) || (block == currentBlock && hoveredIndex == -1)) {
-                renderRotatingItem(context, stack, centerX, centerY + 16, -centerBlockAngle, 8f);
+                drawRotatedItem(context, stack, centerX, centerY + 16, -centerBlockAngle, 8f);
             }
 
             int x = centerX + (int) (radius * Math.cos(angle));
@@ -419,7 +428,7 @@ public class RadialMenuScreen extends Screen {
         int slotWidth = 20;
         for (int i = 0; i < filtered.size(); i++) {
             int x = xStart + i * slotWidth;
-
+            resetRender();
             drawHotbarTexture(context, i + 1, x, y);
 
             // render item
@@ -435,4 +444,3 @@ public class RadialMenuScreen extends Screen {
 
     }
 }
-// geen transparantie
