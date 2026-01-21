@@ -13,6 +13,7 @@ import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.item.ItemRenderer;
+import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.client.render.model.json.ModelTransformationMode;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.player.PlayerInventory;
@@ -67,6 +68,12 @@ public class RadialMenuScreen extends Screen {
     public static void drawRotatedItem(DrawContext context, ItemStack stack, int x, int y, float angleRad, float scale) {
         var matrices = context.getMatrices();
         ItemRenderer itemRenderer = MinecraftClient.getInstance().getItemRenderer();
+        BakedModel model = itemRenderer.getModel(stack, null, null, 0);
+        boolean is3D = model.hasDepth();
+
+        if (!is3D) {
+            scale *= 0.6f;
+        }
 
         matrices.push();
 
