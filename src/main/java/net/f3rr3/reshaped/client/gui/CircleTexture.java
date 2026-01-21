@@ -50,17 +50,18 @@ public class CircleTexture {
         int size = (outerRadius + Math.round(outlineThickness)) * 2 + 4;
         NativeImage image = new NativeImage(NativeImage.Format.RGBA, size, size, false);
 
-        // Clear to transparent
+        // Clear to transparent but with correct color logic to avoid dark borders
+        int emptyColor = color & 0x00FFFFFF;
         for (int y = 0; y < size; y++) {
             for (int x = 0; x < size; x++) {
-                image.setColor(x, y, 0x00000000);
+                image.setColor(x, y, emptyColor);
             }
         }
 
         float cx = size * 0.5f;
         float cy = size * 0.5f;
         float inner = Math.max(0, innerRadius);
-        float aa = 1.5f; // anti-alias smoothness
+        float aa = 1.0f; // anti-alias smoothness
 
         // Convert angles to radians
         float startRad = (float) Math.toRadians(startAngle);
@@ -77,32 +78,53 @@ public class CircleTexture {
                 float a = 0f;
 
                 // Check if angle is within the slice range
-                boolean inAngleRange = isAngleInRange(angle, startRad, stopRad);
+                if (isAngleInRange(angle, startRad, stopRad)) {
+                    
+                    // 1. Calculate Fill Alpha
+                    float fillA = alpha;
 
-                if (inAngleRange) {
-                    // Fill
-                    if (innerRadius > 0) {
-                        // Ring slice
-                        if (dist >= inner && dist <= (float) outerRadius) {
-                            a = alpha * smoothstep(0f, aa, ((float) outerRadius + aa) - dist)
-                                    * smoothstep(0f, aa, dist - (inner - aa));
-                        }
-                    } else {
-                        // Filled circle slice
-                        if (dist <= (float) outerRadius) {
-                            a = alpha * smoothstep(0f, aa, ((float) outerRadius + aa) - dist);
+                    // Inner Fade (Ring hole)
+                    if (inner > 0) {
+                        if (outlineThickness > 0) {
+                             // Extend fill inwards slightly to blend under inner outline
+                            fillA *= smoothstep(0f, aa, dist - inner + 0.5f);
+                        } else {
+                            fillA *= smoothstep(0f, aa, dist - inner);
                         }
                     }
 
-                    // Outline
+                    // Outer Fade
                     if (outlineThickness > 0) {
-                        float outlineAlpha = smoothstep(outlineThickness + aa, outlineThickness - aa, Math.abs(dist - (float) outerRadius));
-                        a = Math.max(a, outlineAlpha);
+                        fillA *= smoothstep(0f, aa, outerRadius - dist + 0.5f);
+                    } else {
+                        fillA *= smoothstep(0f, aa, outerRadius - dist);
                     }
+
+                    // 2. Calculate Outline Alpha
+                    float outlineA = 0f;
+                    if (outlineThickness > 0) {
+                        // Outer Stroke
+                        float outerStroke = smoothstep(outlineThickness + aa, outlineThickness - aa, Math.abs(dist - outerRadius));
+                        
+                        // Inner Stroke (only if we have a hole)
+                        float innerStroke = 0f;
+                        if (inner > 0) {
+                            innerStroke = smoothstep(outlineThickness + aa, outlineThickness - aa, Math.abs(dist - inner));
+                        }
+                        
+                        // Combine strokes
+                        outlineA = alpha * Math.max(outerStroke, innerStroke);
+                    }
+
+                    // 3. Combine Fill and Outline
+                    a = Math.max(fillA, outlineA);
                 }
+
 
                 int alpha8bit = Math.min(255, Math.round(a * 255f));
                 int argb = (alpha8bit << 24) | (color & 0xFFFFFF);
+
+
                 image.setColor(x, y, argb);
             }
         }
