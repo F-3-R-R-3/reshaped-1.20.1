@@ -246,9 +246,9 @@ public class RadialMenuScreen extends Screen {
         // Pass 1: Draw Background Slices
         for (int i = 0; i < blocks.size(); i++) {
             if (i == hoveredIndex) {
-                 DrawCircleSlice(context, centerX, centerY, outerDiam + 6, innerDiam - 4, i, blocks.size(), 0x40666666);
+                DrawCircleSlice(context, centerX, centerY, outerDiam + 6, innerDiam - 4, i, blocks.size(), 0x40666666);
             } else {
-                 DrawCircleSlice(context, centerX, centerY, outerDiam, innerDiam, i, blocks.size(), 0x7F333333);
+                DrawCircleSlice(context, centerX, centerY, outerDiam, innerDiam, i, blocks.size(), 0x7F333333);
             }
         }
 
@@ -435,7 +435,11 @@ public class RadialMenuScreen extends Screen {
         for (int i = 0; i < filtered.size(); i++) {
             int x = xStart + i * slotWidth;
             resetRender();
-            drawHotbarTexture(context, i + 1, x, y);
+            int slot;
+            if (i == filtered.size() - 1) slot = 9;
+            else slot = i + 1;
+
+            drawHotbarTexture(context, slot, x, y);
 
             // render item
             ItemStack stack = filtered.get(i);
