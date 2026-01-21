@@ -386,9 +386,9 @@ public class RadialMenuScreen extends Screen {
             Block block = stack.getItem() instanceof BlockItem blockItem ? blockItem.getBlock() : null;
             if (!stack.isEmpty() && Reshaped.MATRIX.hasBlock(block)) {
                 filtered.add(stack);
-            }
-            if (i == selectedSlot) {
-                selectedSlotInSortedHotbar = filtered.size() - 1;
+                if (i == selectedSlot) {
+                    selectedSlotInSortedHotbar = filtered.size() - 1;
+                }
             }
         }
         if (filtered.isEmpty()) return;
@@ -436,5 +436,4 @@ public class RadialMenuScreen extends Screen {
         context.drawTexture(HOTBAR_TEXTURE, x - 2, y - 1, 0, 22, 24, 22);
     }
 }
-// eerste item heeft foute x
 // geen transparantie
