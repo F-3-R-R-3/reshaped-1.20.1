@@ -131,6 +131,21 @@ public class RadialMenuScreen extends Screen {
         return client.currentScreen instanceof RadialMenuScreen;
     }
 
+    private static void drawHotbarTexture(DrawContext context, int slot, int x, int y) {
+        // catch hotbar selector calls
+        if (slot == -1) {
+            context.drawTexture(HOTBAR_TEXTURE, x - 2, y - 1, 0, 22, 24, 22);
+            return;
+        }
+        // normal hotbar slots
+        int u = (slot == 1) ? 0 : ((slot - 1) * 20 + 1);
+        int v = 0;
+        int tileWidth = (slot == 1 || slot == 9) ? 21 : 20;
+        int tileHeight = 22;
+        if (slot == 1) x -= 1;
+        context.drawTexture(HOTBAR_TEXTURE, x, y, u, v, tileWidth, tileHeight);
+    }
+
     @Override
     protected void init() {
         super.init();
@@ -401,39 +416,23 @@ public class RadialMenuScreen extends Screen {
         int xStart = (screenWidth - totalWidth) / 2;
         int y = screenHeight - 22;
 
-        int slotCount = filtered.size();
         int slotWidth = 20;
         for (int i = 0; i < filtered.size(); i++) {
             int x = xStart + i * slotWidth;
-            int u; // UV-x in widgets.png
-            int v = 0; // UV-y in widgets.png
-            int tileWidth = slotWidth;
-            int tileHeight = 22;
-            // Kies texture per slot positie
-            if (i == 0) {
-                u = 0; // eerste slot (linker rand)
-                x -= 1;
-                tileWidth += 1;
-            } else if (i == slotCount - 1) {
-                u = 161; // laatste slot (rechter rand)
-                tileWidth += 1;
-            } else {
-                u = 21; // tussenliggende slot
-            }
 
-
-            context.drawTexture(HOTBAR_TEXTURE, x, y, u, v, tileWidth, tileHeight);
+            drawHotbarTexture(context, i + 1, x, y);
 
             // render item
             ItemStack stack = filtered.get(i);
-            if (i == 0) x += 1; // correctie voor eerste slot
+
             context.drawItem(stack, x + 2, y + 3);
             context.drawItemInSlot(this.textRenderer, stack, x + 2, y + 3);
         }
 
         int x = xStart + selectedSlotInSortedHotbar * slotWidth;
         y = screenHeight - 22;
-        context.drawTexture(HOTBAR_TEXTURE, x - 2, y - 1, 0, 22, 24, 22);
+        drawHotbarTexture(context, -1, x, y);
+
     }
 }
 // geen transparantie
