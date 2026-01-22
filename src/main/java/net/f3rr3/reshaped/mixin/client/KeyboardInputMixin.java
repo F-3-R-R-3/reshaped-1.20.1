@@ -35,8 +35,9 @@ public abstract class KeyboardInputMixin {
                         List<Block> column = Reshaped.MATRIX.getColumn(block);
                         if (!column.isEmpty()) {
                             int slot = client.player.getInventory().selectedSlot;
+                            Block baseBlock = Reshaped.MATRIX.getBaseBlock(block);
                             client.execute(() -> {
-                                client.setScreen(new RadialMenuScreen(column, slot));
+                                client.setScreen(new RadialMenuScreen(column, slot, block, baseBlock));
                             });
                             ci.cancel();
                         }

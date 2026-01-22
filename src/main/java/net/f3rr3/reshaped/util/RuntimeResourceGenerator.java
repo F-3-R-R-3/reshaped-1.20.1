@@ -67,6 +67,22 @@ public class RuntimeResourceGenerator {
         }
 
         if (block instanceof StairsBlock) {
+            try {
+                // Get the SHAPE property to determine the correct model
+                Object shapeObj = state.get(StairsBlock.SHAPE);
+                if (shapeObj != null) {
+                    String shape = shapeObj.toString().toLowerCase();
+                    // Map shapes to model suffixes: straight (base), inner_left/inner_right (inner), outer_left/outer_right (outer)
+                    if (shape.contains("inner")) {
+                        return new Identifier(Reshaped.MOD_ID, "block/" + path + "_inner");
+                    } else if (shape.contains("outer")) {
+                        return new Identifier(Reshaped.MOD_ID, "block/" + path + "_outer");
+                    }
+                }
+            } catch (Exception e) {
+                Reshaped.LOGGER.warn("Failed to get SHAPE for stairs: " + path, e);
+            }
+            // Default to straight model
             return new Identifier(Reshaped.MOD_ID, "block/" + path);
         }
 
@@ -89,27 +105,50 @@ public class RuntimeResourceGenerator {
         if (block instanceof StairsBlock) {
             Direction facing = state.get(Properties.HORIZONTAL_FACING);
             BlockHalf half = state.get(StairsBlock.HALF);
+            Object shapeObj = state.get(StairsBlock.SHAPE);
+            String shape = shapeObj != null ? shapeObj.toString().toLowerCase() : "straight";
+            
+            // For inner_left and outer_left, add an extra 90 degree rotation anticlockwise
+            int extraYRotation = (shape.contains("inner_left") || shape.contains("outer_left")) ? 270 : 0;
 
             if (half == BlockHalf.TOP) {
                 return switch (facing) {
-                    case EAST -> ModelRotation.X180_Y0;
-                    case SOUTH -> ModelRotation.X180_Y90;
-                    case WEST -> ModelRotation.X180_Y180;
-                    case NORTH -> ModelRotation.X180_Y270;
+                    case EAST -> applyExtraRotation(ModelRotation.X180_Y0, extraYRotation);
+                    case SOUTH -> applyExtraRotation(ModelRotation.X180_Y90, extraYRotation);
+                    case WEST -> applyExtraRotation(ModelRotation.X180_Y180, extraYRotation);
+                    case NORTH -> applyExtraRotation(ModelRotation.X180_Y270, extraYRotation);
                     default -> ModelRotation.X180_Y0;
                 };
             } else {
                 return switch (facing) {
-                    case EAST -> ModelRotation.X0_Y0;
-                    case SOUTH -> ModelRotation.X0_Y90;
-                    case WEST -> ModelRotation.X0_Y180;
-                    case NORTH -> ModelRotation.X0_Y270;
+                    case EAST -> applyExtraRotation(ModelRotation.X0_Y0, extraYRotation);
+                    case SOUTH -> applyExtraRotation(ModelRotation.X0_Y90, extraYRotation);
+                    case WEST -> applyExtraRotation(ModelRotation.X0_Y180, extraYRotation);
+                    case NORTH -> applyExtraRotation(ModelRotation.X0_Y270, extraYRotation);
                     default -> ModelRotation.X0_Y0;
                 };
             }
         }
 
         return ModelRotation.X0_Y0;
+    }
+
+    private static ModelRotation applyExtraRotation(ModelRotation baseRotation, int extraYRotation) {
+        if (extraYRotation == 0) {
+            return baseRotation;
+        }
+        // Combine the base rotation with extra Y rotation (270 degrees = anticlockwise 90)
+        return switch (baseRotation) {
+            case X0_Y0 -> ModelRotation.X0_Y270;
+            case X0_Y90 -> ModelRotation.X0_Y0;
+            case X0_Y180 -> ModelRotation.X0_Y90;
+            case X0_Y270 -> ModelRotation.X0_Y180;
+            case X180_Y0 -> ModelRotation.X180_Y270;
+            case X180_Y90 -> ModelRotation.X180_Y0;
+            case X180_Y180 -> ModelRotation.X180_Y90;
+            case X180_Y270 -> ModelRotation.X180_Y180;
+            default -> baseRotation;
+        };
     }
 
     public static String generateModelJson(String cleanPath) {
@@ -151,12 +190,18 @@ public class RuntimeResourceGenerator {
                 Map<String, String> textures = getModelTextures(baseBlock);
                 String textureId = baseId.getNamespace() + ":block/" + baseId.getPath();
                 
-                String particle = textures.getOrDefault("particle", textureId);
                 String all = textures.getOrDefault("all", textureId);
                 
                 String up = textures.getOrDefault("up", textures.getOrDefault("top", textures.getOrDefault("end", all)));
                 String down = textures.getOrDefault("down", textures.getOrDefault("bottom", textures.getOrDefault("end", all)));
                 String side = textures.getOrDefault("side", all);
+                
+                // For particle, try "particle" first, then fall back to side texture
+                // This ensures valid texture references instead of missing texture
+                String particle = textures.get("particle");
+                if (particle == null) {
+                    particle = side;
+                }
                 
                 String texturesJson = "{\"parent\":\"minecraft:block/block\",\"textures\":{" +
                         "\"particle\":\"" + particle + "\"," +
@@ -206,9 +251,9 @@ public class RuntimeResourceGenerator {
         }
 
         // Slab and Stair fallbacks (Efficient lookup)
-        Identifier blockId = new Identifier(Reshaped.MOD_ID, blockPath.replace("_top", ""));
+        Identifier blockId = new Identifier(Reshaped.MOD_ID, blockPath.replace("_top", "").replace("_inner", "").replace("_outer", ""));
         Block block = Registries.BLOCK.get(blockId);
-        Block baseBlock = Reshaped.MATRIX.getBaseBlock(block);
+        Block baseBlock = Reshaped.MATRIX != null ? Reshaped.MATRIX.getBaseBlock(block) : null;
 
         if (baseBlock != null) {
             Identifier baseId = Registries.BLOCK.getId(baseBlock);
@@ -218,6 +263,10 @@ public class RuntimeResourceGenerator {
                 return "{\"parent\":\"minecraft:block/slab_top\",\"textures\":{\"bottom\":\"" + textureId + "\",\"top\":\"" + textureId + "\",\"side\":\"" + textureId + "\"}}";
             } else if (blockPath.endsWith("_slab")) {
                 return "{\"parent\":\"minecraft:block/slab\",\"textures\":{\"bottom\":\"" + textureId + "\",\"top\":\"" + textureId + "\",\"side\":\"" + textureId + "\"}}";
+            } else if (blockPath.endsWith("_stairs_inner")) {
+                return "{\"parent\":\"minecraft:block/inner_stairs\",\"textures\":{\"bottom\":\"" + textureId + "\",\"top\":\"" + textureId + "\",\"side\":\"" + textureId + "\"}}";
+            } else if (blockPath.endsWith("_stairs_outer")) {
+                return "{\"parent\":\"minecraft:block/outer_stairs\",\"textures\":{\"bottom\":\"" + textureId + "\",\"top\":\"" + textureId + "\",\"side\":\"" + textureId + "\"}}";
             } else if (blockPath.endsWith("_stairs")) {
                 return "{\"parent\":\"minecraft:block/stairs\",\"textures\":{\"bottom\":\"" + textureId + "\",\"top\":\"" + textureId + "\",\"side\":\"" + textureId + "\"}}";
             }
