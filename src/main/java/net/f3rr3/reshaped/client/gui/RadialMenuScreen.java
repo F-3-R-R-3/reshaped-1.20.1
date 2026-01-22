@@ -330,8 +330,8 @@ public class RadialMenuScreen extends Screen {
             int x = centerX + (int) (RadialMenuScreen.RADIAL_RADIUS * Math.cos(angle));
             int y = centerY + (int) (RadialMenuScreen.RADIAL_RADIUS * Math.sin(angle));
 
-            // Highlight the base block with a larger scale
-            float scale = (baseBlock == block) ? 1.5f : 1.0f;
+            // Highlight the base block with a larger scale if the control button is pressed
+            float scale = (baseBlock == block && isCtrlPressed()) ? 1.5f : 1.0f;
 
             drawScaledItem(context, stack, x, y, scale);
         }
