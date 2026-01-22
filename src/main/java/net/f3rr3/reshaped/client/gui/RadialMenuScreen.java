@@ -288,16 +288,16 @@ public class RadialMenuScreen extends Screen {
             Block block = blocks.get(hoveredIndex);
             String reason = Reshaped.MATRIX != null ? Reshaped.MATRIX.getReason(block) : "Unknown reason";
             String blockInstance = block.getClass().getSimpleName();
-            List<Text> tooltip = new ArrayList<>();
-            tooltip.add(block.getName());
+            List<Text> tooltip = new ArrayList<>(List.of(block.getName()));
+            drawCenteredTooltip(context, tooltip, centerX, centerY / 6);
+
             if (isCtrlPressed()) {
-                tooltip.addAll(List.of(
-                                Text.literal(blockInstance).formatted(Formatting.GRAY, Formatting.ITALIC),
-                                Text.literal(reason).formatted(Formatting.GRAY, Formatting.ITALIC)
-                        )
-                );
+                List<Text> debugTooltip = new ArrayList<>(List.of(
+                        Text.literal(blockInstance).formatted(Formatting.GRAY, Formatting.ITALIC),
+                        Text.literal(reason).formatted(Formatting.GRAY, Formatting.ITALIC)
+                ));
+                context.drawTooltip(this.textRenderer, debugTooltip, -8, 16);
             }
-            context.drawTooltip(this.textRenderer, tooltip, -8, 16);
         }
 
         // Debug rendering
@@ -478,4 +478,22 @@ public class RadialMenuScreen extends Screen {
         }
         return filtered;
     }
+
+    private void drawCenteredTooltip(
+            DrawContext context,
+            List<Text> lines,
+            int centerX,
+            int y
+    ) {
+        int maxWidth = 0;
+        for (Text line : lines) {
+            maxWidth = Math.max(maxWidth, this.textRenderer.getWidth(line));
+        }
+
+        int tooltipPadding = 12; // vanilla tooltip offset
+        int x = centerX - maxWidth / 2 - tooltipPadding;
+
+        context.drawTooltip(this.textRenderer, lines, x, y);
+    }
+
 }
