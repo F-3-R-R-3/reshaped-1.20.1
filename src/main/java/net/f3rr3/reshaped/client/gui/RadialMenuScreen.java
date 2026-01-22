@@ -32,16 +32,21 @@ import java.util.List;
 
 public class RadialMenuScreen extends Screen {
     private static final Identifier HOTBAR_TEXTURE = new Identifier("minecraft", "textures/gui/widgets.png");
+
+    // Data
     private final List<Block> blocks;
     private final int slot;
     private final Block currentBlock;
     private final Block baseBlock;
+
+    // Animation & Selection State
     private int hoveredIndex = -1;
-    private float centerBlockAngle = 0f; // in rad
-    private float angularSpeed = 0.0f; // angular speed (rad/s)
+    private float centerBlockAngle = 0f; // in radians
+    private float angularSpeed = 0.0f; // angular speed in rad/s
     private float lastRelativeAngle = 0f;
     private float relativeAngle = 0f;
-    // Action to perform during the render cycle to ensure safe screen transitions
+
+    // Transient State
     private Runnable pendingAction;
     private int selectedSlotInSortedHotbar;
 
@@ -65,59 +70,63 @@ public class RadialMenuScreen extends Screen {
         matrices.pop();
     }
 
+    /**
+     * Renders an item with custom rotation and top-left lighting.
+     * Used for the central rotating item display in the radial menu.
+     */
     public static void drawRotatedItem(DrawContext context, ItemStack stack, int x, int y, float angleRad, float scale) {
         var matrices = context.getMatrices();
         ItemRenderer itemRenderer = MinecraftClient.getInstance().getItemRenderer();
         BakedModel model = itemRenderer.getModel(stack, null, null, 0);
         boolean is3D = model.hasDepth();
 
+        // Adjust scale for 2D items to prevent them from looking too large
         if (!is3D) {
             scale *= 0.6f;
         }
 
         matrices.push();
 
-        // Set STATIC shader lights for top-left lighting direction
-        // Testing negative X to move light to the Left.
-        // Y is kept at -1.0f (Top).
+        // Set static shader lights for top-left lighting direction.
+        // These values are derived from Minecraft source code but adjusted for UI space.
         Vector3f lightDir1 = new Vector3f(0.2F, -1.0F, -0.7F).normalize();
-        Vector3f lightDir2 = new Vector3f(-0.2F, -1.0F, 0.7F).normalize();  // Lighting taken from the minecraft source code wih reversed y
+        Vector3f lightDir2 = new Vector3f(-0.2F, -1.0F, 0.7F).normalize();
         RenderSystem.setShaderLights(lightDir1, lightDir2);
 
-        // Places the item in the center of the position and scales it
-        matrices.translate(x, y - 16, -100); // -100 = depth above UI
-        matrices.scale(scale * 16f, scale * -16f, scale * 16f); // y-axis multiplied by -1 to translate between UI and render code.
+        // Position the item and scale it
+        // -100 depth ensures it renders above the radial slices
+        matrices.translate(x, y - 16, -100);
+        // Flip Y axis: UI coordinates (top-down) -> render coordinates (bottom-up)
+        matrices.scale(scale * 16f, scale * -16f, scale * 16f);
 
-        // Rotation around Y-as
-
+        // Apply animations: tilt and rotation
         matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(30));
         matrices.multiply(RotationAxis.POSITIVE_Y.rotation(angleRad));
 
-        // Use immediate vertex consumer to ensure our shader lights are applied
+        // Use immediate vertex consumer to ensure custom lighting is applied immediately
         VertexConsumerProvider.Immediate immediate = MinecraftClient.getInstance().getBufferBuilders().getEntityVertexConsumers();
 
-        // Render call met World en seed
         itemRenderer.renderItem(
                 stack,
                 ModelTransformationMode.FIXED,
-                0xF000F0,                    // light
-                OverlayTexture.DEFAULT_UV,    // overlay
+                0xF000F0,                    // Full light
+                OverlayTexture.DEFAULT_UV,
                 matrices,
                 immediate,
-                MinecraftClient.getInstance().world, // world
-                0                               // seed
+                MinecraftClient.getInstance().world,
+                0
         );
 
-        // Draw the buffered content with our custom lighting
+        // Draw the buffered content
         immediate.draw();
 
         matrices.pop();
 
-        // Restore default GUI depth lighting after rendering
+        // Restore default GUI lighting
         DiffuseLighting.enableGuiDepthLighting();
     }
 
-    private static void DrawCircleSlice(DrawContext context, int centerX, int centerY, int OuterRadius, int innerRadius, int slice, int NoOfSlices, int color) {
+    private static void drawCircleSlice(DrawContext context, int centerX, int centerY, int OuterRadius, int innerRadius, int slice, int NoOfSlices, int color) {
         resetRender();
         float sectionWidth = 360f / NoOfSlices;
         float startAngle = sectionWidth * (slice - 0.5f);
@@ -141,17 +150,23 @@ public class RadialMenuScreen extends Screen {
         return client.currentScreen instanceof RadialMenuScreen;
     }
 
+    /**
+     * Draws the vanilla hotbar background texture for a specific slot.
+     * @param slot The slot index (1-9). Use -1 for the selection highlight.
+     */
     private static void drawHotbarTexture(DrawContext context, int slot, int x, int y) {
-        // catch hotbar selector calls
+        // Handle hotbar selector (selection highlight)
         if (slot == -1) {
             context.drawTexture(HOTBAR_TEXTURE, x - 2, y - 1, 0, 22, 24, 22);
             return;
         }
-        // normal hotbar slots
+
+        // Calculate texture coordinates for normal hotbar slots
         int u = (slot == 1) ? 0 : ((slot - 1) * 20 + 1);
         int v = 0;
         int tileWidth = (slot == 1 || slot == 9) ? 21 : 20;
         int tileHeight = 22;
+
         if (slot == 1) x -= 1;
         context.drawTexture(HOTBAR_TEXTURE, x, y, u, v, tileWidth, tileHeight);
     }
@@ -172,10 +187,10 @@ public class RadialMenuScreen extends Screen {
     public void tick() {
         super.tick();
 
-
+        // Calculate angular velocity based on mouse movement relative to the center
         float delta = relativeAngle - lastRelativeAngle;
 
-        // normalise to [-PI, PI]
+        // Normalize delta to [-PI, PI] to handle wrap-around cases
         if (delta > Math.PI) {
             delta -= (float) (2 * Math.PI);
         } else if (delta < -Math.PI) {
@@ -185,20 +200,17 @@ public class RadialMenuScreen extends Screen {
         angularSpeed += delta;
         lastRelativeAngle = relativeAngle;
 
+        // Animation settings
+        float targetAngularSpeed = 0.5f; // Constant rotation speed (rad/s)
+        float springStrength = 2.0f;    // Speed at which it reaches the target velocity
+        float dt = 0.05f;               // Fixed time step (50 ms for tick)
 
-        // settings
-        float angularSpeed_target = 0.5f; // angular speed (rad/s)
-        float k = 2.0f;              // strength
-        float dt = 0.05f;            // 50 ms
-
-
-        // friction / settings
-        float torque = k * (angularSpeed_target - angularSpeed);
+        // Apply "physics" to the rotation (simple proportional control to reach target speed)
+        float torque = springStrength * (targetAngularSpeed - angularSpeed);
         angularSpeed += torque * dt;
 
-        // integrate angle
+        // Update the actual rotation angle
         centerBlockAngle += angularSpeed * dt;
-
 
         // Check if the trigger key/button is still held
         boolean isHeld = false;
@@ -212,7 +224,6 @@ public class RadialMenuScreen extends Screen {
                 isHeld = GLFW.glfwGetMouseButton(handle, boundKey.getCode()) == GLFW.GLFW_PRESS;
             }
         }
-        lastRelativeAngle = relativeAngle;
 
         if (!isHeld) {
             // Key was released, select hovered and close
@@ -222,94 +233,106 @@ public class RadialMenuScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        if (blocks.isEmpty()) return;
 
         int centerX = this.width / 2;
         int centerY = this.height / 2;
         int radius = 80;
-
-        if (blocks.isEmpty()) return;
-
         double angleStep = (2 * Math.PI) / blocks.size();
-        hoveredIndex = -1;
 
-        filteredHotbarRender(context);
-        // Calculate hovered index based on mouse angle
-        double dx = mouseX - centerX;
-        double dy = mouseY - centerY;
-        double distSq = dx * dx + dy * dy;
-
-        // Update relative angle once per frame
+        // Update state
         relativeAngle = getRelativeAngleToMouse(centerX, centerY, mouseX, mouseY);
+        updateHoveredIndex(centerX, centerY, mouseX, mouseY, angleStep);
 
-        if (distSq > 400 && distSq < 15000) {
-            double mouseAngle = Math.atan2(dy, dx);
-            if (mouseAngle < 0) mouseAngle += 2 * Math.PI;
+        // Rendering order
+        renderFilteredHotbar(context);
+        renderBackgroundSlices(context, centerX, centerY, radius);
+        renderItems(context, centerX, centerY, radius, angleStep);
+        renderTooltips(context, centerX, centerY);
 
-            hoveredIndex = (int) Math.round(mouseAngle / angleStep) % blocks.size();
-        }
-
-        int innerDiam = radius - 10;
-        int outerDiam = radius + 10;
-
-        // Pass 1: Draw Background Slices
-        for (int i = 0; i < blocks.size(); i++) {
-            if (i == hoveredIndex) {
-                DrawCircleSlice(context, centerX, centerY, outerDiam + 6, innerDiam - 4, i, blocks.size(), 0x40666666);
-            } else {
-                DrawCircleSlice(context, centerX, centerY, outerDiam, innerDiam, i, blocks.size(), 0x7F333333);
-            }
-        }
-
-        // Pass 2: Draw Items
-        for (int i = 0; i < blocks.size(); i++) {
-            double angle = i * angleStep;
-            Block block = blocks.get(i);
-            ItemStack stack = new ItemStack(block);
-
-            if ((i == hoveredIndex) || (block == currentBlock && hoveredIndex == -1)) {
-                drawRotatedItem(context, stack, centerX, centerY + 16, -centerBlockAngle, 8f);
-            }
-
-            int x = centerX + (int) (radius * Math.cos(angle));
-            int y = centerY + (int) (radius * Math.sin(angle));
-            float scale;
-
-            if (baseBlock == block) {
-                scale = 1.5f;
-            } else {
-                scale = 1.0f;
-            }
-
-            drawScaledItem(context, stack, x, y, scale);
-        }
-
-        // Pass 3: Draw Tooltip
-        if (hoveredIndex != -1) {
-            Block block = blocks.get(hoveredIndex);
-            String reason = Reshaped.MATRIX != null ? Reshaped.MATRIX.getReason(block) : "Unknown reason";
-            String blockInstance = block.getClass().getSimpleName();
-            List<Text> tooltip = new ArrayList<>(List.of(block.getName()));
-            drawCenteredTooltip(context, tooltip, centerX, centerY / 6);
-
-            if (isCtrlPressed()) {
-                List<Text> debugTooltip = new ArrayList<>(List.of(
-                        Text.literal(blockInstance).formatted(Formatting.GRAY, Formatting.ITALIC),
-                        Text.literal(reason).formatted(Formatting.GRAY, Formatting.ITALIC)
-                ));
-                context.drawTooltip(this.textRenderer, debugTooltip, -8, 16);
-            }
-        }
-
-        // Debug rendering
         if (isCtrlPressed()) {
             renderDebugInfo(context, centerX, centerY, radius, relativeAngle);
         }
 
         super.render(context, mouseX, mouseY, delta);
 
+        // Execute any screen transitions queued during tick or input
         if (this.pendingAction != null) {
             this.pendingAction.run();
             this.pendingAction = null;
+        }
+    }
+
+    private void updateHoveredIndex(int centerX, int centerY, int mouseX, int mouseY, double angleStep) {
+        double dx = mouseX - centerX;
+        double dy = mouseY - centerY;
+        double distSq = dx * dx + dy * dy;
+
+        hoveredIndex = -1;
+        // Check if mouse is within the radial ring hit area
+        if (distSq > 400 && distSq < 15000) {
+            double mouseAngle = Math.atan2(dy, dx);
+            if (mouseAngle < 0) mouseAngle += 2 * Math.PI;
+
+            hoveredIndex = (int) Math.round(mouseAngle / angleStep) % blocks.size();
+        }
+    }
+
+    private void renderBackgroundSlices(DrawContext context, int centerX, int centerY, int radius) {
+        int innerDiam = radius - 10;
+        int outerDiam = radius + 10;
+
+        for (int i = 0; i < blocks.size(); i++) {
+            if (i == hoveredIndex) {
+                // Highlight hovered slice
+                drawCircleSlice(context, centerX, centerY, outerDiam + 6, innerDiam - 4, i, blocks.size(), 0x40666666);
+            } else {
+                // Default slice
+                drawCircleSlice(context, centerX, centerY, outerDiam, innerDiam, i, blocks.size(), 0x7F333333);
+            }
+        }
+    }
+
+    private void renderItems(DrawContext context, int centerX, int centerY, int radius, double angleStep) {
+        for (int i = 0; i < blocks.size(); i++) {
+            double angle = i * angleStep;
+            Block block = blocks.get(i);
+            ItemStack stack = new ItemStack(block);
+
+            // Render the central rotating preview for the hovered (or currently active) block
+            if ((i == hoveredIndex) || (block == currentBlock && hoveredIndex == -1)) {
+                drawRotatedItem(context, stack, centerX, centerY + 16, -centerBlockAngle, 8f);
+            }
+
+            // Calculate position for the block icon in the radial menu
+            int x = centerX + (int) (radius * Math.cos(angle));
+            int y = centerY + (int) (radius * Math.sin(angle));
+            
+            // Highlight the base block with a larger scale
+            float scale = (baseBlock == block) ? 1.5f : 1.0f;
+
+            drawScaledItem(context, stack, x, y, scale);
+        }
+    }
+
+    private void renderTooltips(DrawContext context, int centerX, int centerY) {
+        if (hoveredIndex != -1) {
+            Block block = blocks.get(hoveredIndex);
+            
+            // Primary tooltip (Block Name)
+            List<Text> tooltip = new ArrayList<>(List.of(block.getName()));
+            drawCenteredTooltip(context, tooltip, centerX, centerY / 6);
+
+            // Debug tooltip (Block Class and Relationship source)
+            if (isCtrlPressed()) {
+                String reason = Reshaped.MATRIX != null ? Reshaped.MATRIX.getReason(block) : "Unknown reason";
+                String blockInstance = block.getClass().getSimpleName();
+                List<Text> debugTooltip = new ArrayList<>(List.of(
+                        Text.literal(blockInstance).formatted(Formatting.GRAY, Formatting.ITALIC),
+                        Text.literal(reason).formatted(Formatting.GRAY, Formatting.ITALIC)
+                ));
+                context.drawTooltip(this.textRenderer, debugTooltip, -8, 16);
+            }
         }
     }
 
@@ -349,15 +372,15 @@ public class RadialMenuScreen extends Screen {
             int j = (int) Math.signum(amount);
             int newSlot = i;
             while (true) {
-                // verander slot in de richting van het scrollen
+                // Change slot in the scrolling direction
                 newSlot -= j;
-                // begrens slot in de bestaande hotbar slots
+                // Clamp slot index to valid hotbar range [0, 8]
                 while (newSlot < 0) newSlot += 9;
                 while (newSlot >= 9) newSlot -= 9;
-                // haal item in slot op
+                // Get item in the current slot
                 ItemStack stack = this.client.player.getInventory().getStack(newSlot);
                 Block block = stack.getItem() instanceof BlockItem blockItem ? blockItem.getBlock() : null;
-                // test of het is wat we zoeken
+                // Check if the item belongs to a block matrix (isValid for radial menu)
                 if (!stack.isEmpty() && Reshaped.MATRIX.hasBlock(block)) break;
             }
             this.changeSlot(newSlot);
@@ -421,7 +444,10 @@ public class RadialMenuScreen extends Screen {
         return false;
     }
 
-    private void filteredHotbarRender(DrawContext context) {
+    /**
+     * Renders a filtered version of the hotbar containing only blocks that belong to a matrix.
+     */
+    private void renderFilteredHotbar(DrawContext context) {
         MinecraftClient client = MinecraftClient.getInstance();
         assert client.player != null;
 
@@ -441,22 +467,23 @@ public class RadialMenuScreen extends Screen {
             int x = xStart + i * slotWidth;
             resetRender();
             int slot;
+            // Map index to radial slot texture ID (1-9)
             if (i == filtered.size() - 1) slot = 9;
             else slot = i + 1;
 
             drawHotbarTexture(context, slot, x, y);
 
-            // render item
+            // Render the item in the slot
             ItemStack stack = filtered.get(i);
 
             context.drawItem(stack, x + 2, y + 3);
             context.drawItemInSlot(this.textRenderer, stack, x + 2, y + 3);
         }
 
+        // Draw the selection highlight
         int x = xStart + selectedSlotInSortedHotbar * slotWidth;
         y = screenHeight - 22;
         drawHotbarTexture(context, -1, x, y);
-
     }
 
     private List<ItemStack> generateFilteredHotbar() {
