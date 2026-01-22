@@ -2,8 +2,8 @@ package net.f3rr3.reshaped.util;
 
 import net.fabricmc.fabric.api.event.registry.RegistryEntryAddedCallback;
 import net.f3rr3.reshaped.Reshaped;
+import net.f3rr3.reshaped.registry.VariantRegistry;
 import net.f3rr3.reshaped.registry.VariantCompleter;
-import net.f3rr3.reshaped.registry.VerticalSlabRegistry;
 import net.minecraft.block.Block;
 import net.minecraft.block.SlabBlock;
 import net.minecraft.block.StairsBlock;
@@ -192,8 +192,8 @@ public class BlockRegistryScanner {
                 // This will also check for existing ones before registering
                 VariantCompleter.completeVariant(base, matrix);
                 
-                // And register its vertical slab
-                VerticalSlabRegistry.registerVerticalSlabForBase(base, matrix);
+                // And register its custom variants (like vertical slabs)
+                VariantRegistry.registerAll(base, matrix);
 
                 // Ensure the matrix and its reverse mapping are up to date
                 if (shouldRefresh) matrix.refresh();

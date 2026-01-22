@@ -2,25 +2,19 @@ package net.f3rr3.reshaped.registry;
 
 import net.f3rr3.reshaped.Reshaped;
 import net.f3rr3.reshaped.util.BlockMatrix;
-import net.minecraft.block.AbstractBlock;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.SlabBlock;
-import net.minecraft.block.StairsBlock;
+import net.minecraft.block.*;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class VariantCompleter {
-    public static void completeMatrix(BlockMatrix matrix) {
-        for (Block base : matrix.getMatrix().keySet()) {
-            completeVariant(base, matrix);
-        }
-    }
 
     public static void completeVariant(Block base, BlockMatrix matrix) {
         if (base == Blocks.AIR) return;
@@ -103,12 +97,12 @@ public class VariantCompleter {
     private static Block findExistingVariant(String baseName, String suffix, String baseNamespace) {
         // Try various common naming patterns to find existing variants
         List<String> variantsToTry = new ArrayList<>();
-        
+
         // 1. Direct patterns
         variantsToTry.add(baseName + "_" + suffix);
         variantsToTry.add(baseName.replace("_block", "") + "_" + suffix);
         variantsToTry.add(baseName.replace("_planks", "") + "_" + suffix);
-        
+
         // 2. Copper patterns (cut_copper)
         if (baseName.contains("copper") && !baseName.contains("cut_")) {
             variantsToTry.add(baseName.replace("copper", "cut_copper") + "_" + suffix);
@@ -118,7 +112,7 @@ public class VariantCompleter {
         variantsToTry.add(baseName.replace("bricks", "brick") + "_" + suffix);
         variantsToTry.add(baseName.replace("tiles", "tile") + "_" + suffix);
         variantsToTry.add(baseName.replace("shingles", "shingle") + "_" + suffix);
-        
+
         // 4. Plurality
         if (baseName.endsWith("s")) {
             variantsToTry.add(baseName.substring(0, baseName.length() - 1) + "_" + suffix);
@@ -158,7 +152,6 @@ public class VariantCompleter {
 
     private static boolean isValidVariant(Block block, String suffix) {
         if (suffix.equals("slab") && block instanceof SlabBlock) return true;
-        if (suffix.equals("stairs") && block instanceof StairsBlock) return true;
-        return false;
+        return suffix.equals("stairs") && block instanceof StairsBlock;
     }
 }

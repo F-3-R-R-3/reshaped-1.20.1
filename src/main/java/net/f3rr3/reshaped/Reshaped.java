@@ -7,8 +7,6 @@ import org.slf4j.LoggerFactory;
 
 import net.f3rr3.reshaped.util.BlockMatrix;
 import net.f3rr3.reshaped.util.BlockRegistryScanner;
-import net.f3rr3.reshaped.registry.VerticalSlabRegistry;
-import net.f3rr3.reshaped.registry.VariantCompleter;
 import net.f3rr3.reshaped.command.MatrixCommand;
 import net.f3rr3.reshaped.network.NetworkHandler;
 
