@@ -87,10 +87,7 @@ public class VerticalSlabVariant implements BlockVariantType {
         Registry.register(Registries.BLOCK, id, verticalSlab);
         Registry.register(Registries.ITEM, id, new BlockItem(verticalSlab, new Item.Settings()));
         
-        List<Block> variants = matrix.getMatrix().get(baseBlock);
-        if (variants != null) {
-            variants.add(verticalSlab);
-        }
+        matrix.addVariant(baseBlock, verticalSlab, true);
         matrix.setReason(verticalSlab, "Dynamically registered Vertical Slab for " + baseBlock.getName().getString());
         BASE_TO_SLAB.put(baseBlock, verticalSlab);
         Reshaped.LOGGER.info("Registered vertical slab for: " + baseId);

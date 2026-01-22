@@ -44,6 +44,14 @@ public class BlockMatrix {
         return variantToBase.get(variant);
     }
 
+    public void addVariant(Block baseBlock, Block variant, boolean shouldRefresh) {
+        List<Block> existing = matrix.computeIfAbsent(baseBlock, k -> new ArrayList<>());
+        if (!existing.contains(variant)) {
+            existing.add(variant);
+            if (shouldRefresh) refresh();
+        }
+    }
+
     public void addColumn(Block baseBlock, List<Block> variants, boolean shouldRefresh) {
         List<Block> existing = matrix.getOrDefault(baseBlock, new ArrayList<>());
         boolean added = false;

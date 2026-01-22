@@ -1,4 +1,7 @@
 {
+  "block.reshaped.vertical_stairs": "Vertical Stairs",
+  "block.reshaped.vertical_slab": "Vertical Slab"
+}
   "text.autoconfig.reshaped.title" : "ReShaped config",
 
   "text.autoconfig.reshaped.option.radial" : "Radial menu",

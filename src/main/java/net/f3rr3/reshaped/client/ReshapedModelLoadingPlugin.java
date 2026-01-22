@@ -51,6 +51,13 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                     context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_east"));
                     context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_west"));
                 }
+                // Vertical stairs quadrants
+                if (id.getPath().endsWith("_vertical_stairs")) {
+                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_plus_x_plus_y"));
+                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_minus_x_plus_y"));
+                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_plus_x_minus_y"));
+                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_minus_x_minus_y"));
+                }
                 context.addModels(new Identifier(Reshaped.MOD_ID, "item/" + id.getPath()));
             }
         }

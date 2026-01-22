@@ -142,6 +142,10 @@ public class RuntimeResourceGenerator {
         // Handle Item Models
         if (path.startsWith("item/")) {
             String itemPath = path.substring(5);
+            // If it's a vertical stair, the item should use one of the orientation models
+            if (itemPath.endsWith("_vertical_stairs")) {
+                return "{\"parent\":\"reshaped:block/" + itemPath + "_minus_x_minus_y\"}";
+            }
             return "{\"parent\":\"reshaped:block/" + itemPath + "\"}";
         }
 
@@ -150,7 +154,17 @@ public class RuntimeResourceGenerator {
         if (blockPath.startsWith("block/")) blockPath = blockPath.substring(6);
 
         // Delegate to VariantRegistry for custom variants
-        String variantJson = VariantRegistry.generateModelJson(blockPath, Registries.BLOCK.get(new Identifier(Reshaped.MOD_ID, blockPath.replace("_north", "").replace("_south", "").replace("_east", "").replace("_west", ""))));
+        String baseBlockPath = blockPath
+            .replace("_plus_x_plus_y", "")
+            .replace("_minus_x_plus_y", "")
+            .replace("_plus_x_minus_y", "")
+            .replace("_minus_x_minus_y", "")
+            .replace("_north", "")
+            .replace("_south", "")
+            .replace("_east", "")
+            .replace("_west", "");
+            
+        String variantJson = VariantRegistry.generateModelJson(blockPath, Registries.BLOCK.get(new Identifier(Reshaped.MOD_ID, baseBlockPath)));
         if (variantJson != null) return variantJson;
 
         // Slab and Stair fallbacks (Efficient lookup)
