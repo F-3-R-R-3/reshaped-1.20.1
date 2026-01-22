@@ -32,6 +32,11 @@ import java.util.List;
 
 public class RadialMenuScreen extends Screen {
     private static final Identifier HOTBAR_TEXTURE = new Identifier("minecraft", "textures/gui/widgets.png");
+    private static final float BACKGROUND_RESOLUTION_MULTIPLIER = 4.0f; // Increase for smoother circles, decrease for performance
+    private static final int RADIAL_RADIUS = 80;
+    private static final int RADIAL_RING_THICKNESS = 20;
+    private static final int MIN_HOVER_DIST_SQ = 400;   // (radius 20)
+    private static final int MAX_HOVER_DIST_SQ = 15000; // (radius ~122.5)
 
     // Data
     private final List<Block> blocks;
@@ -126,17 +131,33 @@ public class RadialMenuScreen extends Screen {
         DiffuseLighting.enableGuiDepthLighting();
     }
 
-    private static void drawCircleSlice(DrawContext context, int centerX, int centerY, int OuterRadius, int innerRadius, int slice, int NoOfSlices, int color) {
+    private static void drawCircleSlice(DrawContext context, int centerX, int centerY, int outerRadius, int innerRadius, int slice, int NoOfSlices, int color) {
         resetRender();
         float sectionWidth = 360f / NoOfSlices;
         float startAngle = sectionWidth * (slice - 0.5f);
         float endAngle = sectionWidth * (slice + 0.5f);
-        CircleTexture.CachedCircle circle = CircleTexture.getOrCreateCircle(OuterRadius, innerRadius, color, 0.7f, 1f, startAngle, endAngle);
 
-        int size = circle.size;
-        int x0 = centerX - size / 2;
-        int y0 = centerY - size / 2;
-        context.drawTexture(circle.textureId, x0, y0, 0, 0, size, size, size, size);
+        // Scale radii for higher resolution texture generation
+        int resOuter = Math.round(outerRadius * BACKGROUND_RESOLUTION_MULTIPLIER);
+        int resInner = Math.round(innerRadius * BACKGROUND_RESOLUTION_MULTIPLIER);
+
+        CircleTexture.CachedCircle circle = CircleTexture.getOrCreateCircle(resOuter, resInner, color, 0.7f, BACKGROUND_RESOLUTION_MULTIPLIER, startAngle, endAngle);
+
+        // Determine display size by scaling back down
+        int displaySize = Math.round((float) circle.size / BACKGROUND_RESOLUTION_MULTIPLIER);
+        int x0 = centerX - displaySize / 2;
+        int y0 = centerY - displaySize / 2;
+
+        // Draw the high-res texture scaled down to the original UI dimensions.
+        // Parameters: texture, x, y, width, height, u, v, regionWidth, regionHeight, textureWidth, textureHeight
+        context.drawTexture(
+                circle.textureId,
+                x0, y0,
+                displaySize, displaySize,
+                0, 0,
+                circle.size, circle.size,
+                circle.size, circle.size
+        );
     }
 
     private static float getRelativeAngleToMouse(int xOrigin, int yOrigin, int xTarget, int yTarget) {
@@ -152,6 +173,7 @@ public class RadialMenuScreen extends Screen {
 
     /**
      * Draws the vanilla hotbar background texture for a specific slot.
+     *
      * @param slot The slot index (1-9). Use -1 for the selection highlight.
      */
     private static void drawHotbarTexture(DrawContext context, int slot, int x, int y) {
@@ -237,7 +259,6 @@ public class RadialMenuScreen extends Screen {
 
         int centerX = this.width / 2;
         int centerY = this.height / 2;
-        int radius = 80;
         double angleStep = (2 * Math.PI) / blocks.size();
 
         // Update state
@@ -246,12 +267,12 @@ public class RadialMenuScreen extends Screen {
 
         // Rendering order
         renderFilteredHotbar(context);
-        renderBackgroundSlices(context, centerX, centerY, radius);
-        renderItems(context, centerX, centerY, radius, angleStep);
+        renderBackgroundSlices(context, centerX, centerY);
+        renderItems(context, centerX, centerY, angleStep);
         renderTooltips(context, centerX, centerY);
 
         if (isCtrlPressed()) {
-            renderDebugInfo(context, centerX, centerY, radius, relativeAngle);
+            renderDebugInfo(context, centerX, centerY, relativeAngle);
         }
 
         super.render(context, mouseX, mouseY, delta);
@@ -270,7 +291,7 @@ public class RadialMenuScreen extends Screen {
 
         hoveredIndex = -1;
         // Check if mouse is within the radial ring hit area
-        if (distSq > 400 && distSq < 15000) {
+        if (distSq > MIN_HOVER_DIST_SQ && distSq < MAX_HOVER_DIST_SQ) {
             double mouseAngle = Math.atan2(dy, dx);
             if (mouseAngle < 0) mouseAngle += 2 * Math.PI;
 
@@ -278,9 +299,10 @@ public class RadialMenuScreen extends Screen {
         }
     }
 
-    private void renderBackgroundSlices(DrawContext context, int centerX, int centerY, int radius) {
-        int innerDiam = radius - 10;
-        int outerDiam = radius + 10;
+    private void renderBackgroundSlices(DrawContext context, int centerX, int centerY) {
+        int halfThickness = RADIAL_RING_THICKNESS / 2;
+        int innerDiam = RadialMenuScreen.RADIAL_RADIUS - halfThickness;
+        int outerDiam = RadialMenuScreen.RADIAL_RADIUS + halfThickness;
 
         for (int i = 0; i < blocks.size(); i++) {
             if (i == hoveredIndex) {
@@ -293,7 +315,7 @@ public class RadialMenuScreen extends Screen {
         }
     }
 
-    private void renderItems(DrawContext context, int centerX, int centerY, int radius, double angleStep) {
+    private void renderItems(DrawContext context, int centerX, int centerY, double angleStep) {
         for (int i = 0; i < blocks.size(); i++) {
             double angle = i * angleStep;
             Block block = blocks.get(i);
@@ -305,9 +327,9 @@ public class RadialMenuScreen extends Screen {
             }
 
             // Calculate position for the block icon in the radial menu
-            int x = centerX + (int) (radius * Math.cos(angle));
-            int y = centerY + (int) (radius * Math.sin(angle));
-            
+            int x = centerX + (int) (RadialMenuScreen.RADIAL_RADIUS * Math.cos(angle));
+            int y = centerY + (int) (RadialMenuScreen.RADIAL_RADIUS * Math.sin(angle));
+
             // Highlight the base block with a larger scale
             float scale = (baseBlock == block) ? 1.5f : 1.0f;
 
@@ -318,7 +340,7 @@ public class RadialMenuScreen extends Screen {
     private void renderTooltips(DrawContext context, int centerX, int centerY) {
         if (hoveredIndex != -1) {
             Block block = blocks.get(hoveredIndex);
-            
+
             // Primary tooltip (Block Name)
             List<Text> tooltip = new ArrayList<>(List.of(block.getName()));
             drawCenteredTooltip(context, tooltip, centerX, centerY / 6);
@@ -343,10 +365,10 @@ public class RadialMenuScreen extends Screen {
                 GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS;
     }
 
-    private void renderDebugInfo(DrawContext context, int centerX, int centerY, int radius, float relativeAngle) {
+    private void renderDebugInfo(DrawContext context, int centerX, int centerY, float relativeAngle) {
         String debugText = "Radial: Hover " + hoveredIndex + " | Items: " + blocks.size() + " | relativeAngle: " + relativeAngle;
         int textX = centerX - 150;
-        int textY = centerY + radius + 20;
+        int textY = centerY + RadialMenuScreen.RADIAL_RADIUS + 20;
         context.fill(textX - 2, textY - 2, textX + 150, textY + 12, 0xFF000000);
         context.drawText(this.textRenderer, debugText, textX, textY, 0xFFFFFF, false);
     }
