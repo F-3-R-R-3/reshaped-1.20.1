@@ -5,7 +5,6 @@ import net.f3rr3.reshaped.util.RuntimeResourceGenerator;
 import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.StairsBlock;
 import net.minecraft.client.render.model.ModelRotation;
 import net.minecraft.client.render.model.json.JsonUnbakedModel;
 import net.minecraft.client.render.model.json.ModelVariant;
@@ -14,7 +13,6 @@ import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
 
 import java.util.Collections;
-import java.util.List;
 
 public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
 
@@ -57,6 +55,13 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                     context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_minus_x_plus_y"));
                     context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_plus_x_minus_y"));
                     context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_minus_x_minus_y"));
+                }
+                // Corner quadrants (Register all 256 bitmask combinations to ensure they are loaded)
+                if (id.getPath().endsWith("_corner")) {
+                    for (int i = 0; i < 256; i++) {
+                        String mask = String.format("%8s", Integer.toBinaryString(i)).replace(' ', '0');
+                        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_" + mask));
+                    }
                 }
                 context.addModels(new Identifier(Reshaped.MOD_ID, "item/" + id.getPath()));
             }

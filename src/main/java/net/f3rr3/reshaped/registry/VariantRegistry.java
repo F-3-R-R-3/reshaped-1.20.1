@@ -15,6 +15,7 @@ public class VariantRegistry {
     static {
         VARIANTS.add(new VerticalSlabVariant());
         VARIANTS.add(new VerticalStairsVariant());
+        VARIANTS.add(new CornerVariant());
     }
 
     public static void registerVariant(BlockVariantType variant) {

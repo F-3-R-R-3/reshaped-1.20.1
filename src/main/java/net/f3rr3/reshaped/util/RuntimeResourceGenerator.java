@@ -146,6 +146,10 @@ public class RuntimeResourceGenerator {
             if (itemPath.endsWith("_vertical_stairs")) {
                 return "{\"parent\":\"reshaped:block/" + itemPath + "_minus_x_minus_y\"}";
             }
+            // If it's a corner, the item should use one of the orientation models
+            if (itemPath.endsWith("_corner")) {
+                return "{\"parent\":\"reshaped:block/" + itemPath + "_10000000\"}";
+            }
             return "{\"parent\":\"reshaped:block/" + itemPath + "\"}";
         }
 
@@ -154,11 +158,21 @@ public class RuntimeResourceGenerator {
         if (blockPath.startsWith("block/")) blockPath = blockPath.substring(6);
 
         // Delegate to VariantRegistry for custom variants
-        String baseBlockPath = blockPath
-            .replace("_plus_x_plus_y", "")
-            .replace("_minus_x_plus_y", "")
-            .replace("_plus_x_minus_y", "")
-            .replace("_minus_x_minus_y", "")
+        String baseBlockPath = blockPath;
+        if (blockPath.contains("_corner_") && blockPath.length() >= 9) {
+            int lastUnderscore = blockPath.lastIndexOf("_");
+            if (blockPath.length() - lastUnderscore == 9) {
+                baseBlockPath = blockPath.substring(0, lastUnderscore);
+            }
+        }
+        
+        baseBlockPath = baseBlockPath
+            .replace("_up", "")
+            .replace("_down", "")
+            .replace("_plus_x", "")
+            .replace("_minus_x", "")
+            .replace("_plus_y", "")
+            .replace("_minus_y", "")
             .replace("_north", "")
             .replace("_south", "")
             .replace("_east", "")

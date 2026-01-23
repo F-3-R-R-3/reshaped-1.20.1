@@ -1,6 +1,7 @@
 package net.f3rr3.reshaped.command;
 
 import net.f3rr3.reshaped.Reshaped;
+import net.f3rr3.reshaped.block.CornerBlock;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.block.Block;
 import net.minecraft.server.command.CommandManager;
@@ -41,7 +42,14 @@ public class MatrixCommand {
                         // Successive rows: Variants
                         for (int i = 0; i < variants.size(); i++) {
                             BlockPos variantPos = colRoot.up(i + 1);
-                            context.getSource().getWorld().setBlockState(variantPos, variants.get(i).getDefaultState());
+                            Block variant = variants.get(i);
+                            net.minecraft.block.BlockState state = variant.getDefaultState();
+                            
+                            if (variant instanceof CornerBlock) {
+                                state = state.with(CornerBlock.DOWN_NE, true).with(CornerBlock.UP_SW, true);
+                            }
+                            
+                            context.getSource().getWorld().setBlockState(variantPos, state);
                         }
                         
                         columnIdx++;
