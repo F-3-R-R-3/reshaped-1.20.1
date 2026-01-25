@@ -10,6 +10,13 @@ import net.f3rr3.reshaped.util.BlockRegistryScanner;
 import net.f3rr3.reshaped.command.MatrixCommand;
 import net.f3rr3.reshaped.network.NetworkHandler;
 import net.f3rr3.reshaped.block.CornerBlock;
+import net.f3rr3.reshaped.block.entity.CornerBlockEntity;
+import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.BlockEntityType;
+import net.minecraft.registry.Registry;
+import net.minecraft.registry.Registries;
+import net.minecraft.util.Identifier;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
@@ -25,6 +32,7 @@ public class Reshaped implements ModInitializer {
 	// That way, it's clear which mod wrote info, warnings, and errors.
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 	public static BlockMatrix MATRIX;
+	public static BlockEntityType<CornerBlockEntity> CORNER_BLOCK_ENTITY;
 
 	@Override
 	public void onInitialize() {
@@ -35,6 +43,15 @@ public class Reshaped implements ModInitializer {
 		
 		// Start reactive block scanning and registration
 		BlockRegistryScanner.init(MATRIX);
+
+		// Corner block entity registration will be finalized after scanning
+		// But we register the type here. We will use a late-bind approach for blocks.
+		CORNER_BLOCK_ENTITY = Registry.register(
+			Registries.BLOCK_ENTITY_TYPE,
+			new Identifier(MOD_ID, "corner_block_entity"),
+			FabricBlockEntityTypeBuilder.create(CornerBlockEntity::new).build(null)
+		);
+		CornerBlockEntity.TYPE = CORNER_BLOCK_ENTITY;
 
 		// Register commands
 		MatrixCommand.register();
@@ -68,9 +85,24 @@ public class Reshaped implements ModInitializer {
 							}
 
 							if (count > 1) {
+								Identifier materialId = null;
+								BlockEntity be = world.getBlockEntity(pos);
+								if (be instanceof CornerBlockEntity cbe) {
+									BooleanProperty[] quadrants = {CornerBlock.DOWN_NW, CornerBlock.DOWN_NE, CornerBlock.DOWN_SW, CornerBlock.DOWN_SE, 
+																 CornerBlock.UP_NW, CornerBlock.UP_NE, CornerBlock.UP_SW, CornerBlock.UP_SE};
+									for (int i = 0; i < 8; i++) {
+										if (quadrants[i] == property) {
+											materialId = cbe.getCornerMaterial(i);
+											cbe.setCornerMaterial(i, null); // Clear it
+											break;
+										}
+									}
+								}
+
 								world.setBlockState(pos, state.with(property, false), 3);
 								if (!player.isCreative()) {
-									Block.dropStack(world, pos, new ItemStack(state.getBlock().asItem()));
+									Block dropBlock = materialId != null ? Registries.BLOCK.get(materialId) : state.getBlock();
+									Block.dropStack(world, pos, new ItemStack(dropBlock.asItem()));
 								}
 								return false; // Cancel the full block break
 							}

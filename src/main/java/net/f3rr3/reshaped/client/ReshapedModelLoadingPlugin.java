@@ -1,6 +1,7 @@
 package net.f3rr3.reshaped.client;
 
 import net.f3rr3.reshaped.Reshaped;
+import net.f3rr3.reshaped.client.render.CornerBakedModel;
 import net.f3rr3.reshaped.util.RuntimeResourceGenerator;
 import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
 import net.minecraft.block.Block;
@@ -82,6 +83,26 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                 }
             }
             return null;
+        });
+
+        // Wrap corner block models with our custom composite model
+        context.resolveModel().register(resolverContext -> {
+            Identifier id = resolverContext.id();
+            if (id.getNamespace().equals(Reshaped.MOD_ID) && id.getPath().startsWith("block/") && id.getPath().contains("_corner_")) {
+                // This captures the dynamically generated bitmask models
+                // They don't need wrapping, they are used AS segments in the composite.
+                return null;
+            }
+            return null;
+        });
+
+        context.modifyModelAfterBake().register((model, context1) -> {
+            Identifier id = context1.id();
+            if (id.getNamespace().equals(Reshaped.MOD_ID) && id.getPath().endsWith("_corner") && !id.getPath().contains("_corner_")) {
+                // Wrap the base corner blocks (the ones returned by registerBlockStateResolver)
+                return new CornerBakedModel(model);
+            }
+            return model;
         });
     }
 }
