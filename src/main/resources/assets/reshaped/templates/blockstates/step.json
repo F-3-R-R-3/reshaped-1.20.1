@@ -1,0 +1,9 @@
+{
+  "variants": {
+    "facing=east,type=bottom":  { "model": "reshaped:block/{{path}}", "y": 0 },
+    "facing=south,type=bottom": { "model": "reshaped:block/{{path}}", "y": 90 },
+    "facing=west,type=bottom":  { "model": "reshaped:block/{{path}}", "y": 180 },
+    "facing=north,type=bottom": { "model": "reshaped:block/{{path}}", "y": 270 },
+    "type=double":              { "model": "{{base_model}}" }
+  }
+}

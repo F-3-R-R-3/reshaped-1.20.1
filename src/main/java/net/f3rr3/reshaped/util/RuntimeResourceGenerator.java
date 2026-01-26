@@ -1,12 +1,15 @@
 package net.f3rr3.reshaped.util;
 
-import net.f3rr3.reshaped.registry.VariantRegistry;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.f3rr3.reshaped.Reshaped;
-import net.minecraft.block.*;
+import net.f3rr3.reshaped.registry.VariantRegistry;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.SlabBlock;
+import net.minecraft.block.StairsBlock;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.model.ModelRotation;
 import net.minecraft.client.render.model.json.ModelVariant;
@@ -15,7 +18,10 @@ import net.minecraft.resource.Resource;
 import net.minecraft.util.Identifier;
 
 import java.io.InputStreamReader;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 public class RuntimeResourceGenerator {
 
@@ -26,6 +32,7 @@ public class RuntimeResourceGenerator {
         if (path.endsWith("_vertical_slab")) return "vertical_slab";
         if (path.endsWith("_vertical_stairs")) return "vertical_stairs";
         if (path.endsWith("_corner")) return "corner";
+        if (path.endsWith("_step")) return "step";
         if (block instanceof StairsBlock) return "stairs";
         if (block instanceof SlabBlock) return "slab";
         return null;
@@ -97,19 +104,19 @@ public class RuntimeResourceGenerator {
                 baseBlockPath = blockPath.substring(0, lastUnderscore);
             }
         }
-        
+
         baseBlockPath = baseBlockPath
-            .replace("_up", "")
-            .replace("_down", "")
-            .replace("_plus_x", "")
-            .replace("_minus_x", "")
-            .replace("_plus_y", "")
-            .replace("_minus_y", "")
-            .replace("_north", "")
-            .replace("_south", "")
-            .replace("_east", "")
-            .replace("_west", "");
-            
+                .replace("_up", "")
+                .replace("_down", "")
+                .replace("_plus_x", "")
+                .replace("_minus_x", "")
+                .replace("_plus_y", "")
+                .replace("_minus_y", "")
+                .replace("_north", "")
+                .replace("_south", "")
+                .replace("_east", "")
+                .replace("_west", "");
+
         String variantJson = VariantRegistry.generateModelJson(blockPath, Registries.BLOCK.get(new Identifier(Reshaped.MOD_ID, baseBlockPath)));
         if (variantJson != null) return variantJson;
 
@@ -120,11 +127,13 @@ public class RuntimeResourceGenerator {
 
         if (baseBlock != null) {
             Map<String, String> textures = getModelTextures(baseBlock);
-            
+
             if (block instanceof net.f3rr3.reshaped.block.VerticalSlabBlock) {
                 return generateModelFromTemplate("block/vertical_slab", textures);
             } else if (block instanceof net.f3rr3.reshaped.block.VerticalStairsBlock) {
                 return generateModelFromTemplate("block/verical_stairs", textures);
+            } else if (block instanceof net.f3rr3.reshaped.block.StepBlock) {
+                return generateModelFromTemplate("block/step", textures);
             } else if (block instanceof SlabBlock) {
                 if (blockPath.endsWith("_top")) {
                     return generateSimpleModel("minecraft:block/slab_top", textures);
@@ -146,14 +155,14 @@ public class RuntimeResourceGenerator {
         StringBuilder json = new StringBuilder();
         json.append("{\"parent\":\"").append(parent).append("\",");
         json.append("\"textures\":{");
-        
+
         boolean first = true;
         for (Map.Entry<String, String> entry : textures.entrySet()) {
             if (!first) json.append(",");
             json.append("\"").append(entry.getKey()).append("\":\"").append(entry.getValue()).append("\"");
             first = false;
         }
-        
+
         // Ensure standard textures are present if missing
         String all = textures.get("all");
         if (all != null) {
@@ -179,7 +188,7 @@ public class RuntimeResourceGenerator {
             for (Map.Entry<String, String> entry : textures.entrySet()) {
                 texObj.addProperty(entry.getKey(), entry.getValue());
             }
-            
+
             // Ensure standard textures are present if missing
             String all = textures.get("all");
             if (all != null) {
@@ -237,7 +246,7 @@ public class RuntimeResourceGenerator {
     public static Map<String, String> getModelTextures(Block block) {
         Map<String, String> textures = new HashMap<>();
         Identifier blockId = Registries.BLOCK.getId(block);
-        
+
         // 1. Try to load the block model directly first
         Identifier modelId = new Identifier(blockId.getNamespace(), "models/block/" + blockId.getPath() + ".json");
         if (loadTexturesFromModel(modelId, textures)) {
@@ -248,9 +257,9 @@ public class RuntimeResourceGenerator {
         // (Common for waxed blocks or aliased blocks)
         Identifier blockstateId = new Identifier(blockId.getNamespace(), "blockstates/" + blockId.getPath() + ".json");
         Optional<Resource> bsResource = MinecraftClient.getInstance().getResourceManager().getResource(blockstateId);
-        
+
         if (bsResource.isPresent()) {
-             try (InputStreamReader reader = new InputStreamReader(bsResource.get().getInputStream())) {
+            try (InputStreamReader reader = new InputStreamReader(bsResource.get().getInputStream())) {
                 JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
                 String variantModel = null;
 
@@ -263,30 +272,30 @@ public class RuntimeResourceGenerator {
                             variantModel = variant.get("model").getAsString();
                         }
                     } else {
-                         // Fallback: take the first key
-                         String firstKey = variants.keySet().iterator().next();
-                         if (variants.get(firstKey).isJsonObject()) {
-                             JsonObject variant = variants.getAsJsonObject(firstKey);
-                             if (variant.has("model")) {
-                                 variantModel = variant.get("model").getAsString();
-                             }
-                         }
+                        // Fallback: take the first key
+                        String firstKey = variants.keySet().iterator().next();
+                        if (variants.get(firstKey).isJsonObject()) {
+                            JsonObject variant = variants.getAsJsonObject(firstKey);
+                            if (variant.has("model")) {
+                                variantModel = variant.get("model").getAsString();
+                            }
+                        }
                     }
                 }
-                
+
                 if (variantModel != null) {
                     Identifier redirectedModelId = new Identifier(
-                        variantModel.contains(":") ? variantModel.split(":")[0] : "minecraft",
-                        "models/" + (variantModel.contains(":") ? variantModel.split(":")[1] : variantModel) + ".json"
+                            variantModel.contains(":") ? variantModel.split(":")[0] : "minecraft",
+                            "models/" + (variantModel.contains(":") ? variantModel.split(":")[1] : variantModel) + ".json"
                     );
                     loadTexturesFromModel(redirectedModelId, textures);
                 }
 
-             } catch (Exception e) {
-                 Reshaped.LOGGER.error("Failed to read blockstate for block: " + blockId, e);
-             }
+            } catch (Exception e) {
+                Reshaped.LOGGER.error("Failed to read blockstate for block: " + blockId, e);
+            }
         }
-        
+
         return textures;
     }
 
@@ -328,7 +337,7 @@ public class RuntimeResourceGenerator {
      */
     public static Identifier resolveBlockModelId(Block block) {
         Identifier blockId = Registries.BLOCK.getId(block);
-        
+
         // First check if direct model exists
         Identifier directModelId = new Identifier(blockId.getNamespace(), "models/block/" + blockId.getPath() + ".json");
         Optional<Resource> directResource = MinecraftClient.getInstance().getResourceManager().getResource(directModelId);
@@ -336,11 +345,11 @@ public class RuntimeResourceGenerator {
             // Direct model exists, return standard path
             return new Identifier(blockId.getNamespace(), "block/" + blockId.getPath());
         }
-        
+
         // Check blockstate for model redirection
         Identifier blockstateId = new Identifier(blockId.getNamespace(), "blockstates/" + blockId.getPath() + ".json");
         Optional<Resource> bsResource = MinecraftClient.getInstance().getResourceManager().getResource(blockstateId);
-        
+
         if (bsResource.isPresent()) {
             try (InputStreamReader reader = new InputStreamReader(bsResource.get().getInputStream())) {
                 JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
@@ -363,7 +372,7 @@ public class RuntimeResourceGenerator {
                         }
                     }
                 }
-                
+
                 if (variantModel != null) {
                     // Parse the model path (e.g., "minecraft:block/copper_block")
                     String namespace = variantModel.contains(":") ? variantModel.split(":")[0] : "minecraft";
@@ -374,7 +383,7 @@ public class RuntimeResourceGenerator {
                 Reshaped.LOGGER.error("Failed to resolve model for block: {}", blockId, e);
             }
         }
-        
+
         return null;
     }
 }

@@ -13,6 +13,7 @@ public class VariantRegistry {
         VARIANTS.add(new VerticalSlabVariant());
         VARIANTS.add(new VerticalStairsVariant());
         VARIANTS.add(new CornerVariant());
+        VARIANTS.add(new StepVariant());
     }
 
     public static void registerVariant(BlockVariantType variant) {
