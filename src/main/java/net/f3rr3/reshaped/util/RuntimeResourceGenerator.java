@@ -121,7 +121,7 @@ public class RuntimeResourceGenerator {
         if (variantJson != null) return variantJson;
 
         // Slab and Stair fallbacks (Efficient lookup)
-        Identifier blockId = new Identifier(Reshaped.MOD_ID, blockPath.replace("_top", "").replace("_inner", "").replace("_outer", ""));
+        Identifier blockId = new Identifier(Reshaped.MOD_ID, blockPath.replace("_top", "").replace("_inner", "").replace("_outer", "").replace("_2", "").replace("_3", ""));
         Block block = Registries.BLOCK.get(blockId);
         Block baseBlock = Reshaped.MATRIX != null ? Reshaped.MATRIX.getBaseBlock(block) : null;
 
@@ -133,6 +133,11 @@ public class RuntimeResourceGenerator {
             } else if (block instanceof net.f3rr3.reshaped.block.VerticalStairsBlock) {
                 return generateModelFromTemplate("block/verical_stairs", textures);
             } else if (block instanceof net.f3rr3.reshaped.block.StepBlock) {
+                if (blockPath.endsWith("_2")) {
+                    return generateStepModel(2, textures);
+                } else if (blockPath.endsWith("_3")) {
+                    return generateStepModel(3, textures);
+                }
                 return generateModelFromTemplate("block/step", textures);
             } else if (block instanceof SlabBlock) {
                 if (blockPath.endsWith("_top")) {
@@ -182,19 +187,67 @@ public class RuntimeResourceGenerator {
         JsonObject template = loadTemplateJson("models/" + templatePath + ".json");
         if (template == null) return null;
 
-        // Replace textures in the "textures" object
         if (template.has("textures")) {
-            JsonObject texObj = template.getAsJsonObject("textures");
-            for (Map.Entry<String, String> entry : textures.entrySet()) {
-                texObj.addProperty(entry.getKey(), entry.getValue());
-            }
+            applyTextures(template.getAsJsonObject("textures"), textures);
+        }
 
-            // Ensure standard textures are present if missing
-            String all = textures.get("all");
-            if (all != null) {
-                if (!texObj.has("top")) texObj.addProperty("top", all);
-                if (!texObj.has("bottom")) texObj.addProperty("bottom", all);
-                if (!texObj.has("side")) texObj.addProperty("side", all);
+        return template.toString();
+    }
+
+    private static void applyTextures(JsonObject texObj, Map<String, String> textures) {
+        for (Map.Entry<String, String> entry : textures.entrySet()) {
+            texObj.addProperty(entry.getKey(), entry.getValue());
+        }
+
+        // Ensure standard textures are present if missing
+        String all = textures.get("all");
+        if (all != null) {
+            if (!texObj.has("top")) texObj.addProperty("top", all);
+            if (!texObj.has("bottom")) texObj.addProperty("bottom", all);
+            if (!texObj.has("side")) texObj.addProperty("side", all);
+        }
+    }
+
+    private static String generateStepModel(int count, Map<String, String> textures) {
+        JsonObject template = loadTemplateJson("models/block/step.json");
+        if (template == null) return null;
+
+        if (template.has("textures")) {
+            applyTextures(template.getAsJsonObject("textures"), textures);
+        }
+
+        if (template.has("elements")) {
+            com.google.gson.JsonArray elements = template.getAsJsonArray("elements");
+            JsonObject baseElement = elements.get(0).getAsJsonObject().deepCopy();
+
+            if (count >= 2) {
+                // Add second step (Top half)
+                JsonObject step2 = baseElement.deepCopy();
+                com.google.gson.JsonArray from = step2.getAsJsonArray("from");
+                com.google.gson.JsonArray to = step2.getAsJsonArray("to");
+                from.set(1, new com.google.gson.JsonPrimitive(8));
+                to.set(1, new com.google.gson.JsonPrimitive(16));
+                
+                // Adjust cullfaces for internal faces if needed, but for simplicity we'll just add it
+                elements.add(step2);
+            }
+            
+            if (count >= 3) {
+                // Add third step (Bottom half, opposite side)
+                JsonObject step3 = baseElement.deepCopy();
+                com.google.gson.JsonArray from = step3.getAsJsonArray("from");
+                com.google.gson.JsonArray to = step3.getAsJsonArray("to");
+                
+                // If base is 8-16 on X, make this 0-8 on X
+                double f0 = from.get(0).getAsDouble();
+                if (f0 == 8) {
+                    from.set(0, new com.google.gson.JsonPrimitive(0));
+                    to.set(0, new com.google.gson.JsonPrimitive(8));
+                } else {
+                    from.set(0, new com.google.gson.JsonPrimitive(8));
+                    to.set(0, new com.google.gson.JsonPrimitive(16));
+                }
+                elements.add(step3);
             }
         }
 

@@ -4,7 +4,6 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.ShapeContext;
 import net.minecraft.block.Waterloggable;
-import net.minecraft.block.enums.SlabType;
 import net.minecraft.entity.ai.pathing.NavigationType;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.fluid.Fluids;
@@ -13,7 +12,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.DirectionProperty;
-import net.minecraft.state.property.EnumProperty;
 import net.minecraft.state.property.Properties;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -25,7 +23,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class StepBlock extends Block implements Waterloggable {
     public static final DirectionProperty FACING = Properties.HORIZONTAL_FACING;
-    public static final EnumProperty<SlabType> TYPE = Properties.SLAB_TYPE;
+    public static final net.minecraft.state.property.IntProperty STEPS = net.minecraft.state.property.IntProperty.of("steps", 1, 4);
     public static final BooleanProperty WATERLOGGED = Properties.WATERLOGGED;
 
     protected static final VoxelShape NORTH_SHAPE = Block.createCuboidShape(0.0, 0.0, 0.0, 16.0, 8.0, 8.0);
@@ -37,21 +35,66 @@ public class StepBlock extends Block implements Waterloggable {
         super(settings);
         this.setDefaultState(this.getDefaultState()
                 .with(FACING, Direction.NORTH)
-                .with(TYPE, SlabType.BOTTOM) // We reuse SlabType: BOTTOM=Single, DOUBLE=Double. TOP is unused but required by enum.
+                .with(STEPS, 1)
                 .with(WATERLOGGED, false));
     }
 
     @Override
     public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
-        if (state.get(TYPE) == SlabType.DOUBLE) {
+        int steps = state.get(STEPS);
+        if (steps == 4) {
             return VoxelShapes.fullCube();
         }
-        return switch (state.get(FACING)) {
+        
+        VoxelShape baseShape = switch (state.get(FACING)) {
             case SOUTH -> SOUTH_SHAPE;
             case WEST -> WEST_SHAPE;
             case EAST -> EAST_SHAPE;
             default -> NORTH_SHAPE;
         };
+
+        if (steps == 1) return baseShape;
+        
+        // For 2 or 3 steps, we currently just return a slab-like or larger shape based on facing.
+        // If they are layers, they grow in height.
+        // If they are additive horizontally, they grow in footprint.
+        // Assuming they grow in height for now based on "Step" naming:
+        // 1 step: 8px high, 1/2 depth
+        // 2 steps: 16px high, 1/2 depth (Vertical Slab)
+        // 3 steps: 16px high, 1/2 depth + ... ? 
+        // Wait, if it's 4 pieces to make a full block, and 2 pieces make 1/2 block:
+        // Maybe:
+        // 1: 1/4 (e.g. bottom-north)
+        // 2: 2/4 (e.g. bottom-full) -> Slab
+        // 3: 3/4 (e.g. bottom-full + top-north)
+        // 4: 4/4 (full block)
+        
+        if (steps == 2) {
+            // Becomes a slab in the direction of the facing's axis?
+            // Actually, if it's 2 steps, let's just make it a floor slab for simplicity if it was horizontal, 
+            // or a vertical slab if it's vertical.
+            // But let's look at what the shapes ARE:
+            // NORTH_SHAPE is 8 high, 8 deep. Two of them could be 16 high, 8 deep.
+            return switch (state.get(FACING)) {
+                case SOUTH -> Block.createCuboidShape(0.0, 0.0, 8.0, 16.0, 16.0, 16.0);
+                case WEST -> Block.createCuboidShape(0.0, 0.0, 0.0, 8.0, 16.0, 16.0);
+                case EAST -> Block.createCuboidShape(8.0, 0.0, 0.0, 16.0, 16.0, 16.0);
+                default -> Block.createCuboidShape(0.0, 0.0, 0.0, 16.0, 16.0, 8.0);
+            };
+        }
+        
+        if (steps == 3) {
+            // Full bottom + half top? Or Full vertical + half other?
+            // Let's go with Full Slab (Vertical) + half of the other side.
+            return switch (state.get(FACING)) {
+                case SOUTH -> VoxelShapes.union(Block.createCuboidShape(0.0, 0.0, 8.0, 16.0, 16.0, 16.0), NORTH_SHAPE);
+                case WEST -> VoxelShapes.union(Block.createCuboidShape(0.0, 0.0, 0.0, 8.0, 16.0, 16.0), EAST_SHAPE);
+                case EAST -> VoxelShapes.union(Block.createCuboidShape(8.0, 0.0, 0.0, 16.0, 16.0, 16.0), WEST_SHAPE);
+                default -> VoxelShapes.union(Block.createCuboidShape(0.0, 0.0, 0.0, 16.0, 16.0, 8.0), SOUTH_SHAPE);
+            };
+        }
+
+        return VoxelShapes.fullCube();
     }
 
     @Override
@@ -61,40 +104,35 @@ public class StepBlock extends Block implements Waterloggable {
         BlockState blockState = ctx.getWorld().getBlockState(blockPos);
 
         if (blockState.isOf(this)) {
-            return blockState.with(TYPE, SlabType.DOUBLE).with(WATERLOGGED, false);
+            int steps = blockState.get(STEPS);
+            if (steps < 4) {
+                return blockState.with(STEPS, steps + 1).with(WATERLOGGED, false);
+            }
         }
 
         FluidState fluidState = ctx.getWorld().getFluidState(blockPos);
         BlockState defaultState = this.getDefaultState().with(WATERLOGGED, fluidState.getFluid() == Fluids.WATER);
 
-        Direction direction = ctx.getSide();
-        // If placing on the side logic could be improved here to auto-orient based on hit-pos
-        // Simple logic:
         return defaultState.with(FACING, ctx.getHorizontalPlayerFacing().getOpposite());
     }
 
     @Override
     public boolean canReplace(BlockState state, ItemPlacementContext context) {
         ItemStack itemStack = context.getStack();
-        SlabType slabType = state.get(TYPE);
+        int steps = state.get(STEPS);
 
-        if (slabType == SlabType.DOUBLE || !itemStack.isOf(this.asItem())) {
+        if (steps == 4 || !itemStack.isOf(this.asItem())) {
             return false;
         }
 
         if (context.canReplaceExisting()) {
-            boolean isForward = context.getHitPos().y - (double) context.getBlockPos().getY() > 0.5; // Irrelevant for vertical?
             Direction direction = context.getSide();
-
-            // Allow merging if we click on the internal (exposed) face of the existing vertical slab
-            // A NORTH-facing slab has its exposed face at z=8, pointing NORTH
-            // So clicking on the NORTH face of a NORTH-facing slab should merge
             Direction existingFacing = state.get(FACING);
 
-            if (existingFacing == Direction.NORTH && direction == Direction.NORTH) return true;
-            if (existingFacing == Direction.SOUTH && direction == Direction.SOUTH) return true;
-            if (existingFacing == Direction.EAST && direction == Direction.EAST) return true;
-            return existingFacing == Direction.WEST && direction == Direction.WEST;
+            // Logic to allow merging when clicking the corresponding face
+            // For a NORTH-facing step (Z: 0-8), clicking it from the NORTH face (at Z=0) should merge?
+            // Actually, if we want it to be easy to stack, we should allow merging if clicking on the block itself.
+            return direction == existingFacing || direction == existingFacing.getOpposite() || direction == Direction.UP || direction == Direction.DOWN;
         } else {
             return true;
         }
@@ -120,6 +158,7 @@ public class StepBlock extends Block implements Waterloggable {
 
     @Override
     protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
-        builder.add(FACING, TYPE, WATERLOGGED);
+        builder.add(FACING, STEPS, WATERLOGGED);
     }
+
 }

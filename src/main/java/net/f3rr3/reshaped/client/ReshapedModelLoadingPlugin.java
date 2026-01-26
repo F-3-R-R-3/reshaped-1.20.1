@@ -78,6 +78,10 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                         context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_" + mask));
                     }
                 }
+                if (block instanceof net.f3rr3.reshaped.block.StepBlock) {
+                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_2"));
+                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_3"));
+                }
                 context.addModels(new Identifier(Reshaped.MOD_ID, "item/" + path));
             }
         }
