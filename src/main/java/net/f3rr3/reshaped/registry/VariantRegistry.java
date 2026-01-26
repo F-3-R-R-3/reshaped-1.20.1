@@ -2,9 +2,6 @@ package net.f3rr3.reshaped.registry;
 
 import net.f3rr3.reshaped.util.BlockMatrix;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.client.render.model.ModelRotation;
-import net.minecraft.util.Identifier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,21 +30,6 @@ public class VariantRegistry {
         }
     }
 
-    public static Identifier getModelId(BlockState state) {
-        for (BlockVariantType variant : VARIANTS) {
-            Identifier id = variant.getModelId(state);
-            if (id != null) return id;
-        }
-        return null;
-    }
-
-    public static ModelRotation getRotation(BlockState state) {
-        for (BlockVariantType variant : VARIANTS) {
-            ModelRotation rotation = variant.getRotation(state);
-            if (rotation != null) return rotation;
-        }
-        return null;
-    }
 
     public static String generateModelJson(String path, Block block) {
         for (BlockVariantType variant : VARIANTS) {

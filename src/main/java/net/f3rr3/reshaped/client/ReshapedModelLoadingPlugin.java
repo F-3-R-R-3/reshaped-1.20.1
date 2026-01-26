@@ -6,7 +6,8 @@ import net.f3rr3.reshaped.util.RuntimeResourceGenerator;
 import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.client.render.model.ModelRotation;
+import net.minecraft.block.SlabBlock;
+import net.minecraft.block.StairsBlock;
 import net.minecraft.client.render.model.json.JsonUnbakedModel;
 import net.minecraft.client.render.model.json.ModelVariant;
 import net.minecraft.client.render.model.json.WeightedUnbakedModel;
@@ -14,6 +15,8 @@ import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
 
@@ -23,48 +26,59 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
         for (Block block : Registries.BLOCK) {
             Identifier id = Registries.BLOCK.getId(block);
             if (id.getNamespace().equals(Reshaped.MOD_ID)) {
-                context.registerBlockStateResolver(block, resolverContext -> {
-                    for (BlockState state : block.getStateManager().getStates()) {
-                        Identifier modelId = RuntimeResourceGenerator.getVariantModelId(state);
-                        ModelRotation rotation = RuntimeResourceGenerator.getVariantRotation(state);
+                String path = id.getPath();
+                String templateType = RuntimeResourceGenerator.getTemplateType(block, id);
+
+                if (templateType != null) {
+                    final String finalTemplateType = templateType;
+                    context.registerBlockStateResolver(block, resolverContext -> {
+                        Map<String, String> placeholders = new HashMap<>();
+                        placeholders.put("path", path);
                         
-                        // In 1.20.1 Yarn, ModelVariant is a record that expects AffineTransformation (getRotation())
-                        ModelVariant variant = new ModelVariant(modelId, rotation.getRotation(), false, 1);
-                        // registerBlockStateResolver requires an UnbakedModel. WeightedUnbakedModel implements UnbakedModel.
-                        resolverContext.setModel(state, new WeightedUnbakedModel(Collections.singletonList(variant)));
-                    }
-                });
-                
-                // Pre-register all possible geometry models
-                context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath()));
-                context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_top"));
-                // Stairs need inner and outer variants for proper shape connections
-                if (id.getPath().endsWith("_stairs")) {
-                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_inner"));
-                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_outer"));
+                        Block base = Reshaped.MATRIX != null ? Reshaped.MATRIX.getBaseBlock(block) : null;
+                        if (base != null) {
+                            Identifier baseId = Registries.BLOCK.getId(base);
+                            placeholders.put("base_model", baseId.getNamespace() + ":block/" + baseId.getPath());
+                        }
+
+                        String blockstateJson = RuntimeResourceGenerator.generateBlockStateJson(block, finalTemplateType, placeholders);
+                        if (blockstateJson != null) {
+                            try {
+                                com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(blockstateJson).getAsJsonObject();
+                                if (json.has("variants")) {
+                                    com.google.gson.JsonObject variants = json.getAsJsonObject("variants");
+                                    for (BlockState state : block.getStateManager().getStates()) {
+                                        String stateString = RuntimeResourceGenerator.serializeState(state);
+                                        com.google.gson.JsonElement variantElem = RuntimeResourceGenerator.findMatchingVariant(variants, stateString);
+                                        if (variantElem != null) {
+                                            ModelVariant variant = RuntimeResourceGenerator.parseVariant(variantElem);
+                                            resolverContext.setModel(state, new WeightedUnbakedModel(Collections.singletonList(variant)));
+                                        }
+                                    }
+                                }
+                            } catch (Exception e) {
+                                Reshaped.LOGGER.error("Failed to apply blockstate template for " + id, e);
+                            }
+                        }
+                    });
                 }
-                // Vertical slabs also need their direction-specific models registered
-                if (id.getPath().endsWith("_vertical_slab")) {
-                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_north"));
-                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_south"));
-                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_east"));
-                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_west"));
+
+                // Pre-register basic models
+                context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path));
+                if (block instanceof StairsBlock) {
+                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_inner"));
+                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_outer"));
+                } else if (block instanceof SlabBlock) {
+                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_top"));
                 }
-                // Vertical stairs quadrants
-                if (id.getPath().endsWith("_vertical_stairs")) {
-                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_plus_x_plus_y"));
-                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_minus_x_plus_y"));
-                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_plus_x_minus_y"));
-                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_minus_x_minus_y"));
-                }
-                // Corner quadrants (Register all 256 bitmask combinations to ensure they are loaded)
-                if (id.getPath().endsWith("_corner")) {
+
+                if (path.endsWith("_corner")) {
                     for (int i = 0; i < 256; i++) {
                         String mask = String.format("%8s", Integer.toBinaryString(i)).replace(' ', '0');
-                        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + id.getPath() + "_" + mask));
+                        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_" + mask));
                     }
                 }
-                context.addModels(new Identifier(Reshaped.MOD_ID, "item/" + id.getPath()));
+                context.addModels(new Identifier(Reshaped.MOD_ID, "item/" + path));
             }
         }
 

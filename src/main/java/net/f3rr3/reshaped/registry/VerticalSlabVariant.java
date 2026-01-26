@@ -10,18 +10,13 @@ import net.f3rr3.reshaped.util.BlockMatrix;
 import net.f3rr3.reshaped.util.RuntimeResourceGenerator;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.Oxidizable;
-import net.minecraft.block.enums.SlabType;
-import net.minecraft.client.render.model.ModelRotation;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
-import net.minecraft.state.property.Properties;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.Direction;
 
 import java.util.HashMap;
 import java.util.List;
@@ -154,106 +149,12 @@ public class VerticalSlabVariant implements BlockVariantType {
     }
 
     @Override
-    public Identifier getModelId(BlockState state) {
-        Block block = state.getBlock();
-        Identifier id = Registries.BLOCK.getId(block);
-        String path = id.getPath();
-
-        if (path.endsWith("_vertical_slab")) {
-            if (state.get(Properties.SLAB_TYPE) == SlabType.DOUBLE) {
-                Block base = Reshaped.MATRIX != null ? Reshaped.MATRIX.getBaseBlock(block) : null;
-                if (base != null) {
-                    Identifier resolvedModelId = RuntimeResourceGenerator.resolveBlockModelId(base);
-                    if (resolvedModelId != null) {
-                        return resolvedModelId;
-                    }
-                    Identifier baseId = Registries.BLOCK.getId(base);
-                    return new Identifier(baseId.getNamespace(), "block/" + baseId.getPath());
-                }
-            }
-            Direction facing = state.get(Properties.HORIZONTAL_FACING);
-            String dirSuffix = "_" + facing.getName();
-            return new Identifier(Reshaped.MOD_ID, "block/" + path + dirSuffix);
-        }
-        return null;
-    }
-
-    @Override
-    public ModelRotation getRotation(BlockState state) {
-        Identifier id = Registries.BLOCK.getId(state.getBlock());
-        if (id.getPath().endsWith("_vertical_slab")) {
-            return ModelRotation.X0_Y0;
-        }
-        return null;
-    }
-
-    @Override
     public String generateModelJson(String path, Block block) {
         if (path.contains("_vertical_slab")) {
-            String corePath = path;
-            String directionSuffix = "";
-            
-            if (corePath.endsWith("_north")) { directionSuffix = "_north"; corePath = corePath.substring(0, corePath.length() - 6); }
-            else if (corePath.endsWith("_south")) { directionSuffix = "_south"; corePath = corePath.substring(0, corePath.length() - 6); }
-            else if (corePath.endsWith("_east")) { directionSuffix = "_east"; corePath = corePath.substring(0, corePath.length() - 5); }
-            else if (corePath.endsWith("_west")) { directionSuffix = "_west"; corePath = corePath.substring(0, corePath.length() - 5); }
-
             Block baseBlock = Reshaped.MATRIX.getBaseBlock(block);
             if (baseBlock != null) {
-                Identifier baseId = Registries.BLOCK.getId(baseBlock);
                 Map<String, String> textures = RuntimeResourceGenerator.getModelTextures(baseBlock);
-                String textureId = baseId.getNamespace() + ":block/" + baseId.getPath();
-                
-                String all = textures.getOrDefault("all", textureId);
-                String up = textures.getOrDefault("up", textures.getOrDefault("top", textures.getOrDefault("end", all)));
-                String down = textures.getOrDefault("down", textures.getOrDefault("bottom", textures.getOrDefault("end", all)));
-                String side = textures.getOrDefault("side", all);
-                String particle = textures.getOrDefault("particle", side);
-                
-                String texturesJson = "{\"parent\":\"minecraft:block/block\",\"textures\":{" +
-                        "\"particle\":\"" + particle + "\"," +
-                        "\"top\":\"" + up + "\"," +
-                        "\"bottom\":\"" + down + "\"," +
-                        "\"side\":\"" + side + "\"" +
-                        "}";
-                
-                if (directionSuffix.isEmpty() || directionSuffix.equals("_north")) {
-                    return texturesJson + ",\"elements\":[{\"from\":[0,0,8],\"to\":[16,16,16],\"faces\":{" +
-                        "\"down\":{\"uv\":[0,0,16,8],\"texture\":\"#bottom\",\"cullface\":\"down\"}," +
-                        "\"up\":{\"uv\":[0,8,16,16],\"texture\":\"#top\",\"cullface\":\"up\"}," +
-                        "\"north\":{\"uv\":[0,0,16,16],\"texture\":\"#side\"}," +
-                        "\"south\":{\"uv\":[0,0,16,16],\"texture\":\"#side\",\"cullface\":\"south\"}," +
-                        "\"west\":{\"uv\":[8,0,16,16],\"texture\":\"#side\",\"cullface\":\"west\"}," +
-                        "\"east\":{\"uv\":[0,0,8,16],\"texture\":\"#side\",\"cullface\":\"east\"}" +
-                        "}}]}";
-                } else if (directionSuffix.equals("_south")) {
-                    return texturesJson + ",\"elements\":[{\"from\":[0,0,0],\"to\":[16,16,8],\"faces\":{" +
-                        "\"down\":{\"uv\":[0,8,16,16],\"texture\":\"#bottom\",\"cullface\":\"down\"}," +
-                        "\"up\":{\"uv\":[0,0,16,8],\"texture\":\"#top\",\"cullface\":\"up\"}," +
-                        "\"north\":{\"uv\":[0,0,16,16],\"texture\":\"#side\",\"cullface\":\"north\"}," +
-                        "\"south\":{\"uv\":[0,0,16,16],\"texture\":\"#side\"}," +
-                        "\"west\":{\"uv\":[0,0,8,16],\"texture\":\"#side\",\"cullface\":\"west\"}," +
-                        "\"east\":{\"uv\":[8,0,16,16],\"texture\":\"#side\",\"cullface\":\"east\"}" +
-                        "}}]}";
-                } else if (directionSuffix.equals("_east")) {
-                    return texturesJson + ",\"elements\":[{\"from\":[0,0,0],\"to\":[8,16,16],\"faces\":{" +
-                        "\"down\":{\"uv\":[0,0,8,16],\"texture\":\"#bottom\",\"cullface\":\"down\"}," +
-                        "\"up\":{\"uv\":[0,0,8,16],\"texture\":\"#top\",\"cullface\":\"up\"}," +
-                        "\"north\":{\"uv\":[8,0,16,16],\"texture\":\"#side\",\"cullface\":\"north\"}," +
-                        "\"south\":{\"uv\":[0,0,8,16],\"texture\":\"#side\",\"cullface\":\"south\"}," +
-                        "\"west\":{\"uv\":[0,0,16,16],\"texture\":\"#side\",\"cullface\":\"west\"}," +
-                        "\"east\":{\"uv\":[0,0,16,16],\"texture\":\"#side\"}" +
-                        "}}]}";
-                } else if (directionSuffix.equals("_west")) {
-                    return texturesJson + ",\"elements\":[{\"from\":[8,0,0],\"to\":[16,16,16],\"faces\":{" +
-                        "\"down\":{\"uv\":[8,0,16,16],\"texture\":\"#bottom\",\"cullface\":\"down\"}," +
-                        "\"up\":{\"uv\":[8,0,16,16],\"texture\":\"#top\",\"cullface\":\"up\"}," +
-                        "\"north\":{\"uv\":[0,0,8,16],\"texture\":\"#side\",\"cullface\":\"north\"}," +
-                        "\"south\":{\"uv\":[8,0,16,16],\"texture\":\"#side\",\"cullface\":\"south\"}," +
-                        "\"west\":{\"uv\":[0,0,16,16],\"texture\":\"#side\"}," +
-                        "\"east\":{\"uv\":[0,0,16,16],\"texture\":\"#side\",\"cullface\":\"east\"}" +
-                        "}}]}";
-                }
+                return RuntimeResourceGenerator.generateModelFromTemplate("block/vertical_slab", textures);
             }
         }
         return null;

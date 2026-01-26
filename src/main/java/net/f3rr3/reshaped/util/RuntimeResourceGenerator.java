@@ -7,128 +7,68 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.f3rr3.reshaped.Reshaped;
 import net.minecraft.block.*;
-import net.minecraft.block.enums.BlockHalf;
-import net.minecraft.block.enums.SlabType;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.model.ModelRotation;
+import net.minecraft.client.render.model.json.ModelVariant;
 import net.minecraft.registry.Registries;
 import net.minecraft.resource.Resource;
-import net.minecraft.state.property.Properties;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.Direction;
 
 import java.io.InputStreamReader;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public class RuntimeResourceGenerator {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
-    public static Identifier getVariantModelId(BlockState state) {
-        Identifier variantId = VariantRegistry.getModelId(state);
-        if (variantId != null) return variantId;
-
-        Block block = state.getBlock();
-        Identifier id = Registries.BLOCK.getId(block);
+    public static String getTemplateType(Block block, Identifier id) {
         String path = id.getPath();
-
-        if (block instanceof SlabBlock) {
-            SlabType type = state.get(Properties.SLAB_TYPE);
-            if (type == SlabType.DOUBLE) {
-                Block base = Reshaped.MATRIX != null ? Reshaped.MATRIX.getBaseBlock(block) : null;
-                if (base != null) {
-                    Identifier baseId = Registries.BLOCK.getId(base);
-                    return new Identifier(baseId.getNamespace(), "block/" + baseId.getPath());
-                }
-            } else if (type == SlabType.TOP) {
-                return new Identifier(Reshaped.MOD_ID, "block/" + path + "_top");
-            }
-            return new Identifier(Reshaped.MOD_ID, "block/" + path);
-        }
-
-        if (block instanceof StairsBlock) {
-            try {
-                // Get the SHAPE property to determine the correct model
-                Object shapeObj = state.get(StairsBlock.SHAPE);
-                if (shapeObj != null) {
-                    String shape = shapeObj.toString().toLowerCase();
-                    // Map shapes to model suffixes: straight (base), inner_left/inner_right (inner), outer_left/outer_right (outer)
-                    if (shape.contains("inner")) {
-                        return new Identifier(Reshaped.MOD_ID, "block/" + path + "_inner");
-                    } else if (shape.contains("outer")) {
-                        return new Identifier(Reshaped.MOD_ID, "block/" + path + "_outer");
-                    }
-                }
-            } catch (Exception e) {
-                Reshaped.LOGGER.warn("Failed to get SHAPE for stairs: " + path, e);
-            }
-            // Default to straight model
-            return new Identifier(Reshaped.MOD_ID, "block/" + path);
-        }
-
-        return new Identifier(Reshaped.MOD_ID, "block/" + path);
+        if (path.endsWith("_vertical_slab")) return "vertical_slab";
+        if (path.endsWith("_vertical_stairs")) return "vertical_stairs";
+        if (path.endsWith("_corner")) return "corner";
+        if (block instanceof StairsBlock) return "stairs";
+        if (block instanceof SlabBlock) return "slab";
+        return null;
     }
 
-    public static ModelRotation getVariantRotation(BlockState state) {
-        ModelRotation variantRotation = VariantRegistry.getRotation(state);
-        if (variantRotation != null) return variantRotation;
-
-        Block block = state.getBlock();
-
-        if (block instanceof SlabBlock) {
-            return ModelRotation.X0_Y0;
+    public static String serializeState(BlockState state) {
+        StringBuilder sb = new StringBuilder();
+        List<net.minecraft.state.property.Property<?>> properties = new java.util.ArrayList<>(state.getProperties());
+        properties.sort(java.util.Comparator.comparing(net.minecraft.state.property.Property::getName));
+        for (int i = 0; i < properties.size(); i++) {
+            net.minecraft.state.property.Property<?> property = properties.get(i);
+            sb.append(property.getName()).append("=").append(state.get(property).toString().toLowerCase());
+            if (i < properties.size() - 1) sb.append(",");
         }
-
-        if (block instanceof StairsBlock) {
-            Direction facing = state.get(Properties.HORIZONTAL_FACING);
-            BlockHalf half = state.get(StairsBlock.HALF);
-            Object shapeObj = state.get(StairsBlock.SHAPE);
-            String shape = shapeObj != null ? shapeObj.toString().toLowerCase() : "straight";
-            
-            // For inner_left and outer_left, add an extra 90 degree rotation anticlockwise
-            int extraYRotation = (shape.contains("inner_left") || shape.contains("outer_left")) ? 270 : 0;
-
-            if (half == BlockHalf.TOP) {
-                return switch (facing) {
-                    case EAST -> applyExtraRotation(ModelRotation.X180_Y0, extraYRotation);
-                    case SOUTH -> applyExtraRotation(ModelRotation.X180_Y90, extraYRotation);
-                    case WEST -> applyExtraRotation(ModelRotation.X180_Y180, extraYRotation);
-                    case NORTH -> applyExtraRotation(ModelRotation.X180_Y270, extraYRotation);
-                    default -> ModelRotation.X180_Y0;
-                };
-            } else {
-                return switch (facing) {
-                    case EAST -> applyExtraRotation(ModelRotation.X0_Y0, extraYRotation);
-                    case SOUTH -> applyExtraRotation(ModelRotation.X0_Y90, extraYRotation);
-                    case WEST -> applyExtraRotation(ModelRotation.X0_Y180, extraYRotation);
-                    case NORTH -> applyExtraRotation(ModelRotation.X0_Y270, extraYRotation);
-                    default -> ModelRotation.X0_Y0;
-                };
-            }
-        }
-
-        return ModelRotation.X0_Y0;
+        return sb.toString();
     }
 
-    private static ModelRotation applyExtraRotation(ModelRotation baseRotation, int extraYRotation) {
-        if (extraYRotation == 0) {
-            return baseRotation;
+    public static com.google.gson.JsonElement findMatchingVariant(com.google.gson.JsonObject variants, String stateString) {
+        if (variants.has(stateString)) return variants.get(stateString);
+        for (String key : variants.keySet()) {
+            if (key.isEmpty() || matches(stateString, key)) return variants.get(key);
         }
-        // Combine the base rotation with extra Y rotation (270 degrees = anticlockwise 90)
-        return switch (baseRotation) {
-            case X0_Y0 -> ModelRotation.X0_Y270;
-            case X0_Y90 -> ModelRotation.X0_Y0;
-            case X0_Y180 -> ModelRotation.X0_Y90;
-            case X0_Y270 -> ModelRotation.X0_Y180;
-            case X180_Y0 -> ModelRotation.X180_Y270;
-            case X180_Y90 -> ModelRotation.X180_Y0;
-            case X180_Y180 -> ModelRotation.X180_Y90;
-            case X180_Y270 -> ModelRotation.X180_Y180;
-            default -> baseRotation;
-        };
+        return null;
+    }
+
+    private static boolean matches(String state, String variant) {
+        String[] variantParts = variant.split(",");
+        for (String part : variantParts) {
+            if (!state.contains(part)) return false;
+        }
+        return true;
+    }
+
+    public static ModelVariant parseVariant(com.google.gson.JsonElement elem) {
+        if (elem.isJsonArray()) return parseVariant(elem.getAsJsonArray().get(0));
+        JsonObject obj = elem.getAsJsonObject();
+        String model = obj.get("model").getAsString();
+        int x = obj.has("x") ? obj.get("x").getAsInt() : 0;
+        int y = obj.has("y") ? obj.get("y").getAsInt() : 0;
+        boolean uvlock = obj.has("uvlock") && obj.get("uvlock").getAsBoolean();
+        int weight = obj.has("weight") ? obj.get("weight").getAsInt() : 1;
+        ModelRotation rotation = ModelRotation.get(x, y);
+        return new ModelVariant(new Identifier(model), rotation.getRotation(), uvlock, weight);
     }
 
     public static String generateModelJson(String cleanPath) {
@@ -142,14 +82,6 @@ public class RuntimeResourceGenerator {
         // Handle Item Models
         if (path.startsWith("item/")) {
             String itemPath = path.substring(5);
-            // If it's a vertical stair, the item should use one of the orientation models
-            if (itemPath.endsWith("_vertical_stairs")) {
-                return "{\"parent\":\"reshaped:block/" + itemPath + "_minus_x_minus_y\"}";
-            }
-            // If it's a corner, the item should use one of the orientation models
-            if (itemPath.endsWith("_corner")) {
-                return "{\"parent\":\"reshaped:block/" + itemPath + "_10000000\"}";
-            }
             return "{\"parent\":\"reshaped:block/" + itemPath + "\"}";
         }
 
@@ -187,22 +119,119 @@ public class RuntimeResourceGenerator {
         Block baseBlock = Reshaped.MATRIX != null ? Reshaped.MATRIX.getBaseBlock(block) : null;
 
         if (baseBlock != null) {
-            Identifier baseId = Registries.BLOCK.getId(baseBlock);
-            String textureId = baseId.getNamespace() + ":block/" + baseId.getPath();
-
-            if (blockPath.endsWith("_slab_top")) {
-                return "{\"parent\":\"minecraft:block/slab_top\",\"textures\":{\"bottom\":\"" + textureId + "\",\"top\":\"" + textureId + "\",\"side\":\"" + textureId + "\"}}";
-            } else if (blockPath.endsWith("_slab")) {
-                return "{\"parent\":\"minecraft:block/slab\",\"textures\":{\"bottom\":\"" + textureId + "\",\"top\":\"" + textureId + "\",\"side\":\"" + textureId + "\"}}";
-            } else if (blockPath.endsWith("_stairs_inner")) {
-                return "{\"parent\":\"minecraft:block/inner_stairs\",\"textures\":{\"bottom\":\"" + textureId + "\",\"top\":\"" + textureId + "\",\"side\":\"" + textureId + "\"}}";
-            } else if (blockPath.endsWith("_stairs_outer")) {
-                return "{\"parent\":\"minecraft:block/outer_stairs\",\"textures\":{\"bottom\":\"" + textureId + "\",\"top\":\"" + textureId + "\",\"side\":\"" + textureId + "\"}}";
-            } else if (blockPath.endsWith("_stairs")) {
-                return "{\"parent\":\"minecraft:block/stairs\",\"textures\":{\"bottom\":\"" + textureId + "\",\"top\":\"" + textureId + "\",\"side\":\"" + textureId + "\"}}";
+            Map<String, String> textures = getModelTextures(baseBlock);
+            
+            if (block instanceof net.f3rr3.reshaped.block.VerticalSlabBlock) {
+                return generateModelFromTemplate("block/vertical_slab", textures);
+            } else if (block instanceof net.f3rr3.reshaped.block.VerticalStairsBlock) {
+                return generateModelFromTemplate("block/verical_stairs", textures);
+            } else if (block instanceof SlabBlock) {
+                if (blockPath.endsWith("_top")) {
+                    return generateSimpleModel("minecraft:block/slab_top", textures);
+                }
+                return generateSimpleModel("minecraft:block/slab", textures);
+            } else if (block instanceof StairsBlock) {
+                if (blockPath.endsWith("_inner")) {
+                    return generateSimpleModel("minecraft:block/inner_stairs", textures);
+                } else if (blockPath.endsWith("_outer")) {
+                    return generateSimpleModel("minecraft:block/outer_stairs", textures);
+                }
+                return generateSimpleModel("minecraft:block/stairs", textures);
             }
         }
         return null;
+    }
+
+    public static String generateSimpleModel(String parent, Map<String, String> textures) {
+        StringBuilder json = new StringBuilder();
+        json.append("{\"parent\":\"").append(parent).append("\",");
+        json.append("\"textures\":{");
+        
+        boolean first = true;
+        for (Map.Entry<String, String> entry : textures.entrySet()) {
+            if (!first) json.append(",");
+            json.append("\"").append(entry.getKey()).append("\":\"").append(entry.getValue()).append("\"");
+            first = false;
+        }
+        
+        // Ensure standard textures are present if missing
+        String all = textures.get("all");
+        if (all != null) {
+            String[] std = {"top", "bottom", "side", "particle"};
+            for (String s : std) {
+                if (!textures.containsKey(s)) {
+                    json.append(",\"").append(s).append("\":\"").append(all).append("\"");
+                }
+            }
+        }
+
+        json.append("}}");
+        return json.toString();
+    }
+
+    public static String generateModelFromTemplate(String templatePath, Map<String, String> textures) {
+        JsonObject template = loadTemplateJson("models/" + templatePath + ".json");
+        if (template == null) return null;
+
+        // Replace textures in the "textures" object
+        if (template.has("textures")) {
+            JsonObject texObj = template.getAsJsonObject("textures");
+            for (Map.Entry<String, String> entry : textures.entrySet()) {
+                texObj.addProperty(entry.getKey(), entry.getValue());
+            }
+            
+            // Ensure standard textures are present if missing
+            String all = textures.get("all");
+            if (all != null) {
+                if (!texObj.has("top")) texObj.addProperty("top", all);
+                if (!texObj.has("bottom")) texObj.addProperty("bottom", all);
+                if (!texObj.has("side")) texObj.addProperty("side", all);
+            }
+        }
+
+        return template.toString();
+    }
+
+    public static String loadTemplate(String path) {
+        Identifier id = new Identifier(Reshaped.MOD_ID, "templates/" + path);
+        Optional<Resource> resource = MinecraftClient.getInstance().getResourceManager().getResource(id);
+        if (resource.isPresent()) {
+            try (InputStreamReader reader = new InputStreamReader(resource.get().getInputStream())) {
+                StringBuilder builder = new StringBuilder();
+                char[] buffer = new char[4096];
+                int read;
+                while ((read = reader.read(buffer)) != -1) {
+                    builder.append(buffer, 0, read);
+                }
+                return builder.toString();
+            } catch (Exception e) {
+                Reshaped.LOGGER.error("Failed to load template: " + id, e);
+            }
+        }
+        return null;
+    }
+
+    public static JsonObject loadTemplateJson(String path) {
+        String template = loadTemplate(path);
+        if (template != null) {
+            try {
+                return JsonParser.parseString(template).getAsJsonObject();
+            } catch (Exception e) {
+                Reshaped.LOGGER.error("Failed to parse template JSON: " + path, e);
+            }
+        }
+        return null;
+    }
+
+    public static String generateBlockStateJson(Block block, String templateName, Map<String, String> placeholders) {
+        String template = loadTemplate("blockstates/" + templateName + ".json");
+        if (template == null) return null;
+
+        String result = template;
+        for (Map.Entry<String, String> entry : placeholders.entrySet()) {
+            result = result.replace("{{" + entry.getKey() + "}}", entry.getValue());
+        }
+        return result;
     }
 
     public static Map<String, String> getModelTextures(Block block) {

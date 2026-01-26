@@ -2,9 +2,6 @@ package net.f3rr3.reshaped.registry;
 
 import net.f3rr3.reshaped.util.BlockMatrix;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.client.render.model.ModelRotation;
-import net.minecraft.util.Identifier;
 
 /**
  * Represents a type of block that can be automatically generated for a base block.
@@ -25,18 +22,6 @@ public interface BlockVariantType {
      * Registers the variant for the given base block if it hasn't been registered yet.
      */
     void register(Block baseBlock, BlockMatrix matrix);
-
-    /**
-     * Returns the model identifier for a specific block state of this variant.
-     * Returns null if this variant doesn't handle the state.
-     */
-    Identifier getModelId(BlockState state);
-
-    /**
-     * Returns the model rotation for a specific block state of this variant.
-     * Returns null if this variant doesn't handle the state.
-     */
-    ModelRotation getRotation(BlockState state);
 
     /**
      * Generates the model JSON content for a specific path.

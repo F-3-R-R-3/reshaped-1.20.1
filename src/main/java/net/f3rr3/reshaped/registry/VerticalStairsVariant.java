@@ -7,13 +7,11 @@ import net.f3rr3.reshaped.Reshaped;
 import net.f3rr3.reshaped.block.OxidizableVerticalStairsBlock;
 import net.f3rr3.reshaped.block.VerticalStairsBlock;
 import net.f3rr3.reshaped.util.BlockMatrix;
+import net.f3rr3.reshaped.util.RuntimeResourceGenerator;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.f3rr3.reshaped.block.VerticalStairsBlock.VerticalStairOrientation;
 import net.minecraft.block.Oxidizable;
-import net.minecraft.client.render.model.ModelRotation;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.registry.Registries;
@@ -142,60 +140,12 @@ public class VerticalStairsVariant implements BlockVariantType {
     }
 
     @Override
-    public Identifier getModelId(BlockState state) {
-        Block block = state.getBlock();
-        if (block instanceof VerticalStairsBlock) {
-            Identifier id = Registries.BLOCK.getId(block);
-            String path = id.getPath();
-            VerticalStairOrientation orientation = state.get(VerticalStairsBlock.ORIENTATION);
-            return new Identifier(Reshaped.MOD_ID, "block/" + path + "_" + orientation.asString());
-        }
-        return null;
-    }
-
-    @Override
-    public ModelRotation getRotation(BlockState state) {
-        if (state.getBlock() instanceof VerticalStairsBlock) {
-            // Rotations are handled by orientation states (quadrants)
-            return ModelRotation.X0_Y0;
-        }
-        return null;
-    }
-
-    @Override
     public String generateModelJson(String path, Block block) {
         if (path.contains("_vertical_stairs")) {
             Block baseBlock = Reshaped.MATRIX.getBaseBlock(block);
             if (baseBlock != null) {
-                Identifier baseId = Registries.BLOCK.getId(baseBlock);
-                String textureId = baseId.getNamespace() + ":block/" + baseId.getPath();
-                
-                String orientationName = "";
-                if (path.endsWith("_plus_x_plus_y")) orientationName = "plus_x_plus_y";
-                else if (path.endsWith("_minus_x_plus_y")) orientationName = "minus_x_plus_y";
-                else if (path.endsWith("_plus_x_minus_y")) orientationName = "plus_x_minus_y";
-                else if (path.endsWith("_minus_x_minus_y")) orientationName = "minus_x_minus_y";
-
-                if (!orientationName.isEmpty()) {
-                    String boxes = switch (orientationName) {
-                        case "plus_x_plus_y" -> // Missing South-East (+X +Z)
-                            "{\"from\":[0,0,0],\"to\":[8,16,16],\"faces\":{\"north\":{\"uv\":[8,0,16,16],\"texture\":\"#side\"},\"south\":{\"uv\":[0,0,8,16],\"texture\":\"#side\"},\"west\":{\"uv\":[0,0,16,16],\"texture\":\"#side\",\"cullface\":\"west\"},\"east\":{\"uv\":[0,0,16,16],\"texture\":\"#side\"},\"up\":{\"uv\":[0,0,8,16],\"texture\":\"#side\",\"cullface\":\"up\"},\"down\":{\"uv\":[0,0,8,16],\"texture\":\"#side\",\"cullface\":\"down\"}}}," +
-                            "{\"from\":[8,0,0],\"to\":[16,16,8],\"faces\":{\"north\":{\"uv\":[0,0,8,16],\"texture\":\"#side\"},\"south\":{\"uv\":[8,0,16,16],\"texture\":\"#side\"},\"west\":{\"uv\":[0,0,16,16],\"texture\":\"#side\"},\"east\":{\"uv\":[0,0,16,16],\"texture\":\"#side\",\"cullface\":\"east\"},\"up\":{\"uv\":[8,0,16,8],\"texture\":\"#side\",\"cullface\":\"up\"},\"down\":{\"uv\":[8,8,16,16],\"texture\":\"#side\",\"cullface\":\"down\"}}}";
-                        case "minus_x_plus_y" -> // Missing South-West (-X +Z)
-                            "{\"from\":[8,0,0],\"to\":[16,16,16],\"faces\":{\"north\":{\"uv\":[0,0,8,16],\"texture\":\"#side\"},\"south\":{\"uv\":[8,0,16,16],\"texture\":\"#side\"},\"west\":{\"uv\":[0,0,16,16],\"texture\":\"#side\"},\"east\":{\"uv\":[0,0,16,16],\"texture\":\"#side\",\"cullface\":\"east\"},\"up\":{\"uv\":[8,0,16,16],\"texture\":\"#side\",\"cullface\":\"up\"},\"down\":{\"uv\":[8,0,16,16],\"texture\":\"#side\",\"cullface\":\"down\"}}}," +
-                            "{\"from\":[0,0,0],\"to\":[8,16,8],\"faces\":{\"north\":{\"uv\":[8,0,16,16],\"texture\":\"#side\"},\"south\":{\"uv\":[0,0,8,16],\"texture\":\"#side\"},\"west\":{\"uv\":[0,0,16,16],\"texture\":\"#side\",\"cullface\":\"west\"},\"east\":{\"uv\":[0,0,16,16],\"texture\":\"#side\"},\"up\":{\"uv\":[0,0,8,8],\"texture\":\"#side\",\"cullface\":\"up\"},\"down\":{\"uv\":[0,8,8,16],\"texture\":\"#side\",\"cullface\":\"down\"}}}";
-                        case "plus_x_minus_y" -> // Missing North-East (+X -Z)
-                            "{\"from\":[0,0,0],\"to\":[8,16,16],\"faces\":{\"north\":{\"uv\":[8,0,16,16],\"texture\":\"#side\"},\"south\":{\"uv\":[0,0,8,16],\"texture\":\"#side\"},\"west\":{\"uv\":[0,0,16,16],\"texture\":\"#side\",\"cullface\":\"west\"},\"east\":{\"uv\":[0,0,16,16],\"texture\":\"#side\"},\"up\":{\"uv\":[0,0,8,16],\"texture\":\"#side\",\"cullface\":\"up\"},\"down\":{\"uv\":[0,0,8,16],\"texture\":\"#side\",\"cullface\":\"down\"}}}," +
-                            "{\"from\":[8,0,8],\"to\":[16,16,16],\"faces\":{\"north\":{\"uv\":[0,0,8,16],\"texture\":\"#side\"},\"south\":{\"uv\":[8,0,16,16],\"texture\":\"#side\"},\"west\":{\"uv\":[0,0,16,16],\"texture\":\"#side\"},\"east\":{\"uv\":[0,0,16,16],\"texture\":\"#side\",\"cullface\":\"east\"},\"up\":{\"uv\":[8,8,16,16],\"texture\":\"#side\",\"cullface\":\"up\"},\"down\":{\"uv\":[8,0,16,8],\"texture\":\"#side\",\"cullface\":\"down\"}}}";
-                        case "minus_x_minus_y" -> // Missing North-West (-X -Z)
-                            "{\"from\":[8,0,0],\"to\":[16,16,16],\"faces\":{\"north\":{\"uv\":[0,0,8,16],\"texture\":\"#side\"},\"south\":{\"uv\":[8,0,16,16],\"texture\":\"#side\"},\"west\":{\"uv\":[0,0,16,16],\"texture\":\"#side\"},\"east\":{\"uv\":[0,0,16,16],\"texture\":\"#side\",\"cullface\":\"east\"},\"up\":{\"uv\":[8,0,16,16],\"texture\":\"#side\",\"cullface\":\"up\"},\"down\":{\"uv\":[8,0,16,16],\"texture\":\"#side\",\"cullface\":\"down\"}}}," +
-                            "{\"from\":[0,0,8],\"to\":[8,16,16],\"faces\":{\"north\":{\"uv\":[8,0,16,16],\"texture\":\"#side\"},\"south\":{\"uv\":[0,0,8,16],\"texture\":\"#side\"},\"west\":{\"uv\":[0,0,16,16],\"texture\":\"#side\",\"cullface\":\"west\"},\"east\":{\"uv\":[0,0,16,16],\"texture\":\"#side\"},\"up\":{\"uv\":[0,8,8,16],\"texture\":\"#side\",\"cullface\":\"up\"},\"down\":{\"uv\":[0,0,8,8],\"texture\":\"#side\",\"cullface\":\"down\"}}}";
-                        default -> "";
-                    };
-
-                    return "{\"parent\":\"minecraft:block/block\",\"textures\":{\"side\":\"" + textureId + "\",\"particle\":\"" + textureId + "\"},\"elements\":[" +
-                            boxes + "]}";
-                }
+                Map<String, String> textures = RuntimeResourceGenerator.getModelTextures(baseBlock);
+                return RuntimeResourceGenerator.generateModelFromTemplate("block/verical_stairs", textures);
             }
         }
         return null;
