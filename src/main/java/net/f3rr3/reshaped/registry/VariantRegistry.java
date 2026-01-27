@@ -16,10 +16,6 @@ public class VariantRegistry {
         VARIANTS.add(new StepVariant());
     }
 
-    public static void registerVariant(BlockVariantType variant) {
-        VARIANTS.add(variant);
-    }
-
     /**
      * Registers all applicable variants for a base block.
      */

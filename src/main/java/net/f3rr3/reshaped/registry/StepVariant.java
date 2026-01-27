@@ -1,13 +1,13 @@
 package net.f3rr3.reshaped.registry;
 
-import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;
-import net.fabricmc.fabric.api.registry.OxidizableBlocksRegistry;
-import net.fabricmc.fabric.api.registry.StrippableBlockRegistry;
 import net.f3rr3.reshaped.Reshaped;
 import net.f3rr3.reshaped.block.OxidizableStepBlock;
 import net.f3rr3.reshaped.block.StepBlock;
 import net.f3rr3.reshaped.util.BlockMatrix;
 import net.f3rr3.reshaped.util.RuntimeResourceGenerator;
+import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;
+import net.fabricmc.fabric.api.registry.OxidizableBlocksRegistry;
+import net.fabricmc.fabric.api.registry.StrippableBlockRegistry;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
@@ -72,14 +72,14 @@ public class StepVariant implements BlockVariantType {
         } else {
             step = new StepBlock(settings);
         }
-        
+
         Registry.register(Registries.BLOCK, id, step);
         Registry.register(Registries.ITEM, id, new BlockItem(step, new Item.Settings()));
-        
+
         matrix.addVariant(baseBlock, step, true);
         matrix.setReason(step, "Dynamically registered Step Block for " + baseBlock.getName().getString());
         BASE_TO_STEP.put(baseBlock, step);
-        Reshaped.LOGGER.info("Registered step for: " + baseId);
+        Reshaped.LOGGER.info("Registered step for: {}", baseId);
 
         FlammableBlockRegistry flammableRegistry = FlammableBlockRegistry.getDefaultInstance();
         FlammableBlockRegistry.Entry flammableEntry = flammableRegistry.get(baseBlock);
@@ -109,14 +109,15 @@ public class StepVariant implements BlockVariantType {
                 StepBlock waxedStep = BASE_TO_STEP.get(waxedBase);
                 OxidizableBlocksRegistry.registerWaxableBlockPair(step, waxedStep);
             }
-            
+
             for (Map.Entry<Block, Block> entry : unwaxedToWaxed.entrySet()) {
                 if (entry.getValue() == base && BASE_TO_STEP.containsKey(entry.getKey())) {
                     StepBlock unwaxedStep = BASE_TO_STEP.get(entry.getKey());
                     OxidizableBlocksRegistry.registerWaxableBlockPair(unwaxedStep, step);
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         try {
             Map<Block, Block> strippedBlocks = net.f3rr3.reshaped.mixin.AxeItemAccessor.getStrippedBlocks();
@@ -132,7 +133,8 @@ public class StepVariant implements BlockVariantType {
                     StrippableBlockRegistry.register(unstrippedStep, step);
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 
     @Override

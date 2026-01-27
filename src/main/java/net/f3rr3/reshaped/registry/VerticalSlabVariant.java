@@ -1,13 +1,13 @@
 package net.f3rr3.reshaped.registry;
 
-import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;
-import net.fabricmc.fabric.api.registry.OxidizableBlocksRegistry;
-import net.fabricmc.fabric.api.registry.StrippableBlockRegistry;
 import net.f3rr3.reshaped.Reshaped;
 import net.f3rr3.reshaped.block.OxidizableVerticalSlabBlock;
 import net.f3rr3.reshaped.block.VerticalSlabBlock;
 import net.f3rr3.reshaped.util.BlockMatrix;
 import net.f3rr3.reshaped.util.RuntimeResourceGenerator;
+import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;
+import net.fabricmc.fabric.api.registry.OxidizableBlocksRegistry;
+import net.fabricmc.fabric.api.registry.StrippableBlockRegistry;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
@@ -40,7 +40,7 @@ public class VerticalSlabVariant implements BlockVariantType {
     @Override
     public void register(Block baseBlock, BlockMatrix matrix) {
         Identifier baseId = Registries.BLOCK.getId(baseBlock);
-        
+
         // Cleaner naming: reshaped:oak_vertical_slab instead of reshaped:minecraft_oak_planks_vertical_slab
         String baseName = baseId.getPath().replace("_planks", "").replace("_block", "");
         String path = baseName + "_vertical_slab";
@@ -78,14 +78,14 @@ public class VerticalSlabVariant implements BlockVariantType {
         } else {
             verticalSlab = new VerticalSlabBlock(settings);
         }
-        
+
         Registry.register(Registries.BLOCK, id, verticalSlab);
         Registry.register(Registries.ITEM, id, new BlockItem(verticalSlab, new Item.Settings()));
-        
+
         matrix.addVariant(baseBlock, verticalSlab, true);
         matrix.setReason(verticalSlab, "Dynamically registered Vertical Slab for " + baseBlock.getName().getString());
         BASE_TO_SLAB.put(baseBlock, verticalSlab);
-        Reshaped.LOGGER.info("Registered vertical slab for: " + baseId);
+        Reshaped.LOGGER.info("Registered vertical slab for: {}", baseId);
 
         // Inherit Flammability
         FlammableBlockRegistry flammableRegistry = FlammableBlockRegistry.getDefaultInstance();
@@ -96,7 +96,7 @@ public class VerticalSlabVariant implements BlockVariantType {
 
         // Link relations
         linkRelations(baseBlock, verticalSlab);
-        
+
         // Check other existing slabs
         for (Map.Entry<Block, VerticalSlabBlock> entry : BASE_TO_SLAB.entrySet()) {
             if (entry.getKey() != baseBlock) {
@@ -121,14 +121,15 @@ public class VerticalSlabVariant implements BlockVariantType {
                 VerticalSlabBlock waxedSlab = BASE_TO_SLAB.get(waxedBase);
                 OxidizableBlocksRegistry.registerWaxableBlockPair(slab, waxedSlab);
             }
-            
+
             for (Map.Entry<Block, Block> entry : unwaxedToWaxed.entrySet()) {
                 if (entry.getValue() == base && BASE_TO_SLAB.containsKey(entry.getKey())) {
                     VerticalSlabBlock unwaxedSlab = BASE_TO_SLAB.get(entry.getKey());
                     OxidizableBlocksRegistry.registerWaxableBlockPair(unwaxedSlab, slab);
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         // Stripping
         try {
@@ -145,7 +146,8 @@ public class VerticalSlabVariant implements BlockVariantType {
                     StrippableBlockRegistry.register(unstrippedSlab, slab);
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 
     @Override
