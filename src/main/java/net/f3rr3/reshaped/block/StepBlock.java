@@ -40,7 +40,7 @@ public class StepBlock extends ReshapedBlock {
         if (steps == 4) {
             return VoxelShapes.fullCube();
         }
-        
+
         VoxelShape baseShape = switch (state.get(FACING)) {
             case SOUTH -> SOUTH_SHAPE;
             case WEST -> WEST_SHAPE;
@@ -49,7 +49,7 @@ public class StepBlock extends ReshapedBlock {
         };
 
         if (steps == 1) return baseShape;
-        
+
         if (steps == 2) {
             return switch (state.get(FACING)) {
                 case SOUTH -> Block.createCuboidShape(0.0, 0.0, 8.0, 16.0, 16.0, 16.0);
@@ -58,7 +58,7 @@ public class StepBlock extends ReshapedBlock {
                 default -> Block.createCuboidShape(0.0, 0.0, 0.0, 16.0, 16.0, 8.0);
             };
         }
-        
+
         if (steps == 3) {
             return switch (state.get(FACING)) {
                 case SOUTH -> VoxelShapes.union(Block.createCuboidShape(0.0, 0.0, 8.0, 16.0, 16.0, 16.0), NORTH_SHAPE);
@@ -107,6 +107,11 @@ public class StepBlock extends ReshapedBlock {
         } else {
             return true;
         }
+    }
+
+    @Override
+    public String getTranslationKey() {
+        return "block.reshaped.step";
     }
 
     @Override

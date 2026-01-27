@@ -1,6 +1,8 @@
 {
   "block.reshaped.vertical_stairs": "Vertical Stairs",
-  "block.reshaped.vertical_slab": "Vertical Slab"
+  "block.reshaped.vertical_slab": "Vertical Slab",
+  "block.reshaped.corner": "Corner",
+  "block.reshaped.step": "step"
 }
   "text.autoconfig.reshaped.title" : "ReShaped config",
 
