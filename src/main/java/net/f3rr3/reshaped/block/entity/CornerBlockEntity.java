@@ -50,6 +50,11 @@ public class CornerBlockEntity extends BlockEntity {
                 cornerMaterials[i] = s.isEmpty() ? null : new Identifier(s);
             }
         }
+        
+        if (world != null && world.isClient) {
+            // Force a re-render when data is received on client
+            world.updateListeners(pos, getCachedState(), getCachedState(), 3);
+        }
     }
 
     @Override

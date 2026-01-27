@@ -34,7 +34,7 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                     context.registerBlockStateResolver(block, resolverContext -> {
                         Map<String, String> placeholders = new HashMap<>();
                         placeholders.put("path", path);
-                        
+
                         Block base = Reshaped.MATRIX != null ? Reshaped.MATRIX.getBaseBlock(block) : null;
                         if (base != null) {
                             Identifier baseId = Registries.BLOCK.getId(base);
@@ -61,6 +61,9 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                             }
                         }
                     });
+                } else if (path.equals("mixed_corner")) {
+                    // Manual resolver for MixedCornerBlock - just map to empty/air model since CornerBakedModel handles it
+                    context.registerBlockStateResolver(block, resolverContext -> resolverContext.setModel(block.getDefaultState(), new WeightedUnbakedModel(Collections.singletonList(new ModelVariant(new Identifier("minecraft:block/air"), null, false, 1)))));
                 }
 
                 // Pre-register basic models
