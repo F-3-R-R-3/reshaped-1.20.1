@@ -142,12 +142,20 @@ public class RuntimeResourceGenerator {
             } else if (block instanceof net.f3rr3.reshaped.block.VerticalStairsBlock) {
                 return generateModelFromTemplate("block/verical_stairs", textures);
             } else if (block instanceof net.f3rr3.reshaped.block.StepBlock) {
-                if (blockPath.endsWith("_2")) {
-                    return generateStepModel(2, textures);
-                } else if (blockPath.endsWith("_3")) {
-                    return generateStepModel(3, textures);
+                // Check for segment mask suffix (e.g., "_1010")
+                if (blockPath.matches(".*_\\d{4}$")) {
+                    String mask = blockPath.substring(blockPath.length() - 4);
+                    boolean df = mask.charAt(0) == '1';
+                    boolean db = mask.charAt(1) == '1';
+                    boolean uf = mask.charAt(2) == '1';
+                    boolean ub = mask.charAt(3) == '1';
+                    return generateStepModelForSegments(df, db, uf, ub, textures);
                 }
-                return generateModelFromTemplate("block/step", textures);
+                // Fallback for base item/block (full block or single step)
+                // If it's the item or just the block name, usually we want the full block or a default state
+                // But for "step" block, default model is usually the single step (down front)
+                // Let's assume default is DOWN_FRONT if no mask
+                return generateStepModelForSegments(true, false, false, false, textures);
             } else if (block instanceof SlabBlock) {
                 if (blockPath.endsWith("_top")) {
                     return generateSimpleModel("minecraft:block/slab_top", textures);
@@ -409,7 +417,7 @@ public class RuntimeResourceGenerator {
         }
     }
 
-    private static String generateStepModel(int count, Map<String, String> textures) {
+    public static String generateStepModelForSegments(boolean downFront, boolean downBack, boolean upFront, boolean upBack, Map<String, String> textures) {
         JsonObject template = loadTemplateJson("models/block/step.json");
         if (template == null) return null;
 
@@ -418,41 +426,64 @@ public class RuntimeResourceGenerator {
         }
 
         if (template.has("elements")) {
-            com.google.gson.JsonArray elements = template.getAsJsonArray("elements");
-            JsonObject baseElement = elements.get(0).getAsJsonObject().deepCopy();
+            com.google.gson.JsonArray elements = new com.google.gson.JsonArray();
+            template.add("elements", elements);
 
-            if (count >= 2) {
-                // Add second step (Top half)
-                JsonObject step2 = baseElement.deepCopy();
-                com.google.gson.JsonArray from = step2.getAsJsonArray("from");
-                com.google.gson.JsonArray to = step2.getAsJsonArray("to");
-                from.set(1, new com.google.gson.JsonPrimitive(8));
-                to.set(1, new com.google.gson.JsonPrimitive(16));
-                
-                // Adjust cullfaces for internal faces if needed, but for simplicity we'll just add it
-                elements.add(step2);
-            }
+            // Add segments based on flags
+            // Coordinates based on EAST facing reference (Matches StepBlock.getShape logic for EAST)
+            // EAST: Front is X 8-16, Back is X 0-8.
             
-            if (count >= 3) {
-                // Add third step (Bottom half, opposite side)
-                JsonObject step3 = baseElement.deepCopy();
-                com.google.gson.JsonArray from = step3.getAsJsonArray("from");
-                com.google.gson.JsonArray to = step3.getAsJsonArray("to");
-                
-                // If base is 8-16 on X, make this 0-8 on X
-                double f0 = from.get(0).getAsDouble();
-                if (f0 == 8) {
-                    from.set(0, new com.google.gson.JsonPrimitive(0));
-                    to.set(0, new com.google.gson.JsonPrimitive(8));
-                } else {
-                    from.set(0, new com.google.gson.JsonPrimitive(8));
-                    to.set(0, new com.google.gson.JsonPrimitive(16));
-                }
-                elements.add(step3);
-            }
+            if (downFront) elements.add(createStepElement(8, 0, 0, 16, 8, 16, true, false, false, textures));
+            if (downBack) elements.add(createStepElement(0, 0, 0, 8, 8, 16, false, true, false, textures));
+            if (upFront) elements.add(createStepElement(8, 8, 0, 16, 16, 16, true, false, true, textures));
+            if (upBack) elements.add(createStepElement(0, 8, 0, 8, 16, 16, false, true, true, textures));
         }
 
         return template.toString();
+    }
+
+    private static JsonObject createStepElement(double x1, double y1, double z1, double x2, double y2, double z2, boolean isFront, boolean isBack, boolean isUp, Map<String, String> textures) {
+        JsonObject element = new JsonObject();
+        setFromTo(element, x1, y1, z1, x2, y2, z2);
+        
+        JsonObject faces = new JsonObject();
+        element.add("faces", faces);
+        
+        // Horizontal faces (North/South) always cull if on boundary
+        addFace(faces, "north", "#side", "north", new double[]{x1, 16-y2, x2, 16-y1});
+        addFace(faces, "south", "#side", "south", new double[]{x1, 16-y2, x2, 16-y1});
+        
+        // Vertical faces (Up/Down)
+        addFace(faces, "up", "#top", isUp ? "up" : null, new double[]{x1, z1, x2, z2});
+        addFace(faces, "down", "#bottom", !isUp ? "down" : null, new double[]{x1, z1, x2, z2});
+        
+        // Side faces (East/West)
+        addFace(faces, "east", "#side", isFront ? "east" : null, new double[]{z1, 16-y2, z2, 16-y1});
+        addFace(faces, "west", "#side", isBack ? "west" : null, new double[]{z1, 16-y2, z2, 16-y1});
+        
+        return element;
+    }
+
+    private static void addFace(JsonObject faces, String side, String texture, String cullface, double[] uv) {
+        JsonObject face = new JsonObject();
+        face.addProperty("texture", texture);
+        if (cullface != null) face.addProperty("cullface", cullface);
+        
+        com.google.gson.JsonArray uvArray = new com.google.gson.JsonArray();
+        for (double v : uv) uvArray.add(v);
+        face.add("uv", uvArray);
+        
+        faces.add(side, face);
+    }
+
+    private static void setFromTo(JsonObject element, double x1, double y1, double z1, double x2, double y2, double z2) {
+        com.google.gson.JsonArray from = new com.google.gson.JsonArray();
+        from.add(x1); from.add(y1); from.add(z1);
+        element.add("from", from);
+        
+        com.google.gson.JsonArray to = new com.google.gson.JsonArray();
+        to.add(x2); to.add(y2); to.add(z2);
+        element.add("to", to);
     }
 
     public static String loadTemplate(String path) {

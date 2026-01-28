@@ -88,6 +88,9 @@ public class StepBlock extends ReshapedBlock {
                 xMin = isFront ? 8.0 : 0.0;
                 xMax = isFront ? 16.0 : 8.0;
             }
+            case UP, DOWN -> {
+                // Should never happen for HORIZONTAL_FACING, but required for exhaustive switch
+            }
         }
 
         return Block.createCuboidShape(xMin, yMin, zMin, xMax, yMax, zMax);

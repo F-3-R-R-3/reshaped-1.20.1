@@ -27,6 +27,66 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
             Identifier id = Registries.BLOCK.getId(block);
             if (id.getNamespace().equals(Reshaped.MOD_ID)) {
                 String path = id.getPath();
+                
+                // Custom resolver for StepBlock
+                if (block instanceof net.f3rr3.reshaped.block.StepBlock) {
+                    context.registerBlockStateResolver(block, resolverContext -> {
+                        for (BlockState state : block.getStateManager().getStates()) {
+                            // Count how many segments are present
+                            int segmentCount = 0;
+                            if (state.get(net.f3rr3.reshaped.block.StepBlock.DOWN_FRONT)) segmentCount++;
+                            if (state.get(net.f3rr3.reshaped.block.StepBlock.DOWN_BACK)) segmentCount++;
+                            if (state.get(net.f3rr3.reshaped.block.StepBlock.UP_FRONT)) segmentCount++;
+                            if (state.get(net.f3rr3.reshaped.block.StepBlock.UP_BACK)) segmentCount++;
+                            
+                            // Determine model based on segments
+                            Identifier modelId;
+                            // Optimization: If full block, use base model
+                            if (segmentCount == 4) {
+                                // Full block - use base block model
+                                Block base = Reshaped.MATRIX != null ? Reshaped.MATRIX.getBaseBlock(block) : null;
+                                if (base != null) {
+                                    Identifier baseId = Registries.BLOCK.getId(base);
+                                    modelId = new Identifier(baseId.getNamespace(), "block/" + baseId.getPath());
+                                } else {
+                                    modelId = new Identifier(Reshaped.MOD_ID, "block/" + path);
+                                }
+                            } else {
+                                // Construct mask: DF DB UF UB
+                                String mask = (state.get(net.f3rr3.reshaped.block.StepBlock.DOWN_FRONT) ? "1" : "0") +
+                                              (state.get(net.f3rr3.reshaped.block.StepBlock.DOWN_BACK) ? "1" : "0") +
+                                              (state.get(net.f3rr3.reshaped.block.StepBlock.UP_FRONT) ? "1" : "0") +
+                                              (state.get(net.f3rr3.reshaped.block.StepBlock.UP_BACK) ? "1" : "0");
+                                
+                                modelId = new Identifier(Reshaped.MOD_ID, "block/" + path + "_" + mask);
+                            }
+                            
+                            // Determine rotation based on facing
+                            net.minecraft.util.math.Direction facing = state.get(net.f3rr3.reshaped.block.StepBlock.FACING);
+                            int yRotation = switch (facing) {
+                                case NORTH -> 270;
+                                case SOUTH -> 90;
+                                case WEST -> 180;
+                                case EAST -> 0;
+                                default -> 0;
+                            };
+                            
+                            net.minecraft.client.render.model.ModelRotation rotation = net.minecraft.client.render.model.ModelRotation.get(0, yRotation);
+                            ModelVariant variant = new ModelVariant(modelId, rotation.getRotation(), false, 1);
+                            resolverContext.setModel(state, new WeightedUnbakedModel(Collections.singletonList(variant)));
+                        }
+                    });
+                    // Skip the generic template-based approach for StepBlock
+                    // Pre-register models (all 16 combinations)
+                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path));
+                    for (int i = 0; i < 16; i++) {
+                        String mask = String.format("%4s", Integer.toBinaryString(i)).replace(' ', '0');
+                        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_" + mask));
+                    }
+                    context.addModels(new Identifier(Reshaped.MOD_ID, "item/" + path));
+                    continue; // Skip the generic handling below
+                }
+                
                 String templateType = RuntimeResourceGenerator.getTemplateType(block, id);
 
                 if (templateType != null) {
@@ -80,10 +140,6 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                         String mask = String.format("%8s", Integer.toBinaryString(i)).replace(' ', '0');
                         context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_" + mask));
                     }
-                }
-                if (block instanceof net.f3rr3.reshaped.block.StepBlock) {
-                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_2"));
-                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_3"));
                 }
                 context.addModels(new Identifier(Reshaped.MOD_ID, "item/" + path));
             }
