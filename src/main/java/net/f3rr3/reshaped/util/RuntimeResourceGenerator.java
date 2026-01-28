@@ -26,6 +26,15 @@ import java.util.Optional;
 public class RuntimeResourceGenerator {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    
+    /**
+     * Cache for analyzed texture mappings. Prevents repeated analysis of the same base block
+     * during a single resource reload session. Cache is cleared when resources are reloaded.
+     * 
+     * Key: Base block
+     * Value: Map of texture keys (e.g., "top", "bottom", "side") to texture resource paths
+     */
+    private static final Map<Block, Map<String, String>> TEXTURE_CACHE = new HashMap<>();
 
     public static String getTemplateType(Block block, Identifier id) {
         String path = id.getPath();
@@ -156,31 +165,23 @@ public class RuntimeResourceGenerator {
         return null;
     }
 
+    /**
+     * Generates a simple block model JSON by delegating to a parent model and applying textures.
+     * Used for dynamically created slabs and stairs that follow vanilla model structures.
+     * 
+     * @param parent The parent model identifier (e.g., "minecraft:block/stairs")
+     * @param textures The texture mappings to apply
+     * @return JSON string representing the complete model
+     */
     public static String generateSimpleModel(String parent, Map<String, String> textures) {
-        StringBuilder json = new StringBuilder();
-        json.append("{\"parent\":\"").append(parent).append("\",");
-        json.append("\"textures\":{");
-
-        boolean first = true;
-        for (Map.Entry<String, String> entry : textures.entrySet()) {
-            if (!first) json.append(",");
-            json.append("\"").append(entry.getKey()).append("\":\"").append(entry.getValue()).append("\"");
-            first = false;
-        }
-
-        // Ensure standard textures are present if missing
-        String all = textures.get("all");
-        if (all != null) {
-            String[] std = {"top", "bottom", "side", "particle"};
-            for (String s : std) {
-                if (!textures.containsKey(s)) {
-                    json.append(",\"").append(s).append("\":\"").append(all).append("\"");
-                }
-            }
-        }
-
-        json.append("}}");
-        return json.toString();
+        com.google.gson.JsonObject root = new com.google.gson.JsonObject();
+        root.addProperty("parent", parent);
+        
+        com.google.gson.JsonObject texturesObj = new com.google.gson.JsonObject();
+        applyTextures(texturesObj, textures);
+        root.add("textures", texturesObj);
+        
+        return root.toString();
     }
 
     public static String generateModelFromTemplate(String templatePath, Map<String, String> textures) {
@@ -194,17 +195,217 @@ public class RuntimeResourceGenerator {
         return template.toString();
     }
 
-    private static void applyTextures(JsonObject texObj, Map<String, String> textures) {
+    /**
+     * Analyzes a block model's element faces to automatically determine texture mappings.
+     * This enables support for blocks using non-standard texture keys (e.g., cube_column models
+     * that use "end" for top/bottom and "side" for horizontal faces).
+     * 
+     * <p>Algorithm:
+     * <ol>
+     *   <li>Loads the complete model hierarchy (including all parent models)</li>
+     *   <li>Examines the first model element's face definitions</li>
+     *   <li>Maps each face direction (up, down, north, etc.) to its texture reference</li>
+     *   <li>Resolves texture references (e.g., #end, #side) to actual texture paths</li>
+     *   <li>Translates to standard template keys: up→top, down→bottom, sides→side</li>
+     * </ol>
+     * 
+     * @param modelId The model to analyze
+     * @param textures The texture map to populate with standard keys. Modified in place.
+     */
+    private static void analyzeFaceTextures(Identifier modelId, Map<String, String> textures) {
+        try {
+            JsonObject fullModel = loadModelHierarchy(modelId);
+            if (fullModel == null || !fullModel.has("elements")) {
+                return;
+            }
+
+            com.google.gson.JsonArray elements = fullModel.getAsJsonArray("elements");
+            if (elements.size() == 0) {
+                return;
+            }
+
+            // Analyze the first element to determine face mappings
+            JsonObject firstElement = elements.get(0).getAsJsonObject();
+            if (!firstElement.has("faces")) {
+                return;
+            }
+
+            JsonObject faces = firstElement.getAsJsonObject("faces");
+            Map<String, String> faceToTexture = new HashMap<>();
+
+            // Extract face -> texture key mappings (e.g., "up" -> "#end")
+            for (String face : new String[]{"up", "down", "north", "south", "east", "west"}) {
+                if (faces.has(face)) {
+                    JsonObject faceObj = faces.getAsJsonObject(face);
+                    if (faceObj.has("texture")) {
+                        String textureRef = faceObj.get("texture").getAsString();
+                        faceToTexture.put(face, textureRef);
+                    }
+                }
+            }
+
+            // Resolve texture references (e.g., #end -> minecraft:block/quartz_block_top)
+            Map<String, String> resolvedTextures = new HashMap<>();
+            for (Map.Entry<String, String> entry : faceToTexture.entrySet()) {
+                String textureRef = entry.getValue();
+                if (textureRef.startsWith("#")) {
+                    String key = textureRef.substring(1);
+                    if (textures.containsKey(key)) {
+                        resolvedTextures.put(entry.getKey(), textures.get(key));
+                    }
+                }
+            }
+
+            // Map to standard keys for our templates
+            if (resolvedTextures.containsKey("up")) {
+                textures.putIfAbsent("top", resolvedTextures.get("up"));
+            }
+            if (resolvedTextures.containsKey("down")) {
+                textures.putIfAbsent("bottom", resolvedTextures.get("down"));
+            }
+
+            // Use any horizontal face as 'side' if not already set
+            for (String face : new String[]{"north", "south", "east", "west"}) {
+                if (resolvedTextures.containsKey(face)) {
+                    textures.putIfAbsent("side", resolvedTextures.get(face));
+                    break;
+                }
+            }
+
+            // Ensure particle is set
+            if (!textures.containsKey("particle")) {
+                if (textures.containsKey("side")) {
+                    textures.put("particle", textures.get("side"));
+                } else if (textures.containsKey("all")) {
+                    textures.put("particle", textures.get("all"));
+                }
+            }
+
+        } catch (Exception e) {
+            Reshaped.LOGGER.warn("Failed to analyze face textures for model: " + modelId, e);
+        }
+    }
+
+    /**
+     * Recursively loads a block model and all its parent models, merging them into a single structure.
+     * This is necessary because model properties like "elements" and "textures" can be defined
+     * in parent models and inherited by child models.
+     * 
+     * <p>Example: quartz_block extends cube_column, which extends cube, which extends block.
+     * This method resolves the entire chain.
+     * 
+     * @param modelId The model identifier to load
+     * @return Merged JSON object containing all properties from the model hierarchy, or null if not found
+     */
+    private static JsonObject loadModelHierarchy(Identifier modelId) {
+        JsonObject merged = new JsonObject();
+        JsonObject current = loadModelJson(modelId);
+        
+        if (current == null) {
+            return null;
+        }
+
+        // Recursively load parent models
+        if (current.has("parent")) {
+            String parentPath = current.get("parent").getAsString();
+            Identifier parentId;
+            
+            if (parentPath.contains(":")) {
+                String[] parts = parentPath.split(":");
+                parentId = new Identifier(parts[0], "models/" + parts[1] + ".json");
+            } else {
+                parentId = new Identifier("minecraft", "models/" + parentPath + ".json");
+            }
+            
+            JsonObject parentModel = loadModelHierarchy(parentId);
+            if (parentModel != null) {
+                // Merge parent into current (parent properties first, then override with current)
+                for (Map.Entry<String, com.google.gson.JsonElement> entry : parentModel.entrySet()) {
+                    merged.add(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+
+        // Override/add current model properties
+        for (Map.Entry<String, com.google.gson.JsonElement> entry : current.entrySet()) {
+            merged.add(entry.getKey(), entry.getValue());
+        }
+
+        return merged;
+    }
+
+    /**
+     * Loads a single model JSON file from the resource manager.
+     * 
+     * @param modelId The model identifier
+     * @return The parsed JSON object, or null if the model doesn't exist or fails to parse
+     */
+    private static JsonObject loadModelJson(Identifier modelId) {
+        Optional<Resource> resource = MinecraftClient.getInstance().getResourceManager().getResource(modelId);
+        if (resource.isPresent()) {
+            try (InputStreamReader reader = new InputStreamReader(resource.get().getInputStream())) {
+                return JsonParser.parseReader(reader).getAsJsonObject();
+            } catch (Exception e) {
+                // Silent fail for missing models
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Applies texture mappings to a model's textures object, with comprehensive fallback logic.
+     * Handles various texture naming conventions from vanilla and modded blocks.
+     * 
+     * <p>Fallback hierarchy:
+     * <ol>
+     *   <li>Applies all textures from the map directly</li>
+     *   <li>Maps "end" (cube_column) to "top" and "bottom" if missing</li>
+     *   <li>Uses "all" (simple cubes) as fallback for missing textures</li>
+     *   <li>Uses "side" as additional fallback for "top"/"bottom"</li>
+     *   <li>Ensures "particle" is always set for proper break animations</li>
+     * </ol>
+     * 
+     * @param texObj The JSON object to add texture properties to (modified in place)
+     * @param textures The source texture mappings from the base block
+     */
+    public static void applyTextures(JsonObject texObj, Map<String, String> textures) {
+
         for (Map.Entry<String, String> entry : textures.entrySet()) {
             texObj.addProperty(entry.getKey(), entry.getValue());
         }
 
-        // Ensure standard textures are present if missing
+        // Handle cube_column models and other non-standard patterns
+        // Map 'end' to top/bottom if those aren't already set
+        String end = textures.get("end");
+        if (end != null) {
+            if (!texObj.has("top")) texObj.addProperty("top", end);
+            if (!texObj.has("bottom")) texObj.addProperty("bottom", end);
+        }
+
+        // Ensure standard textures are present using 'all' as fallback
         String all = textures.get("all");
         if (all != null) {
             if (!texObj.has("top")) texObj.addProperty("top", all);
             if (!texObj.has("bottom")) texObj.addProperty("bottom", all);
             if (!texObj.has("side")) texObj.addProperty("side", all);
+        }
+
+        // Additional fallback: use 'side' for missing top/bottom if available
+        String side = textures.get("side");
+        if (side != null) {
+            if (!texObj.has("top")) texObj.addProperty("top", side);
+            if (!texObj.has("bottom")) texObj.addProperty("bottom", side);
+        }
+
+        // Ensure particle is set
+        if (!texObj.has("particle")) {
+            if (texObj.has("side")) {
+                texObj.addProperty("particle", texObj.get("side").getAsString());
+            } else if (texObj.has("top")) {
+                texObj.addProperty("particle", texObj.get("top").getAsString());
+            } else if (texObj.has("all")) {
+                texObj.addProperty("particle", texObj.get("all").getAsString());
+            }
         }
     }
 
@@ -297,12 +498,20 @@ public class RuntimeResourceGenerator {
     }
 
     public static Map<String, String> getModelTextures(Block block) {
+        // Check cache first
+        if (TEXTURE_CACHE.containsKey(block)) {
+            return new HashMap<>(TEXTURE_CACHE.get(block));
+        }
+
         Map<String, String> textures = new HashMap<>();
         Identifier blockId = Registries.BLOCK.getId(block);
 
         // 1. Try to load the block model directly first
         Identifier modelId = new Identifier(blockId.getNamespace(), "models/block/" + blockId.getPath() + ".json");
         if (loadTexturesFromModel(modelId, textures)) {
+            // Perform dynamic analysis
+            analyzeFaceTextures(modelId, textures);
+            TEXTURE_CACHE.put(block, new HashMap<>(textures));
             return textures;
         }
 
@@ -342,6 +551,7 @@ public class RuntimeResourceGenerator {
                             "models/" + (variantModel.contains(":") ? variantModel.split(":")[1] : variantModel) + ".json"
                     );
                     loadTexturesFromModel(redirectedModelId, textures);
+                    analyzeFaceTextures(redirectedModelId, textures);
                 }
 
             } catch (Exception e) {
@@ -349,6 +559,7 @@ public class RuntimeResourceGenerator {
             }
         }
 
+        TEXTURE_CACHE.put(block, new HashMap<>(textures));
         return textures;
     }
 

@@ -52,8 +52,7 @@ public class CornerVariant implements BlockVariantType {
         if (path.contains("_corner")) {
             Block baseBlock = Reshaped.MATRIX.getBaseBlock(block);
             if (baseBlock != null) {
-                Identifier baseId = Registries.BLOCK.getId(baseBlock);
-                String textureId = baseId.getNamespace() + ":block/" + baseId.getPath();
+                Map<String, String> textures = net.f3rr3.reshaped.util.RuntimeResourceGenerator.getModelTextures(baseBlock);
 
                 // Extract bits from path (e.g., _11010010)
                 int bitIndex = path.lastIndexOf('_');
@@ -63,10 +62,9 @@ public class CornerVariant implements BlockVariantType {
                     com.google.gson.JsonObject root = new com.google.gson.JsonObject();
                     root.addProperty("parent", "minecraft:block/block");
                     
-                    com.google.gson.JsonObject textures = new com.google.gson.JsonObject();
-                    textures.addProperty("side", textureId);
-                    textures.addProperty("particle", textureId);
-                    root.add("textures", textures);
+                    com.google.gson.JsonObject texturesObj = new com.google.gson.JsonObject();
+                    net.f3rr3.reshaped.util.RuntimeResourceGenerator.applyTextures(texturesObj, textures);
+                    root.add("textures", texturesObj);
                     
                     com.google.gson.JsonArray elements = new com.google.gson.JsonArray();
                     String[] segmentTemplates = {
