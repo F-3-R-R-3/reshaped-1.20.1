@@ -18,15 +18,15 @@ public class VerticalStairsBlock extends ReshapedBlock {
     public VerticalStairsBlock(Settings settings) {
         super(settings);
         this.setDefaultState(this.getDefaultState()
-                .with(ORIENTATION, VerticalStairOrientation.MINUS_X_MINUS_Y)
+                .with(ORIENTATION, VerticalStairOrientation.MINUS_X_MINUS_Z)
                 .with(WATERLOGGED, false));
     }
 
     public enum VerticalStairOrientation implements StringIdentifiable {
-        PLUS_X_PLUS_Y("plus_x_plus_y"),
-        MINUS_X_PLUS_Y("minus_x_plus_y"),
-        PLUS_X_MINUS_Y("plus_x_minus_y"),
-        MINUS_X_MINUS_Y("minus_x_minus_y");
+        PLUS_X_PLUS_Z("plus_x_plus_z"),
+        MINUS_X_PLUS_Z("minus_x_plus_z"),
+        PLUS_X_MINUS_Z("plus_x_minus_z"),
+        MINUS_X_MINUS_Z("minus_x_minus_z");
 
         private final String name;
 
@@ -55,10 +55,10 @@ public class VerticalStairsBlock extends ReshapedBlock {
 
         // Orientation defines the quadrant that is REMOVED.
         return switch (orientation) {
-            case PLUS_X_PLUS_Y -> VoxelShapes.union(q2, q3, q4);
-            case MINUS_X_PLUS_Y -> VoxelShapes.union(q1, q3, q4);
-            case PLUS_X_MINUS_Y -> VoxelShapes.union(q1, q2, q4);
-            case MINUS_X_MINUS_Y -> VoxelShapes.union(q1, q2, q3);
+            case PLUS_X_PLUS_Z -> VoxelShapes.union(q2, q3, q4);
+            case MINUS_X_PLUS_Z-> VoxelShapes.union(q1, q3, q4);
+            case PLUS_X_MINUS_Z -> VoxelShapes.union(q1, q2, q4);
+            case MINUS_X_MINUS_Z -> VoxelShapes.union(q1, q2, q3);
         };
     }
 
@@ -79,13 +79,13 @@ public class VerticalStairsBlock extends ReshapedBlock {
         // Minecraft Yaw: 0=South(+Z), 90=West(-X), 180=North(-Z), 270=East(+X)
         // To make the gap face the player, we remove the quadrant CLOSEST to the player.
         if (yaw >= 0 && yaw < 90) { // Looking Towards South-West (-X, +Z)
-            orientation = VerticalStairOrientation.PLUS_X_MINUS_Y;  // Closest is North-East (+X, -Z)
+            orientation = VerticalStairOrientation.PLUS_X_MINUS_Z;  // Closest is North-East (+X, -Z)
         } else if (yaw >= 90 && yaw < 180) { // Looking Towards North-West (-X, -Z)
-            orientation = VerticalStairOrientation.PLUS_X_PLUS_Y;  // Closest is South-East (+X, +Z)
+            orientation = VerticalStairOrientation.PLUS_X_PLUS_Z;  // Closest is South-East (+X, +Z)
         } else if (yaw >= 180 && yaw < 270) { // Looking Towards North-East (+X, -Z)
-            orientation = VerticalStairOrientation.MINUS_X_PLUS_Y; // Closest is South-West (-X, +Z)
+            orientation = VerticalStairOrientation.MINUS_X_PLUS_Z; // Closest is South-West (-X, +Z)
         } else { // Looking Towards South-East (+X, +Z)
-            orientation = VerticalStairOrientation.MINUS_X_MINUS_Y; // Closest is North-West (-X, -Z)
+            orientation = VerticalStairOrientation.MINUS_X_MINUS_Z; // Closest is North-West (-X, -Z)
         }
 
         return this.getDefaultState()

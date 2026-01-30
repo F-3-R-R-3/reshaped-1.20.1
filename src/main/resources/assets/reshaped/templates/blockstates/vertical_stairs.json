@@ -1,19 +1,19 @@
 {
   "variants": {
-    "orientation=minus_x_plus_y": {
+    "orientation=minus_x_plus_z": {
       "model": "reshaped:block/{{path}}",
       "y": 0
     },
-    "orientation=minus_x_minus_y": {
+    "orientation=minus_x_minus_z": {
       "model": "reshaped:block/{{path}}",
       "y": 90,
       "uvlock": true
     },
-    "orientation=plus_x_minus_y": {
+    "orientation=plus_x_minus_z": {
       "model": "reshaped:block/{{path}}",
       "y": 180
     },
-    "orientation=plus_x_plus_y": {
+    "orientation=plus_x_plus_z":   {
       "model": "reshaped:block/{{path}}",
       "y": 270,
       "uvlock": true
