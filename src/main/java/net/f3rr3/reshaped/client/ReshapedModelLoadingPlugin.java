@@ -61,14 +61,11 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                                 modelId = new Identifier(Reshaped.MOD_ID, "block/" + path + "_" + mask);
                             }
 
-                            // Determine rotation based on facing
-                            net.minecraft.util.math.Direction facing = state.get(net.f3rr3.reshaped.block.StepBlock.FACING);
-                            int yRotation = switch (facing) {
-                                case NORTH -> 270;
-                                case SOUTH -> 90;
-                                case WEST -> 180;
-                                case EAST -> 0;
-                                default -> 0;
+                            // Determine rotation based on axis
+                            net.f3rr3.reshaped.block.StepBlock.StepAxis axis = state.get(net.f3rr3.reshaped.block.StepBlock.AXIS);
+                            int yRotation = switch (axis) {
+                                case NORTH_SOUTH -> 270; // North is Front
+                                case EAST_WEST -> 180;   // West is Front
                             };
 
                             net.minecraft.client.render.model.ModelRotation rotation = net.minecraft.client.render.model.ModelRotation.get(0, yRotation);
