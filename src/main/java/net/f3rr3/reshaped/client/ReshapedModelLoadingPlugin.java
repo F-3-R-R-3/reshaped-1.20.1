@@ -28,22 +28,20 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
             if (id.getNamespace().equals(Reshaped.MOD_ID)) {
                 String path = id.getPath();
 
-                // Custom resolver for StepBlock
+                // Custom resolver for StepBlock - handles dynamic segment models and rotation
                 if (block instanceof net.f3rr3.reshaped.block.StepBlock) {
                     context.registerBlockStateResolver(block, resolverContext -> {
                         for (BlockState state : block.getStateManager().getStates()) {
-                            // Count how many segments are present
-                            int segmentCount = 0;
-                            if (state.get(net.f3rr3.reshaped.block.StepBlock.DOWN_FRONT)) segmentCount++;
-                            if (state.get(net.f3rr3.reshaped.block.StepBlock.DOWN_BACK)) segmentCount++;
-                            if (state.get(net.f3rr3.reshaped.block.StepBlock.UP_FRONT)) segmentCount++;
-                            if (state.get(net.f3rr3.reshaped.block.StepBlock.UP_BACK)) segmentCount++;
+                            // Construct bitmask: DF DB UF UB
+                            int bitmask = 0;
+                            if (state.get(net.f3rr3.reshaped.block.StepBlock.DOWN_FRONT)) bitmask |= 8;
+                            if (state.get(net.f3rr3.reshaped.block.StepBlock.DOWN_BACK)) bitmask |= 4;
+                            if (state.get(net.f3rr3.reshaped.block.StepBlock.UP_FRONT)) bitmask |= 2;
+                            if (state.get(net.f3rr3.reshaped.block.StepBlock.UP_BACK)) bitmask |= 1;
 
-                            // Determine model based on segments
                             Identifier modelId;
-                            // Optimization: If full block, use base model
-                            if (segmentCount == 4) {
-                                // Full block - use base block model
+                            // Optimization: If full block, use base block model
+                            if (bitmask == 15) {
                                 Block base = Reshaped.MATRIX != null ? Reshaped.MATRIX.getBaseBlock(block) : null;
                                 if (base != null) {
                                     Identifier baseId = Registries.BLOCK.getId(base);
@@ -52,12 +50,7 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                                     modelId = new Identifier(Reshaped.MOD_ID, "block/" + path);
                                 }
                             } else {
-                                // Construct mask: DF DB UF UB
-                                String mask = (state.get(net.f3rr3.reshaped.block.StepBlock.DOWN_FRONT) ? "1" : "0") +
-                                        (state.get(net.f3rr3.reshaped.block.StepBlock.DOWN_BACK) ? "1" : "0") +
-                                        (state.get(net.f3rr3.reshaped.block.StepBlock.UP_FRONT) ? "1" : "0") +
-                                        (state.get(net.f3rr3.reshaped.block.StepBlock.UP_BACK) ? "1" : "0");
-
+                                String mask = String.format("%04d", Integer.parseInt(Integer.toBinaryString(bitmask)));
                                 modelId = new Identifier(Reshaped.MOD_ID, "block/" + path + "_" + mask);
                             }
 
@@ -73,15 +66,57 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                             resolverContext.setModel(state, new WeightedUnbakedModel(Collections.singletonList(variant)));
                         }
                     });
-                    // Skip the generic template-based approach for StepBlock
-                    // Pre-register models (all 16 combinations)
+                    
+                    // Pre-register all possible segment combinations
                     context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path));
                     for (int i = 0; i < 16; i++) {
-                        String mask = String.format("%4s", Integer.toBinaryString(i)).replace(' ', '0');
+                        String mask = String.format("%04d", Integer.parseInt(Integer.toBinaryString(i)));
                         context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_" + mask));
                     }
                     context.addModels(new Identifier(Reshaped.MOD_ID, "item/" + path));
-                    continue; // Skip the generic handling below
+                    continue; // Skip generic handling
+                }
+
+                // Custom resolver for VerticalStepBlock - handles absolute quadrant models
+                if (block instanceof net.f3rr3.reshaped.block.VerticalStepBlock) {
+                    context.registerBlockStateResolver(block, resolverContext -> {
+                        for (BlockState state : block.getStateManager().getStates()) {
+                            // Construct bitmask: NW NE SW SE
+                            int bitmask = 0;
+                            if (state.get(net.f3rr3.reshaped.block.VerticalStepBlock.NORTH_WEST)) bitmask |= 8;
+                            if (state.get(net.f3rr3.reshaped.block.VerticalStepBlock.NORTH_EAST)) bitmask |= 4;
+                            if (state.get(net.f3rr3.reshaped.block.VerticalStepBlock.SOUTH_WEST)) bitmask |= 2;
+                            if (state.get(net.f3rr3.reshaped.block.VerticalStepBlock.SOUTH_EAST)) bitmask |= 1;
+
+                            Identifier modelId;
+                            if (bitmask == 15) {
+                                // Full block
+                                Block base = Reshaped.MATRIX != null ? Reshaped.MATRIX.getBaseBlock(block) : null;
+                                if (base != null) {
+                                    Identifier baseId = Registries.BLOCK.getId(base);
+                                    modelId = new Identifier(baseId.getNamespace(), "block/" + baseId.getPath());
+                                } else {
+                                    modelId = new Identifier(Reshaped.MOD_ID, "block/" + path);
+                                }
+                            } else {
+                                String mask = String.format("%04d", Integer.parseInt(Integer.toBinaryString(bitmask)));
+                                modelId = new Identifier(Reshaped.MOD_ID, "block/" + path + "_" + mask);
+                            }
+
+                            // No rotation needed for vertical step segments as they are absolute
+                            ModelVariant variant = new ModelVariant(modelId, net.minecraft.client.render.model.ModelRotation.X0_Y0.getRotation(), true, 1);
+                            resolverContext.setModel(state, new WeightedUnbakedModel(Collections.singletonList(variant)));
+                        }
+                    });
+
+                    // Pre-register all possible segment combinations
+                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path));
+                    for (int i = 0; i < 16; i++) {
+                        String mask = String.format("%04d", Integer.parseInt(Integer.toBinaryString(i)));
+                        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_" + mask));
+                    }
+                    context.addModels(new Identifier(Reshaped.MOD_ID, "item/" + path));
+                    continue; // Skip generic handling
                 }
 
                 String templateType = RuntimeResourceGenerator.getTemplateType(block, id);

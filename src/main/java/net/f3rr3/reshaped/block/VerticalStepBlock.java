@@ -1,0 +1,130 @@
+package net.f3rr3.reshaped.block;
+
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.ShapeContext;
+import net.minecraft.fluid.FluidState;
+import net.minecraft.fluid.Fluids;
+import net.minecraft.item.ItemPlacementContext;
+import net.minecraft.item.ItemStack;
+import net.minecraft.state.StateManager;
+import net.minecraft.state.property.BooleanProperty;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.util.shape.VoxelShapes;
+import net.minecraft.world.BlockView;
+import org.jetbrains.annotations.Nullable;
+
+/**
+ * A block that allows combining up to four 8x16x8 vertical pillars (quadrants).
+ * Each pillar is represented by a BooleanProperty.
+ */
+public class VerticalStepBlock extends ReshapedBlock {
+    public static final BooleanProperty NORTH_WEST = BooleanProperty.of("north_west");
+    public static final BooleanProperty NORTH_EAST = BooleanProperty.of("north_east");
+    public static final BooleanProperty SOUTH_WEST = BooleanProperty.of("south_west");
+    public static final BooleanProperty SOUTH_EAST = BooleanProperty.of("south_east");
+
+    public VerticalStepBlock(Settings settings) {
+        super(settings);
+        this.setDefaultState(this.getDefaultState()
+                .with(NORTH_WEST, false).with(NORTH_EAST, false)
+                .with(SOUTH_WEST, false).with(SOUTH_EAST, false)
+                .with(WATERLOGGED, false));
+    }
+
+    @Override
+    public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
+        VoxelShape shape = VoxelShapes.empty();
+
+        if (state.get(NORTH_WEST)) shape = VoxelShapes.union(shape, Block.createCuboidShape(0, 0, 0, 8, 16, 8));
+        if (state.get(NORTH_EAST)) shape = VoxelShapes.union(shape, Block.createCuboidShape(8, 0, 0, 16, 16, 8));
+        if (state.get(SOUTH_WEST)) shape = VoxelShapes.union(shape, Block.createCuboidShape(0, 0, 8, 8, 16, 16));
+        if (state.get(SOUTH_EAST)) shape = VoxelShapes.union(shape, Block.createCuboidShape(8, 0, 8, 16, 16, 16));
+
+        return shape.isEmpty() ? VoxelShapes.fullCube() : shape;
+    }
+
+    @Override
+    @Nullable
+    public BlockState getPlacementState(ItemPlacementContext ctx) {
+        BlockPos pos = ctx.getBlockPos();
+        BlockState existingState = ctx.getWorld().getBlockState(pos);
+        
+        // If merging into existing VerticalStepBlock
+        if (existingState.isOf(this)) {
+            BooleanProperty targetProp = getPropertyFromHit(ctx.getHitPos().x - pos.getX(), ctx.getHitPos().y - pos.getY(), ctx.getHitPos().z - pos.getZ(), ctx.getSide(), true);
+            if (targetProp != null && !existingState.get(targetProp)) {
+                return existingState.with(targetProp, true);
+            }
+            return existingState;
+        }
+
+        // New Placement
+        FluidState fluidState = ctx.getWorld().getFluidState(pos);
+        BlockState defaultState = this.getDefaultState()
+                .with(WATERLOGGED, fluidState.getFluid() == Fluids.WATER);
+
+        BooleanProperty targetProp = getPropertyFromHit(ctx.getHitPos().x - pos.getX(), ctx.getHitPos().y - pos.getY(), ctx.getHitPos().z - pos.getZ(), ctx.getSide(), true);
+        if (targetProp != null) {
+            return defaultState.with(targetProp, true);
+        }
+
+        return defaultState.with(NORTH_WEST, true);
+    }
+
+    @Override
+    public boolean canReplace(BlockState state, ItemPlacementContext context) {
+        ItemStack itemStack = context.getStack();
+        if (!itemStack.isOf(this.asItem())) {
+            return false;
+        }
+
+        if (context.canReplaceExisting()) {
+             BooleanProperty targetProp = getPropertyFromHit(context.getHitPos().x - context.getBlockPos().getX(), context.getHitPos().y - context.getBlockPos().getY(), context.getHitPos().z - context.getBlockPos().getZ(), context.getSide(), true);
+             return targetProp != null && !state.get(targetProp);
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Determines which quadrant property corresponds to a hit position on the block.
+     * 
+     * @param hitX Local X coordinate (0-1)
+     * @param hitY Local Y coordinate (0-1)
+     * @param hitZ Local Z coordinate (0-1)
+     * @param side The side of the block hit
+     * @param isPlacement True if calculating for placement/preview, False for mining/interaction
+     * @return The BooleanProperty for the hit quadrant
+     */
+    public BooleanProperty getPropertyFromHit(double hitX, double hitY, double hitZ, Direction side, boolean isPlacement) {
+        double offset = isPlacement ? 0.05 : -0.05;
+        double testX = hitX + side.getOffsetX() * offset;
+        double testZ = hitZ + side.getOffsetZ() * offset;
+
+        testX = Math.max(0.01, Math.min(0.99, testX));
+        testZ = Math.max(0.01, Math.min(0.99, testZ));
+
+        boolean isNorth = (testZ < 0.5);
+        boolean isWest = (testX < 0.5);
+
+        if (isNorth) {
+            return isWest ? NORTH_WEST : NORTH_EAST;
+        } else {
+            return isWest ? SOUTH_WEST : SOUTH_EAST;
+        }
+    }
+
+    @Override
+    public String getTranslationKey() {
+        return "block.reshaped.vertical_step";
+    }
+
+    @Override
+    protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
+        super.appendProperties(builder);
+        builder.add(NORTH_WEST, NORTH_EAST, SOUTH_WEST, SOUTH_EAST);
+    }
+}

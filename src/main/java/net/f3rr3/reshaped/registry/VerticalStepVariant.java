@@ -1,8 +1,8 @@
 package net.f3rr3.reshaped.registry;
 
 import net.f3rr3.reshaped.Reshaped;
-import net.f3rr3.reshaped.block.OxidizableStepBlock;
-import net.f3rr3.reshaped.block.StepBlock;
+import net.f3rr3.reshaped.block.OxidizableVerticalStepBlock;
+import net.f3rr3.reshaped.block.VerticalStepBlock;
 import net.f3rr3.reshaped.util.BlockMatrix;
 import net.f3rr3.reshaped.util.RuntimeResourceGenerator;
 import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;
@@ -23,12 +23,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class StepVariant implements BlockVariantType {
-    private static final Map<Block, StepBlock> BASE_TO_STEP = new HashMap<>();
+public class VerticalStepVariant implements BlockVariantType {
+    private static final Map<Block, VerticalStepBlock> BASE_TO_STEP = new HashMap<>();
 
     @Override
     public String getName() {
-        return "step";
+        return "vertical_step";
     }
 
     @Override
@@ -40,21 +40,21 @@ public class StepVariant implements BlockVariantType {
     public void register(Block baseBlock, BlockMatrix matrix) {
         Identifier baseId = Registries.BLOCK.getId(baseBlock);
         String baseName = baseId.getPath().replace("_planks", "").replace("_block", "");
-        String path = baseName + "_step";
+        String path = baseName + "_vertical_step";
         Identifier id = new Identifier(Reshaped.MOD_ID, path);
 
         Block existingAtId = Registries.BLOCK.get(id);
         if (existingAtId != Blocks.AIR) {
             Block existingBase = matrix.getBaseBlock(existingAtId);
             if (existingBase != null && existingBase != baseBlock) {
-                path = baseId.getNamespace() + "_" + baseId.getPath() + "_step";
+                path = baseId.getNamespace() + "_" + baseId.getPath() + "_vertical_step";
                 id = new Identifier(Reshaped.MOD_ID, path);
             }
         }
 
         if (Registries.BLOCK.get(id) != Blocks.AIR) {
             Block existing = Registries.BLOCK.get(id);
-            if (existing instanceof StepBlock step) {
+            if (existing instanceof VerticalStepBlock step) {
                 BASE_TO_STEP.putIfAbsent(baseBlock, step);
                 List<Block> variants = matrix.getMatrix().get(baseBlock);
                 if (variants != null && !variants.contains(step)) {
@@ -64,22 +64,22 @@ public class StepVariant implements BlockVariantType {
             return;
         }
 
-        StepBlock step;
+        VerticalStepBlock step;
         AbstractBlock.Settings settings = AbstractBlock.Settings.copy(baseBlock);
 
         if (baseBlock instanceof Oxidizable oxidizable) {
-            step = new OxidizableStepBlock(oxidizable.getDegradationLevel(), settings);
+            step = new OxidizableVerticalStepBlock(oxidizable.getDegradationLevel(), settings);
         } else {
-            step = new StepBlock(settings);
+            step = new VerticalStepBlock(settings);
         }
 
         Registry.register(Registries.BLOCK, id, step);
         Registry.register(Registries.ITEM, id, new BlockItem(step, new Item.Settings()));
 
         matrix.addVariant(baseBlock, step, true);
-        matrix.setReason(step, "Dynamically registered Step Block for " + baseBlock.getName().getString());
+        matrix.setReason(step, "Dynamically registered Vertical Step Block for " + baseBlock.getName().getString());
         BASE_TO_STEP.put(baseBlock, step);
-        Reshaped.LOGGER.info("Registered step for: {}", baseId);
+        Reshaped.LOGGER.info("Registered vertical step for: {}", baseId);
 
         FlammableBlockRegistry flammableRegistry = FlammableBlockRegistry.getDefaultInstance();
         FlammableBlockRegistry.Entry flammableEntry = flammableRegistry.get(baseBlock);
@@ -88,17 +88,17 @@ public class StepVariant implements BlockVariantType {
         }
 
         linkRelations(baseBlock, step);
-        for (Map.Entry<Block, StepBlock> entry : BASE_TO_STEP.entrySet()) {
+        for (Map.Entry<Block, VerticalStepBlock> entry : BASE_TO_STEP.entrySet()) {
             if (entry.getKey() != baseBlock) {
                 linkRelations(entry.getKey(), entry.getValue());
             }
         }
     }
 
-    private void linkRelations(Block base, StepBlock step) {
+    private void linkRelations(Block base, VerticalStepBlock step) {
         Optional<Block> nextOxidation = Oxidizable.getIncreasedOxidationBlock(base);
         if (nextOxidation.isPresent() && BASE_TO_STEP.containsKey(nextOxidation.get())) {
-            StepBlock nextStep = BASE_TO_STEP.get(nextOxidation.get());
+            VerticalStepBlock nextStep = BASE_TO_STEP.get(nextOxidation.get());
             OxidizableBlocksRegistry.registerOxidizableBlockPair(step, nextStep);
         }
 
@@ -106,13 +106,13 @@ public class StepVariant implements BlockVariantType {
             Map<Block, Block> unwaxedToWaxed = net.f3rr3.reshaped.mixin.HoneycombItemAccessor.getUnwaxedToWaxedSupplier().get();
             Block waxedBase = unwaxedToWaxed.get(base);
             if (waxedBase != null && BASE_TO_STEP.containsKey(waxedBase)) {
-                StepBlock waxedStep = BASE_TO_STEP.get(waxedBase);
+                VerticalStepBlock waxedStep = BASE_TO_STEP.get(waxedBase);
                 OxidizableBlocksRegistry.registerWaxableBlockPair(step, waxedStep);
             }
 
             for (Map.Entry<Block, Block> entry : unwaxedToWaxed.entrySet()) {
                 if (entry.getValue() == base && BASE_TO_STEP.containsKey(entry.getKey())) {
-                    StepBlock unwaxedStep = BASE_TO_STEP.get(entry.getKey());
+                    VerticalStepBlock unwaxedStep = BASE_TO_STEP.get(entry.getKey());
                     OxidizableBlocksRegistry.registerWaxableBlockPair(unwaxedStep, step);
                 }
             }
@@ -123,13 +123,13 @@ public class StepVariant implements BlockVariantType {
             Map<Block, Block> strippedBlocks = net.f3rr3.reshaped.mixin.AxeItemAccessor.getStrippedBlocks();
             Block strippedBase = strippedBlocks.get(base);
             if (strippedBase != null && BASE_TO_STEP.containsKey(strippedBase)) {
-                StepBlock strippedStep = BASE_TO_STEP.get(strippedBase);
+                VerticalStepBlock strippedStep = BASE_TO_STEP.get(strippedBase);
                 StrippableBlockRegistry.register(step, strippedStep);
             }
 
             for (Map.Entry<Block, Block> entry : strippedBlocks.entrySet()) {
                 if (entry.getValue() == base && BASE_TO_STEP.containsKey(entry.getKey())) {
-                    StepBlock unstrippedStep = BASE_TO_STEP.get(entry.getKey());
+                    VerticalStepBlock unstrippedStep = BASE_TO_STEP.get(entry.getKey());
                     StrippableBlockRegistry.register(unstrippedStep, step);
                 }
             }
@@ -139,32 +139,29 @@ public class StepVariant implements BlockVariantType {
 
     @Override
     public String generateModelJson(String path, Block block) {
-        if (path.contains("_step") && !path.contains("_vertical_step")) {
+        if (path.contains("_vertical_step")) {
             // Check for segment mask (e.g. "_1010")
-            // Default to single segment (1000 - Down Front) if no mask found
-            boolean df = true;
-            boolean db = false;
-            boolean uf = false;
-            boolean ub = false;
+            // Default to single segment (1000 - North West) if no mask found
+            boolean nw = true;
+            boolean ne = false;
+            boolean sw = false;
+            boolean se = false;
             
             String basePath = path;
             
             if (path.matches(".*_\\d{4}$")) {
-                String mask = path.substring(path.length() - 4);
-                df = mask.charAt(0) == '1';
-                db = mask.charAt(1) == '1';
-                uf = mask.charAt(2) == '1';
-                ub = mask.charAt(3) == '1';
+                String maskString = path.substring(path.length() - 4);
+                nw = maskString.charAt(0) == '1';
+                ne = maskString.charAt(1) == '1';
+                sw = maskString.charAt(2) == '1';
+                se = maskString.charAt(3) == '1';
                 basePath = path.substring(0, path.length() - 5); // remove _XXXX
             }
             
-            // Get base block from the block parameter if available, or resolve from registry
             Block targetBlock = block;
             if (basePath.equals(path)) {
-                // No suffix, use the block parameter directly
                 targetBlock = block;
             } else {
-                // Has suffix, need to resolve the actual step block
                 Identifier blockId = new Identifier(Reshaped.MOD_ID, basePath);
                 targetBlock = Registries.BLOCK.get(blockId);
             }
@@ -172,7 +169,7 @@ public class StepVariant implements BlockVariantType {
             Block baseBlock = Reshaped.MATRIX.getBaseBlock(targetBlock);
             if (baseBlock != null) {
                 Map<String, String> textures = RuntimeResourceGenerator.getModelTextures(baseBlock);
-                return RuntimeResourceGenerator.generateStepModelForSegments(df, db, uf, ub, textures);
+                return RuntimeResourceGenerator.generateVerticalStepModelForSegments(nw, ne, sw, se, textures);
             }
         }
         return null;

@@ -3,6 +3,7 @@ package net.f3rr3.reshaped;
 import net.f3rr3.reshaped.block.CornerBlock;
 import net.f3rr3.reshaped.block.MixedCornerBlock;
 import net.f3rr3.reshaped.block.StepBlock;
+import net.f3rr3.reshaped.block.VerticalStepBlock;
 import net.f3rr3.reshaped.block.entity.CornerBlockEntity;
 import net.f3rr3.reshaped.command.MatrixCommand;
 import net.f3rr3.reshaped.network.NetworkHandler;
@@ -147,7 +148,7 @@ public class Reshaped implements ModInitializer {
 
         // Handle corner block partial mining
         PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, blockEntity) -> {
-            if (state.getBlock() instanceof CornerBlock || state.getBlock() instanceof MixedCornerBlock || state.getBlock() instanceof  StepBlock) {
+            if (state.getBlock() instanceof CornerBlock || state.getBlock() instanceof MixedCornerBlock || state.getBlock() instanceof StepBlock || state.getBlock() instanceof VerticalStepBlock) {
                 // Client side prediction causes desync/invisibility because the client predicts "Air" before receiving updates.
                 // We handle this on the Server by enforcing the Block State restoration and Delaying the BE update.
                 if (world.isClient) return true;
@@ -170,6 +171,8 @@ public class Reshaped implements ModInitializer {
                             property = mcb.getPropertyFromHit(hitX, hitY, hitZ, blockHitResult.getSide(), false);
                         } else if (state.getBlock() instanceof StepBlock sb) {
                             property = sb.getPropertyFromHit(hitX, hitY, hitZ, blockHitResult.getSide(), false, state);
+                        } else if (state.getBlock() instanceof VerticalStepBlock vsb) {
+                            property = vsb.getPropertyFromHit(hitX, hitY, hitZ, blockHitResult.getSide(), false);
                         }
 
                         if (property != null && state.get(property)) {
@@ -178,8 +181,10 @@ public class Reshaped implements ModInitializer {
                             if (state.getBlock() instanceof CornerBlock || state.getBlock() instanceof MixedCornerBlock) {
                                 allProps = new BooleanProperty[] {CornerBlock.DOWN_NW, CornerBlock.DOWN_NE, CornerBlock.DOWN_SW, CornerBlock.DOWN_SE,
                                         CornerBlock.UP_NW, CornerBlock.UP_NE, CornerBlock.UP_SW, CornerBlock.UP_SE};
-                            } else {
+                            } else if (state.getBlock() instanceof StepBlock) {
                                 allProps = new BooleanProperty[] {StepBlock.DOWN_FRONT, StepBlock.DOWN_BACK, StepBlock.UP_FRONT, StepBlock.UP_BACK};
+                            } else {
+                                allProps = new BooleanProperty[] {VerticalStepBlock.NORTH_WEST, VerticalStepBlock.NORTH_EAST, VerticalStepBlock.SOUTH_WEST, VerticalStepBlock.SOUTH_EAST};
                             }
                             for (BooleanProperty p : allProps) {
                                 if (state.get(p)) count++;

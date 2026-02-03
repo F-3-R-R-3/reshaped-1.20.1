@@ -14,6 +14,7 @@ public class VariantRegistry {
         VARIANTS.add(new VerticalStairsVariant());
         VARIANTS.add(new CornerVariant());
         VARIANTS.add(new StepVariant());
+        VARIANTS.add(new VerticalStepVariant());
     }
 
     /**

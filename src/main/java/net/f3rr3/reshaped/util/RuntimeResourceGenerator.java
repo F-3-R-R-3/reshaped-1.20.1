@@ -41,6 +41,7 @@ public class RuntimeResourceGenerator {
         if (path.endsWith("_vertical_slab")) return "vertical_slab";
         if (path.endsWith("_vertical_stairs")) return "vertical_stairs";
         if (path.endsWith("_corner")) return "corner";
+        if (path.endsWith("_vertical_step")) return "vertical_step";
         if (path.endsWith("_step")) return "step";
         if (block instanceof StairsBlock) return "stairs";
         if (block instanceof SlabBlock) return "slab";
@@ -124,7 +125,8 @@ public class RuntimeResourceGenerator {
                 .replace("_north", "")
                 .replace("_south", "")
                 .replace("_east", "")
-                .replace("_west", "");
+                .replace("_west", "")
+                .replaceAll("_\\d{4}$", "");
 
         String variantJson = VariantRegistry.generateModelJson(blockPath, Registries.BLOCK.get(new Identifier(Reshaped.MOD_ID, baseBlockPath)));
         if (variantJson != null) return variantJson;
@@ -140,7 +142,20 @@ public class RuntimeResourceGenerator {
             if (block instanceof net.f3rr3.reshaped.block.VerticalSlabBlock) {
                 return generateModelFromTemplate("block/vertical_slab", textures);
             } else if (block instanceof net.f3rr3.reshaped.block.VerticalStairsBlock) {
-                return generateModelFromTemplate("block/verical_stairs", textures);
+                return generateModelFromTemplate("block/vertical_stairs", textures);
+            } else if (block instanceof net.f3rr3.reshaped.block.VerticalStepBlock) {
+                if (blockPath.matches(".*_\\d{4}$")) {
+                    String mask = blockPath.substring(blockPath.length() - 4);
+                    boolean nw = mask.charAt(0) == '1';
+                    boolean ne = mask.charAt(1) == '1';
+                    boolean sw = mask.charAt(2) == '1';
+                    boolean se = mask.charAt(3) == '1';
+                    return generateVerticalStepModelForSegments(nw, ne, sw, se, textures);
+                }
+                // Fallback for item model: full block or single segment?
+                // StepBlock uses single segment (true, false, false, false).
+                // Let's stick with single segment (NW) for the item model as well.
+                return generateVerticalStepModelForSegments(true, false, false, false, textures);
             } else if (block instanceof net.f3rr3.reshaped.block.StepBlock) {
                 // Check for segment mask suffix (e.g., "_1010")
                 if (blockPath.matches(".*_\\d{4}$")) {
@@ -417,6 +432,10 @@ public class RuntimeResourceGenerator {
         }
     }
 
+    /**
+     * Generates a step model JSON for a specific combination of quadrants.
+     * Horizontal steps use FRONT/BACK and UP/DOWN segments.
+     */
     public static String generateStepModelForSegments(boolean downFront, boolean downBack, boolean upFront, boolean upBack, Map<String, String> textures) {
         JsonObject template = loadTemplateJson("models/block/step.json");
         if (template == null) return null;
@@ -429,10 +448,7 @@ public class RuntimeResourceGenerator {
             com.google.gson.JsonArray elements = new com.google.gson.JsonArray();
             template.add("elements", elements);
 
-            // Add segments based on flags
-            // Coordinates based on EAST facing reference (Matches StepBlock.getShape logic for EAST)
-            // EAST: Front is X 8-16, Back is X 0-8.
-            
+            // Coordinates based on EAST facing reference
             if (downFront) elements.add(createStepElement(8, 0, 0, 16, 8, 16, true, false, false, textures));
             if (downBack) elements.add(createStepElement(0, 0, 0, 8, 8, 16, false, true, false, textures));
             if (upFront) elements.add(createStepElement(8, 8, 0, 16, 16, 16, true, false, true, textures));
@@ -440,6 +456,55 @@ public class RuntimeResourceGenerator {
         }
 
         return template.toString();
+    }
+
+    /**
+     * Generates a vertical step model JSON for a specific combination of quadrants.
+     * Vertical steps use absolute NORTH/SOUTH and EAST/WEST quadrant segments.
+     */
+    public static String generateVerticalStepModelForSegments(boolean nw, boolean ne, boolean sw, boolean se, Map<String, String> textures) {
+        JsonObject template = loadTemplateJson("models/block/vertical_step.json");
+        if (template == null) return null;
+
+        if (template.has("textures")) {
+            applyTextures(template.getAsJsonObject("textures"), textures);
+        }
+
+        if (template.has("elements")) {
+            com.google.gson.JsonArray elements = new com.google.gson.JsonArray();
+            template.add("elements", elements);
+
+            // Coordinates for vertical pillars (Full height: 0-16)
+            if (nw) elements.add(createVerticalStepElement(0, 0, 0, 8, 16, 8, "north", "west", textures));
+            if (ne) elements.add(createVerticalStepElement(8, 0, 0, 16, 16, 8, "north", "east", textures));
+            if (sw) elements.add(createVerticalStepElement(0, 0, 8, 8, 16, 16, "south", "west", textures));
+            if (se) elements.add(createVerticalStepElement(8, 0, 8, 16, 16, 16, "south", "east", textures));
+        }
+
+        return template.toString();
+    }
+
+    private static JsonObject createVerticalStepElement(double x1, double y1, double z1, double x2, double y2, double z2, String face1, String face2, Map<String, String> textures) {
+        JsonObject element = new JsonObject();
+        setFromTo(element, x1, y1, z1, x2, y2, z2);
+        
+        JsonObject faces = new JsonObject();
+        element.add("faces", faces);
+        
+        // North/South
+        addFace(faces, "north", "#side", "north".equals(face1) ? "north" : null, new double[]{16 - x2, 16 - y2, 16 - x1, 16 - y1});
+        addFace(faces, "south", "#side", "south".equals(face1) ? "south" : null, new double[]{x1, 16 - y2, x2, 16 - y1});
+        
+        // Up/Down (Always culled if touching boundary?)
+        // For vertical steps, we use top/bottom textures and cull if they are at the block boundary
+        addFace(faces, "up", "#top", "up", new double[]{x1, z1, x2, z2});
+        addFace(faces, "down", "#bottom", "down", new double[]{x1, 16 - z2, x2, 16 - z1});
+        
+        // East/West
+        addFace(faces, "east", "#side", "east".equals(face2) ? "east" : null, new double[]{16 - z2, 16 - y2, 16 - z1, 16 - y1});
+        addFace(faces, "west", "#side", "west".equals(face2) ? "west" : null, new double[]{z1, 16 - y2, z2, 16 - y1});
+        
+        return element;
     }
 
     private static JsonObject createStepElement(double x1, double y1, double z1, double x2, double y2, double z2, boolean isFront, boolean isBack, boolean isUp, Map<String, String> textures) {
