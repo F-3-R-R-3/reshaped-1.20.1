@@ -2,6 +2,7 @@ package net.f3rr3.reshaped;
 
 import net.f3rr3.reshaped.block.CornerBlock;
 import net.f3rr3.reshaped.block.MixedCornerBlock;
+import net.f3rr3.reshaped.block.StepBlock;
 import net.f3rr3.reshaped.block.entity.CornerBlockEntity;
 import net.f3rr3.reshaped.command.MatrixCommand;
 import net.f3rr3.reshaped.network.NetworkHandler;
@@ -146,7 +147,7 @@ public class Reshaped implements ModInitializer {
 
         // Handle corner block partial mining
         PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, blockEntity) -> {
-            if (state.getBlock() instanceof CornerBlock || state.getBlock() instanceof MixedCornerBlock) {
+            if (state.getBlock() instanceof CornerBlock || state.getBlock() instanceof MixedCornerBlock || state.getBlock() instanceof  StepBlock) {
                 // Client side prediction causes desync/invisibility because the client predicts "Air" before receiving updates.
                 // We handle this on the Server by enforcing the Block State restoration and Delaying the BE update.
                 if (world.isClient) return true;
@@ -167,12 +168,19 @@ public class Reshaped implements ModInitializer {
                             property = cb.getPropertyFromHit(hitX, hitY, hitZ, blockHitResult.getSide(), false);
                         } else if (state.getBlock() instanceof MixedCornerBlock mcb) {
                             property = mcb.getPropertyFromHit(hitX, hitY, hitZ, blockHitResult.getSide(), false);
+                        } else if (state.getBlock() instanceof StepBlock sb) {
+                            property = sb.getPropertyFromHit(hitX, hitY, hitZ, blockHitResult.getSide(), false, state);
                         }
 
                         if (property != null && state.get(property)) {
                             int count = 0;
-                            BooleanProperty[] allProps = {CornerBlock.DOWN_NW, CornerBlock.DOWN_NE, CornerBlock.DOWN_SW, CornerBlock.DOWN_SE,
-                                    CornerBlock.UP_NW, CornerBlock.UP_NE, CornerBlock.UP_SW, CornerBlock.UP_SE};
+                            BooleanProperty[] allProps;
+                            if (state.getBlock() instanceof CornerBlock || state.getBlock() instanceof MixedCornerBlock) {
+                                allProps = new BooleanProperty[] {CornerBlock.DOWN_NW, CornerBlock.DOWN_NE, CornerBlock.DOWN_SW, CornerBlock.DOWN_SE,
+                                        CornerBlock.UP_NW, CornerBlock.UP_NE, CornerBlock.UP_SW, CornerBlock.UP_SE};
+                            } else {
+                                allProps = new BooleanProperty[] {StepBlock.DOWN_FRONT, StepBlock.DOWN_BACK, StepBlock.UP_FRONT, StepBlock.UP_BACK};
+                            }
                             for (BooleanProperty p : allProps) {
                                 if (state.get(p)) count++;
                             }
@@ -193,7 +201,6 @@ public class Reshaped implements ModInitializer {
                                         world.setBlockState(pos, state.with(property, false), 3);
 
                                         // 3. Update Block Entity (Locally on Server)
-                                        // We do this immediately.
                                         BlockEntity newBe = world.getBlockEntity(pos);
                                         if (newBe instanceof CornerBlockEntity newCbe) {
                                             for (int i = 0; i < 8; i++) {
@@ -206,23 +213,23 @@ public class Reshaped implements ModInitializer {
                                             }
                                         }
 
-                                        // 4. FORCE Chunk Update to Sync Client
-                                        // The Delayed Packet approach failed (potentially due to race conditions or packet loss during block restoration).
-                                        // We now force a full Chunk Data packet to ensure the Client has the absolute truth (Block + BE).
-                                        if (world.getServer() != null) {
-                                            WorldChunk chunk = world.getWorldChunk(pos);
-                                            if (chunk != null) {
-                                                ((ServerChunkManager) world.getChunkManager()).threadedAnvilChunkStorage.getPlayersWatchingChunk(chunk.getPos(), false).forEach(serverPlayer -> serverPlayer.networkHandler.sendPacket(new ChunkDataS2CPacket(chunk, world.getLightingProvider(), null, null)));
-                                            }
-
-                                            // Extract materialID for drop from captured
-                                            for (int k = 0; k < 8; k++) {
-                                                if (allProps[k] == property) materialId = capturedMaterials[k];
-                                            }
+                                        // Extract materialID for drop from captured
+                                        for (int k = 0; k < 8; k++) {
+                                            if (allProps[k] == property) materialId = capturedMaterials[k];
                                         }
                                     }
                                 } else {
+                                    // Regular CornerBlock or StepBlock
                                     world.setBlockState(pos, state.with(property, false), 3);
+                                }
+
+                                // 4. FORCE Chunk Update to Sync Client
+                                // This prevents visual desync where the block appears fully broken on the client.
+                                if (world.getServer() != null) {
+                                    WorldChunk chunk = world.getWorldChunk(pos);
+                                    if (chunk != null) {
+                                        ((ServerChunkManager) world.getChunkManager()).threadedAnvilChunkStorage.getPlayersWatchingChunk(chunk.getPos(), false).forEach(serverPlayer -> serverPlayer.networkHandler.sendPacket(new ChunkDataS2CPacket(chunk, world.getLightingProvider(), null, null)));
+                                    }
                                 }
 
                                 if (!player.isCreative()) {

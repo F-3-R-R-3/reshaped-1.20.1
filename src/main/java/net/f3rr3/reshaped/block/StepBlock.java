@@ -12,7 +12,6 @@ import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.EnumProperty;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.BlockView;
@@ -76,7 +75,7 @@ public class StepBlock extends ReshapedBlock {
         
         // If merging into existing StepBlock
         if (existingState.isOf(this)) {
-            BooleanProperty targetProp = getPropertyFromHit(ctx.getHitPos(), pos, existingState.get(AXIS), ctx.getSide());
+            BooleanProperty targetProp = getPropertyFromHit(ctx.getHitPos().x - pos.getX(), ctx.getHitPos().y - pos.getY(), ctx.getHitPos().z - pos.getZ(), ctx.getSide(), true, existingState);
             if (targetProp != null && !existingState.get(targetProp)) {
                 return existingState.with(targetProp, true);
             }
@@ -86,17 +85,17 @@ public class StepBlock extends ReshapedBlock {
         // New Placement
         Direction playerFacing = ctx.getHorizontalPlayerFacing();
         StepAxis axis = (playerFacing == Direction.NORTH || playerFacing == Direction.SOUTH) ? StepAxis.NORTH_SOUTH : StepAxis.EAST_WEST;
-        
+
         FluidState fluidState = ctx.getWorld().getFluidState(pos);
         BlockState defaultState = this.getDefaultState()
                 .with(AXIS, axis)
                 .with(WATERLOGGED, fluidState.getFluid() == Fluids.WATER);
 
-        BooleanProperty targetProp = getPropertyFromHit(ctx.getHitPos(), pos, axis, ctx.getSide());
+        BooleanProperty targetProp = getPropertyFromHit(ctx.getHitPos().x - pos.getX(), ctx.getHitPos().y - pos.getY(), ctx.getHitPos().z - pos.getZ(), ctx.getSide(), true, defaultState);
         if (targetProp != null) {
             return defaultState.with(targetProp, true);
         }
-        
+
         return defaultState.with(DOWN_FRONT, true);
     }
 
@@ -108,35 +107,33 @@ public class StepBlock extends ReshapedBlock {
         }
 
         if (context.canReplaceExisting()) {
-             BooleanProperty targetProp = getPropertyFromHit(context.getHitPos(), context.getBlockPos(), state.get(AXIS), context.getSide());
+             BooleanProperty targetProp = getPropertyFromHit(context.getHitPos().x - context.getBlockPos().getX(), context.getHitPos().y - context.getBlockPos().getY(), context.getHitPos().z - context.getBlockPos().getZ(), context.getSide(), true, state);
              return targetProp != null && !state.get(targetProp);
         }
         
         return true;
     }
     
-    private BooleanProperty getPropertyFromHit(Vec3d hitPos, BlockPos blockPos, StepAxis axis, Direction side) {
-        double x = hitPos.x - blockPos.getX();
-        double y = hitPos.y - blockPos.getY();
-        double z = hitPos.z - blockPos.getZ();
+    public BooleanProperty getPropertyFromHit(double hitX, double hitY, double hitZ, Direction side, boolean isPlacement, BlockState state) {
+        StepAxis axis = state.get(AXIS);
 
-        double dX = x + side.getOffsetX() * 0.05;
-        double dY = y + side.getOffsetY() * 0.05;
-        double dZ = z + side.getOffsetZ() * 0.05;
-        
-        dX = Math.max(0.01, Math.min(0.99, dX));
-        dY = Math.max(0.01, Math.min(0.99, dY));
-        dZ = Math.max(0.01, Math.min(0.99, dZ));
+        double testX = hitX + side.getOffsetX() * (isPlacement ? 0.05 : -0.05);
+        double testY = hitY + side.getOffsetY() * (isPlacement ? 0.05 : -0.05);
+        double testZ = hitZ + side.getOffsetZ() * (isPlacement ? 0.05 : -0.05);
 
-        boolean isUp = dY > 0.5;
+        testX = Math.max(0.01, Math.min(0.99, testX));
+        testY = Math.max(0.01, Math.min(0.99, testY));
+        testZ = Math.max(0.01, Math.min(0.99, testZ));
+
+        boolean isUp = testY > 0.5;
         boolean isFront;
-        
+
         if (axis == StepAxis.NORTH_SOUTH) {
-            isFront = (dZ < 0.5); // North is Front
+            isFront = (testZ < 0.5); // North is Front
         } else {
-            isFront = (dX < 0.5); // West is Front
+            isFront = (testX < 0.5); // West is Front
         }
-        
+
         if (isUp) {
             return isFront ? UP_FRONT : UP_BACK;
         } else {
