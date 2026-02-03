@@ -449,17 +449,24 @@ public class RuntimeResourceGenerator {
         JsonObject faces = new JsonObject();
         element.add("faces", faces);
         
-        // Horizontal faces (North/South) always cull if on boundary
-        addFace(faces, "north", "#side", "north", new double[]{x1, 16-y2, x2, 16-y1});
-        addFace(faces, "south", "#side", "south", new double[]{x1, 16-y2, x2, 16-y1});
+        // Horizontal faces (North/South)
+        // North: U = 16 - x, V = 16 - y. 
+        // UV array is [u1, v1, u2, v2]. Since u1 < u2, we use [16-x2, 16-y2, 16-x1, 16-y1]
+        addFace(faces, "north", "#side", "north", new double[]{16 - x2, 16 - y2, 16 - x1, 16 - y1});
+        // South: U = x, V = 16 - y.
+        addFace(faces, "south", "#side", "south", new double[]{x1, 16 - y2, x2, 16 - y1});
         
         // Vertical faces (Up/Down)
+        // Up: U = x, V = z.
         addFace(faces, "up", "#top", isUp ? "up" : null, new double[]{x1, z1, x2, z2});
-        addFace(faces, "down", "#bottom", !isUp ? "down" : null, new double[]{x1, z1, x2, z2});
+        // Down: U = x, V = 16 - z.
+        addFace(faces, "down", "#bottom", !isUp ? "down" : null, new double[]{x1, 16 - z2, x2, 16 - z1});
         
         // Side faces (East/West)
-        addFace(faces, "east", "#side", isFront ? "east" : null, new double[]{z1, 16-y2, z2, 16-y1});
-        addFace(faces, "west", "#side", isBack ? "west" : null, new double[]{z1, 16-y2, z2, 16-y1});
+        // East: U = 16 - z, V = 16 - y.
+        addFace(faces, "east", "#side", isFront ? "east" : null, new double[]{16 - z2, 16 - y2, 16 - z1, 16 - y1});
+        // West: U = z, V = 16 - y.
+        addFace(faces, "west", "#side", isBack ? "west" : null, new double[]{z1, 16 - y2, z2, 16 - y1});
         
         return element;
     }
