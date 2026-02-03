@@ -6,7 +6,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.random.Random;
 
-public class OxidizableVerticalStairsBlock extends VerticalStairsBlock implements Oxidizable {
+public class OxidizableVerticalStairsBlock extends VerticalStairsBlock implements ReshapedOxidizable {
     private final Oxidizable.OxidationLevel oxidationLevel;
 
     public OxidizableVerticalStairsBlock(OxidationLevel oxidationLevel, Settings settings) {
@@ -16,12 +16,12 @@ public class OxidizableVerticalStairsBlock extends VerticalStairsBlock implement
 
     @Override
     public void randomTick(BlockState state, ServerWorld world, BlockPos pos, Random random) {
-        this.tickDegradation(state, world, pos, random);
+        this.onRandomTick(state, world, pos, random);
     }
 
     @Override
     public boolean hasRandomTicks(BlockState state) {
-        return Oxidizable.getIncreasedOxidationBlock(state.getBlock()).isPresent();
+        return this.hasOxidationTicks(state);
     }
 
     @Override

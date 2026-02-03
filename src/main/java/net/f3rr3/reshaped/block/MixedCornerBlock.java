@@ -114,22 +114,13 @@ public class MixedCornerBlock extends ReshapedBlock implements BlockEntityProvid
 
 
     public BooleanProperty getPropertyFromHit(double hitX, double hitY, double hitZ, Direction side, boolean isPlacement) {
-        double offset = isPlacement ? 0.1 : -0.1; 
-        double testX = hitX + side.getOffsetX() * offset;
-        double testY = hitY + side.getOffsetY() * offset;
-        double testZ = hitZ + side.getOffsetZ() * offset;
-        testX = Math.max(0.001, Math.min(0.999, testX));
-        testY = Math.max(0.001, Math.min(0.999, testY));
-        testZ = Math.max(0.001, Math.min(0.999, testZ));
-        boolean isUp = testY > 0.5;
-        boolean isPlusX = testX > 0.5;
-        boolean isPlusZ = testZ > 0.5;
-        if (isUp) {
-            if (isPlusX) return isPlusZ ? UP_SE : UP_NE;
-            else return isPlusZ ? UP_SW : UP_NW;
+        var quadrant = net.f3rr3.reshaped.util.BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement, true);
+        if (quadrant.isUp()) {
+            if (!quadrant.isWest()) return quadrant.isPlusZ() ? UP_SE : UP_NE;
+            else return quadrant.isPlusZ() ? UP_SW : UP_NW;
         } else {
-            if (isPlusX) return isPlusZ ? DOWN_SE : DOWN_NE;
-            else return isPlusZ ? DOWN_SW : DOWN_NW;
+            if (!quadrant.isWest()) return quadrant.isPlusZ() ? DOWN_SE : DOWN_NE;
+            else return quadrant.isPlusZ() ? DOWN_SW : DOWN_NW;
         }
     }
 

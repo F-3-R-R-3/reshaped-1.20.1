@@ -115,26 +115,11 @@ public class StepBlock extends ReshapedBlock {
     }
     
     public BooleanProperty getPropertyFromHit(double hitX, double hitY, double hitZ, Direction side, boolean isPlacement, BlockState state) {
+        var quadrant = net.f3rr3.reshaped.util.BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement, true);
         StepAxis axis = state.get(AXIS);
+        boolean isFront = (axis == StepAxis.NORTH_SOUTH) ? quadrant.isNorth() : quadrant.isWest();
 
-        double testX = hitX + side.getOffsetX() * (isPlacement ? 0.05 : -0.05);
-        double testY = hitY + side.getOffsetY() * (isPlacement ? 0.05 : -0.05);
-        double testZ = hitZ + side.getOffsetZ() * (isPlacement ? 0.05 : -0.05);
-
-        testX = Math.max(0.01, Math.min(0.99, testX));
-        testY = Math.max(0.01, Math.min(0.99, testY));
-        testZ = Math.max(0.01, Math.min(0.99, testZ));
-
-        boolean isUp = testY > 0.5;
-        boolean isFront;
-
-        if (axis == StepAxis.NORTH_SOUTH) {
-            isFront = (testZ < 0.5); // North is Front
-        } else {
-            isFront = (testX < 0.5); // West is Front
-        }
-
-        if (isUp) {
+        if (quadrant.isUp()) {
             return isFront ? UP_FRONT : UP_BACK;
         } else {
             return isFront ? DOWN_FRONT : DOWN_BACK;

@@ -100,20 +100,12 @@ public class VerticalStepBlock extends ReshapedBlock {
      * @return The BooleanProperty for the hit quadrant
      */
     public BooleanProperty getPropertyFromHit(double hitX, double hitY, double hitZ, Direction side, boolean isPlacement) {
-        double offset = isPlacement ? 0.05 : -0.05;
-        double testX = hitX + side.getOffsetX() * offset;
-        double testZ = hitZ + side.getOffsetZ() * offset;
+        var quadrant = net.f3rr3.reshaped.util.BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement, false);
 
-        testX = Math.max(0.01, Math.min(0.99, testX));
-        testZ = Math.max(0.01, Math.min(0.99, testZ));
-
-        boolean isNorth = (testZ < 0.5);
-        boolean isWest = (testX < 0.5);
-
-        if (isNorth) {
-            return isWest ? NORTH_WEST : NORTH_EAST;
+        if (quadrant.isNorth()) {
+            return quadrant.isWest() ? NORTH_WEST : NORTH_EAST;
         } else {
-            return isWest ? SOUTH_WEST : SOUTH_EAST;
+            return quadrant.isWest() ? SOUTH_WEST : SOUTH_EAST;
         }
     }
 

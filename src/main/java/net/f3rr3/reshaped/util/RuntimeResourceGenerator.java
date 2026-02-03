@@ -433,107 +433,71 @@ public class RuntimeResourceGenerator {
     }
 
     /**
+     * Internal helper to create a cuboid element for a model with appropriate UVs and cullfaces.
+     */
+    private static JsonObject createSegmentElement(double x1, double y1, double z1, double x2, double y2, double z2, 
+                                                  Map<String, String> cullfaces, Map<String, String> textures) {
+        JsonObject element = new JsonObject();
+        setFromTo(element, x1, y1, z1, x2, y2, z2);
+        
+        JsonObject faces = new JsonObject();
+        element.add("faces", faces);
+        
+        // standard UV formulas:
+        // North: [16-x2, 16-y2, 16-x1, 16-y1]
+        // South: [x1, 16-y2, x2, 16-y1]
+        // Up: [x1, z1, x2, z2]
+        // Down: [x1, 16-z2, x2, 16-z1]
+        // East: [16-z2, 16-y2, 16-z1, 16-y1]
+        // West: [z1, 16-y2, z2, 16-y1]
+        
+        addFace(faces, "north", "#side", cullfaces.get("north"), new double[]{16 - x2, 16 - y2, 16 - x1, 16 - y1});
+        addFace(faces, "south", "#side", cullfaces.get("south"), new double[]{x1, 16 - y2, x2, 16 - y1});
+        addFace(faces, "up", "#top", cullfaces.get("up"), new double[]{x1, z1, x2, z2});
+        addFace(faces, "down", "#bottom", cullfaces.get("down"), new double[]{x1, 16 - z2, x2, 16 - z1});
+        addFace(faces, "east", "#side", cullfaces.get("east"), new double[]{16 - z2, 16 - y2, 16 - z1, 16 - y1});
+        addFace(faces, "west", "#side", cullfaces.get("west"), new double[]{z1, 16 - y2, z2, 16 - y1});
+        
+        return element;
+    }
+
+    /**
      * Generates a step model JSON for a specific combination of quadrants.
-     * Horizontal steps use FRONT/BACK and UP/DOWN segments.
      */
     public static String generateStepModelForSegments(boolean downFront, boolean downBack, boolean upFront, boolean upBack, Map<String, String> textures) {
-        JsonObject template = loadTemplateJson("models/block/step.json");
-        if (template == null) return null;
-
-        if (template.has("textures")) {
-            applyTextures(template.getAsJsonObject("textures"), textures);
-        }
-
-        if (template.has("elements")) {
-            com.google.gson.JsonArray elements = new com.google.gson.JsonArray();
-            template.add("elements", elements);
-
-            // Coordinates based on EAST facing reference
-            if (downFront) elements.add(createStepElement(8, 0, 0, 16, 8, 16, true, false, false, textures));
-            if (downBack) elements.add(createStepElement(0, 0, 0, 8, 8, 16, false, true, false, textures));
-            if (upFront) elements.add(createStepElement(8, 8, 0, 16, 16, 16, true, false, true, textures));
-            if (upBack) elements.add(createStepElement(0, 8, 0, 8, 16, 16, false, true, true, textures));
-        }
-
-        return template.toString();
+        return generateSegmentedModel("models/block/step.json", textures, elements -> {
+            if (downFront) elements.add(createSegmentElement(8, 0, 0, 16, 8, 16, Map.of("north", "north", "south", "south", "east", "east"), textures));
+            if (downBack) elements.add(createSegmentElement(0, 0, 0, 8, 8, 16, Map.of("north", "north", "south", "south", "west", "west"), textures));
+            if (upFront) elements.add(createSegmentElement(8, 8, 0, 16, 16, 16, Map.of("north", "north", "south", "south", "up", "up", "east", "east"), textures));
+            if (upBack) elements.add(createSegmentElement(0, 8, 0, 8, 16, 16, Map.of("north", "north", "south", "south", "up", "up", "west", "west"), textures));
+        });
     }
 
     /**
      * Generates a vertical step model JSON for a specific combination of quadrants.
-     * Vertical steps use absolute NORTH/SOUTH and EAST/WEST quadrant segments.
      */
     public static String generateVerticalStepModelForSegments(boolean nw, boolean ne, boolean sw, boolean se, Map<String, String> textures) {
-        JsonObject template = loadTemplateJson("models/block/vertical_step.json");
+        return generateSegmentedModel("models/block/vertical_step.json", textures, elements -> {
+            if (nw) elements.add(createSegmentElement(0, 0, 0, 8, 16, 8, Map.of("north", "north", "west", "west", "up", "up", "down", "down"), textures));
+            if (ne) elements.add(createSegmentElement(8, 0, 0, 16, 16, 8, Map.of("north", "north", "east", "east", "up", "up", "down", "down"), textures));
+            if (sw) elements.add(createSegmentElement(0, 0, 8, 8, 16, 16, Map.of("south", "south", "west", "west", "up", "up", "down", "down"), textures));
+            if (se) elements.add(createSegmentElement(8, 0, 8, 16, 16, 16, Map.of("south", "south", "east", "east", "up", "up", "down", "down"), textures));
+        });
+    }
+
+    private static String generateSegmentedModel(String templatePath, Map<String, String> textures, java.util.function.Consumer<com.google.gson.JsonArray> elementBuilder) {
+        JsonObject template = loadTemplateJson(templatePath);
         if (template == null) return null;
 
         if (template.has("textures")) {
             applyTextures(template.getAsJsonObject("textures"), textures);
         }
 
-        if (template.has("elements")) {
-            com.google.gson.JsonArray elements = new com.google.gson.JsonArray();
-            template.add("elements", elements);
-
-            // Coordinates for vertical pillars (Full height: 0-16)
-            if (nw) elements.add(createVerticalStepElement(0, 0, 0, 8, 16, 8, "north", "west", textures));
-            if (ne) elements.add(createVerticalStepElement(8, 0, 0, 16, 16, 8, "north", "east", textures));
-            if (sw) elements.add(createVerticalStepElement(0, 0, 8, 8, 16, 16, "south", "west", textures));
-            if (se) elements.add(createVerticalStepElement(8, 0, 8, 16, 16, 16, "south", "east", textures));
-        }
+        com.google.gson.JsonArray elements = new com.google.gson.JsonArray();
+        template.add("elements", elements);
+        elementBuilder.accept(elements);
 
         return template.toString();
-    }
-
-    private static JsonObject createVerticalStepElement(double x1, double y1, double z1, double x2, double y2, double z2, String face1, String face2, Map<String, String> textures) {
-        JsonObject element = new JsonObject();
-        setFromTo(element, x1, y1, z1, x2, y2, z2);
-        
-        JsonObject faces = new JsonObject();
-        element.add("faces", faces);
-        
-        // North/South
-        addFace(faces, "north", "#side", "north".equals(face1) ? "north" : null, new double[]{16 - x2, 16 - y2, 16 - x1, 16 - y1});
-        addFace(faces, "south", "#side", "south".equals(face1) ? "south" : null, new double[]{x1, 16 - y2, x2, 16 - y1});
-        
-        // Up/Down (Always culled if touching boundary?)
-        // For vertical steps, we use top/bottom textures and cull if they are at the block boundary
-        addFace(faces, "up", "#top", "up", new double[]{x1, z1, x2, z2});
-        addFace(faces, "down", "#bottom", "down", new double[]{x1, 16 - z2, x2, 16 - z1});
-        
-        // East/West
-        addFace(faces, "east", "#side", "east".equals(face2) ? "east" : null, new double[]{16 - z2, 16 - y2, 16 - z1, 16 - y1});
-        addFace(faces, "west", "#side", "west".equals(face2) ? "west" : null, new double[]{z1, 16 - y2, z2, 16 - y1});
-        
-        return element;
-    }
-
-    private static JsonObject createStepElement(double x1, double y1, double z1, double x2, double y2, double z2, boolean isFront, boolean isBack, boolean isUp, Map<String, String> textures) {
-        JsonObject element = new JsonObject();
-        setFromTo(element, x1, y1, z1, x2, y2, z2);
-        
-        JsonObject faces = new JsonObject();
-        element.add("faces", faces);
-        
-        // Horizontal faces (North/South)
-        // North: U = 16 - x, V = 16 - y. 
-        // UV array is [u1, v1, u2, v2]. Since u1 < u2, we use [16-x2, 16-y2, 16-x1, 16-y1]
-        addFace(faces, "north", "#side", "north", new double[]{16 - x2, 16 - y2, 16 - x1, 16 - y1});
-        // South: U = x, V = 16 - y.
-        addFace(faces, "south", "#side", "south", new double[]{x1, 16 - y2, x2, 16 - y1});
-        
-        // Vertical faces (Up/Down)
-        // Up: U = x, V = z.
-        addFace(faces, "up", "#top", isUp ? "up" : null, new double[]{x1, z1, x2, z2});
-        // Down: U = x, V = 16 - z.
-        addFace(faces, "down", "#bottom", !isUp ? "down" : null, new double[]{x1, 16 - z2, x2, 16 - z1});
-        
-        // Side faces (East/West)
-        // East: U = 16 - z, V = 16 - y.
-        addFace(faces, "east", "#side", isFront ? "east" : null, new double[]{16 - z2, 16 - y2, 16 - z1, 16 - y1});
-        // West: U = z, V = 16 - y.
-        addFace(faces, "west", "#side", isBack ? "west" : null, new double[]{z1, 16 - y2, z2, 16 - y1});
-        
-        return element;
     }
 
     private static void addFace(JsonObject faces, String side, String texture, String cullface, double[] uv) {
