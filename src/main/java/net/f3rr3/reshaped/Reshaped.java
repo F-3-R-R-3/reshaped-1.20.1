@@ -1,10 +1,7 @@
 package net.f3rr3.reshaped;
 
-import net.f3rr3.reshaped.block.CornerBlock;
-import net.f3rr3.reshaped.block.MixedCornerBlock;
-import net.f3rr3.reshaped.block.StepBlock;
-import net.f3rr3.reshaped.block.VerticalStepBlock;
-import net.f3rr3.reshaped.block.entity.CornerBlockEntity;
+import net.f3rr3.reshaped.block.*;
+import net.f3rr3.reshaped.block.entity.*;
 import net.f3rr3.reshaped.command.MatrixCommand;
 import net.f3rr3.reshaped.network.NetworkHandler;
 import net.f3rr3.reshaped.util.BlockMatrix;
@@ -14,6 +11,8 @@ import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.SlabBlock;
+import net.minecraft.block.enums.SlabType;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.item.ItemStack;
@@ -22,6 +21,7 @@ import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.server.world.ServerChunkManager;
 import net.minecraft.state.property.BooleanProperty;
+import net.minecraft.state.property.Properties;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
@@ -38,8 +38,17 @@ public class Reshaped implements ModInitializer {
     // That way, it's clear which mod wrote info, warnings, and errors.
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
     public static final MixedCornerBlock MIXED_CORNER = new MixedCornerBlock(Block.Settings.create().strength(2.0f).nonOpaque());
+    public static final MixedVerticalStepBlock MIXED_VERTICAL_STEP = new MixedVerticalStepBlock(Block.Settings.create().strength(2.0f).nonOpaque());
+    public static final MixedStepBlock MIXED_STEP = new MixedStepBlock(Block.Settings.create().strength(2.0f).nonOpaque());
+    public static final MixedVerticalSlabBlock MIXED_VERTICAL_SLAB = new MixedVerticalSlabBlock(Block.Settings.create().strength(2.0f).nonOpaque());
+    public static final MixedSlabBlock MIXED_SLAB = new MixedSlabBlock(Block.Settings.create().strength(2.0f).nonOpaque());
+
     public static BlockMatrix MATRIX;
     public static BlockEntityType<CornerBlockEntity> CORNER_BLOCK_ENTITY;
+    public static BlockEntityType<VerticalStepBlockEntity> VERTICAL_STEP_BLOCK_ENTITY;
+    public static BlockEntityType<StepBlockEntity> STEP_BLOCK_ENTITY;
+    public static BlockEntityType<VerticalSlabBlockEntity> VERTICAL_SLAB_BLOCK_ENTITY;
+    public static BlockEntityType<SlabBlockEntity> SLAB_BLOCK_ENTITY;
 
     @Override
     public void onInitialize() {
@@ -51,18 +60,57 @@ public class Reshaped implements ModInitializer {
         // Start reactive block scanning and registration
         BlockRegistryScanner.init(MATRIX);
 
-        // Register Mixed Corner Block
+        // Register Mixed Blocks
         Registry.register(Registries.BLOCK, new Identifier(MOD_ID, "mixed_corner"), MIXED_CORNER);
         Registry.register(Registries.ITEM, new Identifier(MOD_ID, "mixed_corner"), new net.minecraft.item.BlockItem(MIXED_CORNER, new net.minecraft.item.Item.Settings()));
+        
+        Registry.register(Registries.BLOCK, new Identifier(MOD_ID, "mixed_vertical_step"), MIXED_VERTICAL_STEP);
+        Registry.register(Registries.ITEM, new Identifier(MOD_ID, "mixed_vertical_step"), new net.minecraft.item.BlockItem(MIXED_VERTICAL_STEP, new net.minecraft.item.Item.Settings()));
 
-        // Corner block entity registration will be finalized after scanning
-        // But we register the type here. We will use a late-bind approach for blocks.
+        Registry.register(Registries.BLOCK, new Identifier(MOD_ID, "mixed_step"), MIXED_STEP);
+        Registry.register(Registries.ITEM, new Identifier(MOD_ID, "mixed_step"), new net.minecraft.item.BlockItem(MIXED_STEP, new net.minecraft.item.Item.Settings()));
+
+        Registry.register(Registries.BLOCK, new Identifier(MOD_ID, "mixed_vertical_slab"), MIXED_VERTICAL_SLAB);
+        Registry.register(Registries.ITEM, new Identifier(MOD_ID, "mixed_vertical_slab"), new net.minecraft.item.BlockItem(MIXED_VERTICAL_SLAB, new net.minecraft.item.Item.Settings()));
+
+        Registry.register(Registries.BLOCK, new Identifier(MOD_ID, "mixed_slab"), MIXED_SLAB);
+        Registry.register(Registries.ITEM, new Identifier(MOD_ID, "mixed_slab"), new net.minecraft.item.BlockItem(MIXED_SLAB, new net.minecraft.item.Item.Settings()));
+
+        // Block Entity Types
         CORNER_BLOCK_ENTITY = Registry.register(
                 Registries.BLOCK_ENTITY_TYPE,
                 new Identifier(MOD_ID, "corner_block_entity"),
                 FabricBlockEntityTypeBuilder.create(CornerBlockEntity::new, MIXED_CORNER).build(null)
         );
         CornerBlockEntity.TYPE = CORNER_BLOCK_ENTITY;
+
+        VERTICAL_STEP_BLOCK_ENTITY = Registry.register(
+                Registries.BLOCK_ENTITY_TYPE,
+                new Identifier(MOD_ID, "vertical_step_block_entity"),
+                FabricBlockEntityTypeBuilder.create(VerticalStepBlockEntity::new, MIXED_VERTICAL_STEP).build(null)
+        );
+        VerticalStepBlockEntity.TYPE = VERTICAL_STEP_BLOCK_ENTITY;
+
+        STEP_BLOCK_ENTITY = Registry.register(
+                Registries.BLOCK_ENTITY_TYPE,
+                new Identifier(MOD_ID, "step_block_entity"),
+                FabricBlockEntityTypeBuilder.create(StepBlockEntity::new, MIXED_STEP).build(null)
+        );
+        StepBlockEntity.TYPE = STEP_BLOCK_ENTITY;
+
+        VERTICAL_SLAB_BLOCK_ENTITY = Registry.register(
+                Registries.BLOCK_ENTITY_TYPE,
+                new Identifier(MOD_ID, "vertical_slab_block_entity"),
+                FabricBlockEntityTypeBuilder.create(VerticalSlabBlockEntity::new, MIXED_VERTICAL_SLAB).build(null)
+        );
+        VerticalSlabBlockEntity.TYPE = VERTICAL_SLAB_BLOCK_ENTITY;
+
+        SLAB_BLOCK_ENTITY = Registry.register(
+                Registries.BLOCK_ENTITY_TYPE,
+                new Identifier(MOD_ID, "slab_block_entity"),
+                FabricBlockEntityTypeBuilder.create(SlabBlockEntity::new, MIXED_SLAB).build(null)
+        );
+        SlabBlockEntity.TYPE = SLAB_BLOCK_ENTITY;
 
         // Register commands
         MatrixCommand.register();
@@ -87,40 +135,26 @@ public class Reshaped implements ModInitializer {
                     BooleanProperty property = cornerBlock.getPropertyFromHit(hitX, hitY, hitZ, hitResult.getSide(), true);
 
                     if (property != null && !state.get(property)) {
-                        // We are placing a DIFFERENT material into an empty slot.
-                        // Perform the transition logic manually.
                         if (!world.isClient) {
-                            // 1. Calculate new state (Mixed)
                             net.minecraft.block.BlockState mixedState = Reshaped.MIXED_CORNER.getDefaultState();
                             BooleanProperty[] allProps = {CornerBlock.DOWN_NW, CornerBlock.DOWN_NE, CornerBlock.DOWN_SW, CornerBlock.DOWN_SE,
                                     CornerBlock.UP_NW, CornerBlock.UP_NE, CornerBlock.UP_SW, CornerBlock.UP_SE};
 
-                            // 2. Set bits from old state
                             for (BooleanProperty p : allProps) {
                                 if (state.get(p)) mixedState = mixedState.with(p, true);
                             }
-                            // 3. Set bit for new placement
                             mixedState = mixedState.with(property, true);
-
-                            // 4. Preserve waterlogging
                             mixedState = mixedState.with(CornerBlock.WATERLOGGED, state.get(CornerBlock.WATERLOGGED));
-
-                            // 5. Update World State (this creates the new BE)
                             world.setBlockState(pos, mixedState, 3);
 
-                            // 6. Populate BE
                             BlockEntity be = world.getBlockEntity(pos);
                             if (be instanceof CornerBlockEntity cbe) {
                                 Identifier oldMaterial = Registries.BLOCK.getId(state.getBlock());
                                 Identifier newMaterial = Registries.BLOCK.getId(itemBlock);
 
-                                // Fill old segments
                                 for (int i = 0; i < 8; i++) {
-                                    if (state.get(allProps[i])) {
-                                        cbe.setCornerMaterial(i, oldMaterial);
-                                    }
+                                    if (state.get(allProps[i])) cbe.setCornerMaterial(i, oldMaterial);
                                 }
-                                // Fill new segment
                                 for (int i = 0; i < 8; i++) {
                                     if (allProps[i] == property) {
                                         cbe.setCornerMaterial(i, newMaterial);
@@ -128,17 +162,324 @@ public class Reshaped implements ModInitializer {
                                     }
                                 }
                             }
-
-                            // 7. Consume Item and Play Sound
-                            if (!player.isCreative()) {
-                                stack.decrement(1);
-                            }
-                            net.minecraft.sound.BlockSoundGroup sound = itemBlock.getSoundGroup(itemBlock.getDefaultState());
-                            world.playSound(null, pos, sound.getPlaceSound(), net.minecraft.sound.SoundCategory.BLOCKS, (sound.getVolume() + 1.0F) / 2.0F, sound.getPitch() * 0.8F);
+                            consumeItem(player, stack, itemBlock, world, pos);
                         }
                         return net.minecraft.util.ActionResult.SUCCESS;
                     }
                 }
+            } else if (state.getBlock() instanceof VerticalStepBlock vsBlock && stack.getItem() instanceof net.minecraft.item.BlockItem blockItem && blockItem.getBlock() instanceof VerticalStepBlock itemBlock) {
+                 if (state.getBlock() != itemBlock) {
+                     double hitX = hitResult.getPos().x - (double) pos.getX();
+                     double hitY = hitResult.getPos().y - (double) pos.getY();
+                     double hitZ = hitResult.getPos().z - (double) pos.getZ();
+
+                     BooleanProperty property = vsBlock.getPropertyFromHit(hitX, hitY, hitZ, hitResult.getSide(), true);
+                     if (property != null && !state.get(property)) {
+                         if (!world.isClient) {
+                             // Transition VerticalStep -> MixedVerticalStep
+                             BlockState mixedState = MIXED_VERTICAL_STEP.getDefaultState();
+                             BooleanProperty[] allProps = {VerticalStepBlock.NORTH_WEST, VerticalStepBlock.NORTH_EAST, VerticalStepBlock.SOUTH_WEST, VerticalStepBlock.SOUTH_EAST};
+                             
+                             for (BooleanProperty p : allProps) if (state.get(p)) mixedState = mixedState.with(p, true);
+                             mixedState = mixedState.with(property, true);
+                             mixedState = mixedState.with(VerticalStepBlock.WATERLOGGED, state.get(VerticalStepBlock.WATERLOGGED));
+                             
+                             world.setBlockState(pos, mixedState, 3);
+                             
+                             BlockEntity be = world.getBlockEntity(pos);
+                             if (be instanceof VerticalStepBlockEntity vsbe) {
+                                 Identifier oldMaterial = Registries.BLOCK.getId(state.getBlock());
+                                 Identifier newMaterial = Registries.BLOCK.getId(itemBlock);
+                                 
+                                 for (int i = 0; i < 4; i++) if (state.get(allProps[i])) vsbe.setMaterial(i, oldMaterial);
+                                 for (int i = 0; i < 4; i++) if (allProps[i] == property) vsbe.setMaterial(i, newMaterial);
+                             }
+                             consumeItem(player, stack, itemBlock, world, pos);
+                         }
+                         return net.minecraft.util.ActionResult.SUCCESS;
+                     }
+                 }
+            } else if (state.getBlock() instanceof StepBlock stepBlock && stack.getItem() instanceof net.minecraft.item.BlockItem blockItem && blockItem.getBlock() instanceof StepBlock itemBlock) {
+                 if (state.getBlock() != itemBlock) {
+                     if (state.get(StepBlock.AXIS) != itemBlock.getDefaultState().get(StepBlock.AXIS)) {
+                         // Different axis, usually incompatible unless we force rewrite axis?
+                         // For now, let's assume mixing only works if axis aligns or if we force axis of the base block
+                     }
+                 
+                     double hitX = hitResult.getPos().x - (double) pos.getX();
+                     double hitY = hitResult.getPos().y - (double) pos.getY();
+                     double hitZ = hitResult.getPos().z - (double) pos.getZ();
+                     
+                     BooleanProperty property = stepBlock.getPropertyFromHit(hitX, hitY, hitZ, hitResult.getSide(), true, state);
+                     if (property != null && !state.get(property)) {
+                         if (!world.isClient) {
+                             BlockState mixedState = MIXED_STEP.getDefaultState().with(StepBlock.AXIS, state.get(StepBlock.AXIS));
+                             BooleanProperty[] allProps = {StepBlock.DOWN_FRONT, StepBlock.DOWN_BACK, StepBlock.UP_FRONT, StepBlock.UP_BACK};
+                             
+                             for (BooleanProperty p : allProps) if (state.get(p)) mixedState = mixedState.with(p, true);
+                             mixedState = mixedState.with(property, true);
+                             mixedState = mixedState.with(StepBlock.WATERLOGGED, state.get(StepBlock.WATERLOGGED));
+                             
+                             world.setBlockState(pos, mixedState, 3);
+                             
+                             BlockEntity be = world.getBlockEntity(pos);
+                             if (be instanceof StepBlockEntity sbe) {
+                                 Identifier oldMaterial = Registries.BLOCK.getId(state.getBlock());
+                                 Identifier newMaterial = Registries.BLOCK.getId(itemBlock);
+                                 
+                                 for (int i = 0; i < 4; i++) if (state.get(allProps[i])) sbe.setMaterial(i, oldMaterial);
+                                 for (int i = 0; i < 4; i++) if (allProps[i] == property) sbe.setMaterial(i, newMaterial);
+                             }
+                             consumeItem(player, stack, itemBlock, world, pos);
+                         }
+                         return net.minecraft.util.ActionResult.SUCCESS;
+                     }
+                 }
+            } else if (state.getBlock() instanceof VerticalSlabBlock vsBlock && stack.getItem() instanceof net.minecraft.item.BlockItem blockItem && blockItem.getBlock() instanceof VerticalSlabBlock itemBlock) {
+                 if (state.getBlock() != itemBlock) {
+                     if (!state.get(VerticalSlabBlock.TYPE).equals(SlabType.DOUBLE)) {
+                          // Correct mixing check: Only allow if we hit the "inside" face of the slab or the open space
+                          boolean success = false;
+                          if (state.get(VerticalSlabBlock.FACING) == net.minecraft.util.math.Direction.NORTH) {
+                              if (hitResult.getSide() == net.minecraft.util.math.Direction.NORTH || (hitResult.getPos().z - pos.getZ() > 0.5)) success = true;
+                          } else if (state.get(VerticalSlabBlock.FACING) == net.minecraft.util.math.Direction.SOUTH) {
+                              if (hitResult.getSide() == net.minecraft.util.math.Direction.SOUTH || (hitResult.getPos().z - pos.getZ() < 0.5)) success = true;
+                          } else if (state.get(VerticalSlabBlock.FACING) == net.minecraft.util.math.Direction.WEST) {
+                              if (hitResult.getSide() == net.minecraft.util.math.Direction.WEST || (hitResult.getPos().x - pos.getX() > 0.5)) success = true;
+                          } else if (state.get(VerticalSlabBlock.FACING) == net.minecraft.util.math.Direction.EAST) {
+                              if (hitResult.getSide() == net.minecraft.util.math.Direction.EAST || (hitResult.getPos().x - pos.getX() < 0.5)) success = true;
+                          }
+                         
+                         if (success) {
+                              if (!world.isClient) {
+                                  // Convert to Mixed Vertical Slab
+                                  net.minecraft.util.math.Direction facing = state.get(VerticalSlabBlock.FACING);
+                                  net.minecraft.util.math.Direction.Axis axis = facing.getAxis();
+                                  
+                                  BlockState mixedState = MIXED_VERTICAL_SLAB.getDefaultState().with(MixedVerticalSlabBlock.AXIS, axis);
+                                  
+                                  BooleanProperty existingProp = MixedVerticalSlabBlock.getPropertyForDirection(facing, axis);
+                                  BooleanProperty newProp = (existingProp == MixedVerticalSlabBlock.NEGATIVE) ? MixedVerticalSlabBlock.POSITIVE : MixedVerticalSlabBlock.NEGATIVE;
+                                  
+                                  mixedState = mixedState.with(existingProp, true).with(newProp, true);
+                                  mixedState = mixedState.with(VerticalSlabBlock.WATERLOGGED, state.get(VerticalSlabBlock.WATERLOGGED));
+                                  
+                                  world.setBlockState(pos, mixedState, 3);
+                                  
+                                  BlockEntity be = world.getBlockEntity(pos);
+                                  if (be instanceof VerticalSlabBlockEntity vsbe) {
+                                      Identifier oldMaterial = Registries.BLOCK.getId(state.getBlock());
+                                      Identifier newMaterial = Registries.BLOCK.getId(itemBlock);
+                                      
+                                      int existingIndex = (existingProp == MixedVerticalSlabBlock.NEGATIVE) ? 0 : 1;
+                                      int newIndex = (newProp == MixedVerticalSlabBlock.NEGATIVE) ? 0 : 1;
+                                      
+                                      vsbe.setMaterial(existingIndex, oldMaterial);
+                                      vsbe.setMaterial(newIndex, newMaterial);
+                                  }
+                                  consumeItem(player, stack, itemBlock, world, pos);
+                              }
+                              return net.minecraft.util.ActionResult.SUCCESS;
+                         }
+                     }
+                 }
+            } else if (state.getBlock() instanceof SlabBlock && stack.getItem() instanceof net.minecraft.item.BlockItem blockItem && blockItem.getBlock() instanceof SlabBlock itemBlock) {
+                 if (state.getBlock() != itemBlock) { // Only mix different slabs
+                     SlabType type = state.get(Properties.SLAB_TYPE);
+                     if (type != SlabType.DOUBLE) {
+                         // Check placement validity (simplified checking against vanilla logic)
+                         boolean isTop = (hitResult.getPos().y - (double)pos.getY()) > 0.5;
+                         if (hitResult.getSide() == net.minecraft.util.math.Direction.UP) isTop = false; // Clicking top face -> add to top? No, vanilla logic
+                         
+                         // If existing is BOTTOM, we need to be effectively placing TOP.
+                         boolean canPlace = false;
+                         if (type == SlabType.BOTTOM && (hitResult.getSide() == net.minecraft.util.math.Direction.UP || (hitResult.getSide().getAxis().isHorizontal() && isTop))) canPlace = true;
+                         if (type == SlabType.TOP && (hitResult.getSide() == net.minecraft.util.math.Direction.DOWN || (hitResult.getSide().getAxis().isHorizontal() && !isTop))) canPlace = true;
+
+                         if (canPlace) {
+                              if (!world.isClient) {
+                                  BlockState mixedState = MIXED_SLAB.getDefaultState()
+                                          .with(MixedSlabBlock.BOTTOM, true)    
+                                          .with(MixedSlabBlock.TOP, true)
+                                          .with(Properties.WATERLOGGED, state.get(Properties.WATERLOGGED));
+                                  
+                                  world.setBlockState(pos, mixedState, 3);
+                                  
+                                  BlockEntity be = world.getBlockEntity(pos);
+                                  if (be instanceof SlabBlockEntity sbe) {
+                                      Identifier oldMaterial = Registries.BLOCK.getId(state.getBlock());
+                                      Identifier newMaterial = Registries.BLOCK.getId(itemBlock);
+                                      
+                                      if (type == SlabType.BOTTOM) {
+                                          sbe.setMaterial(0, oldMaterial);
+                                          sbe.setMaterial(1, newMaterial);
+                                      } else {
+                                          sbe.setMaterial(1, oldMaterial);
+                                          sbe.setMaterial(0, newMaterial);
+                                      }
+                                  }
+                                  consumeItem(player, stack, itemBlock, world, pos);
+                              }
+                              return net.minecraft.util.ActionResult.SUCCESS;
+                         }
+                     }
+                 }
+            } else if (state.getBlock() instanceof MixedCornerBlock mixedBlock && stack.getItem() instanceof net.minecraft.item.BlockItem blockItem && blockItem.getBlock() instanceof CornerBlock itemBlock) {
+                 // Check if we are adding a segment to an already Mixed Corner Block
+                 double hitX = hitResult.getPos().x - (double) pos.getX();
+                 double hitY = hitResult.getPos().y - (double) pos.getY();
+                 double hitZ = hitResult.getPos().z - (double) pos.getZ();
+
+                 BooleanProperty property = mixedBlock.getPropertyFromHit(hitX, hitY, hitZ, hitResult.getSide(), true);
+
+                 if (property != null && !state.get(property)) {
+                     if (!world.isClient) {
+                         // Update state
+                         BlockState newState = state.with(property, true);
+                         world.setBlockState(pos, newState, 3);
+                         
+                         // Update BE
+                         BlockEntity be = world.getBlockEntity(pos);
+                         if (be instanceof CornerBlockEntity cbe) {
+                             Identifier newMaterial = Registries.BLOCK.getId(itemBlock);
+                             BooleanProperty[] allProps = {CornerBlock.DOWN_NW, CornerBlock.DOWN_NE, CornerBlock.DOWN_SW, CornerBlock.DOWN_SE,
+                                    CornerBlock.UP_NW, CornerBlock.UP_NE, CornerBlock.UP_SW, CornerBlock.UP_SE};
+                                    
+                             for (int i = 0; i < 8; i++) {
+                                 if (allProps[i] == property) {
+                                     cbe.setCornerMaterial(i, newMaterial);
+                                     break;
+                                 }
+                             }
+                         }
+                         consumeItem(player, stack, itemBlock, world, pos);
+                     }
+                     return net.minecraft.util.ActionResult.SUCCESS;
+                 }
+            } else if (state.getBlock() instanceof MixedVerticalStepBlock mixedBlock && stack.getItem() instanceof net.minecraft.item.BlockItem blockItem && blockItem.getBlock() instanceof VerticalStepBlock itemBlock) {
+                 // Mixed Vertical Step Interaction
+                 double hitX = hitResult.getPos().x - (double) pos.getX();
+                 double hitY = hitResult.getPos().y - (double) pos.getY();
+                 double hitZ = hitResult.getPos().z - (double) pos.getZ();
+
+                 BooleanProperty property = mixedBlock.getPropertyFromHit(hitX, hitY, hitZ, hitResult.getSide(), true);
+                 if (property != null && !state.get(property)) {
+                     if (!world.isClient) {
+                         BlockState newState = state.with(property, true);
+                         world.setBlockState(pos, newState, 3);
+                         
+                         BlockEntity be = world.getBlockEntity(pos);
+                         if (be instanceof VerticalStepBlockEntity vsbe) {
+                             Identifier newMaterial = Registries.BLOCK.getId(itemBlock);
+                             BooleanProperty[] allProps = {VerticalStepBlock.NORTH_WEST, VerticalStepBlock.NORTH_EAST, VerticalStepBlock.SOUTH_WEST, VerticalStepBlock.SOUTH_EAST};
+                             
+                             for (int i = 0; i < 4; i++) {
+                                 if (allProps[i] == property) {
+                                     vsbe.setMaterial(i, newMaterial);
+                                     break;
+                                 }
+                             }
+                         }
+                         consumeItem(player, stack, itemBlock, world, pos);
+                     }
+                     return net.minecraft.util.ActionResult.SUCCESS;
+                 }
+            } else if (state.getBlock() instanceof MixedStepBlock mixedBlock && stack.getItem() instanceof net.minecraft.item.BlockItem blockItem && blockItem.getBlock() instanceof StepBlock itemBlock) {
+                 // Mixed Step Interaction
+                 // Removed strict axis check to allow adding to existing mixed blocks regardless of item default state.
+                 // We enforce the existing block's axis.
+                 
+                 double hitX = hitResult.getPos().x - (double) pos.getX();
+                 double hitY = hitResult.getPos().y - (double) pos.getY();
+                 double hitZ = hitResult.getPos().z - (double) pos.getZ();
+
+                 BooleanProperty property = mixedBlock.getPropertyFromHit(hitX, hitY, hitZ, hitResult.getSide(), true, state);
+                 if (property != null && !state.get(property)) {
+                     if (!world.isClient) {
+                         BlockState newState = state.with(property, true);
+                         world.setBlockState(pos, newState, 3);
+                         
+                         BlockEntity be = world.getBlockEntity(pos);
+                         if (be instanceof StepBlockEntity sbe) {
+                             Identifier newMaterial = Registries.BLOCK.getId(itemBlock);
+                             BooleanProperty[] allProps = {StepBlock.DOWN_FRONT, StepBlock.DOWN_BACK, StepBlock.UP_FRONT, StepBlock.UP_BACK};
+                             
+                             for (int i = 0; i < 4; i++) {
+                                 if (allProps[i] == property) {
+                                     sbe.setMaterial(i, newMaterial);
+                                     break;
+                                 }
+                             }
+                         }
+                         consumeItem(player, stack, itemBlock, world, pos);
+                     }
+                     return net.minecraft.util.ActionResult.SUCCESS;
+                 }
+            } else if (state.getBlock() instanceof MixedVerticalSlabBlock mixedBlock && stack.getItem() instanceof net.minecraft.item.BlockItem blockItem && blockItem.getBlock() instanceof VerticalSlabBlock itemBlock) {
+                 net.minecraft.util.math.Direction facing = itemBlock.getDefaultState().get(VerticalSlabBlock.FACING);
+                 net.minecraft.util.math.Direction.Axis axis = state.get(MixedVerticalSlabBlock.AXIS);
+                 
+                 if (facing.getAxis() == axis) {
+                      BooleanProperty propToSet = null;
+                      
+                      if (!state.get(MixedVerticalSlabBlock.NEGATIVE)) {
+                          if (hitResult.getSide() == (axis == net.minecraft.util.math.Direction.Axis.Z ? net.minecraft.util.math.Direction.NORTH : net.minecraft.util.math.Direction.WEST) || 
+                             (axis == net.minecraft.util.math.Direction.Axis.Z ? hitResult.getPos().z - pos.getZ() < 0.5 : hitResult.getPos().x - pos.getX() < 0.5)) {
+                              propToSet = MixedVerticalSlabBlock.NEGATIVE;
+                          }
+                      } 
+                      if (propToSet == null && !state.get(MixedVerticalSlabBlock.POSITIVE)) {
+                          if (hitResult.getSide() == (axis == net.minecraft.util.math.Direction.Axis.Z ? net.minecraft.util.math.Direction.SOUTH : net.minecraft.util.math.Direction.EAST) || 
+                             (axis == net.minecraft.util.math.Direction.Axis.Z ? hitResult.getPos().z - pos.getZ() > 0.5 : hitResult.getPos().x - pos.getX() > 0.5)) {
+                              propToSet = MixedVerticalSlabBlock.POSITIVE;
+                          }
+                      }
+                      
+                      if (propToSet != null) {
+                          if (!world.isClient) {
+                              BlockState newState = state.with(propToSet, true);
+                              world.setBlockState(pos, newState, 3);
+                              
+                              BlockEntity be = world.getBlockEntity(pos);
+                              if (be instanceof VerticalSlabBlockEntity vsbe) {
+                                  vsbe.setMaterial(propToSet == MixedVerticalSlabBlock.NEGATIVE ? 0 : 1, Registries.BLOCK.getId(itemBlock));
+                              }
+                              consumeItem(player, stack, itemBlock, world, pos);
+                          }
+                          return net.minecraft.util.ActionResult.SUCCESS;
+                      }
+                 }
+            } else if (state.getBlock() instanceof MixedSlabBlock mixedBlock && stack.getItem() instanceof net.minecraft.item.BlockItem blockItem && blockItem.getBlock() instanceof SlabBlock itemBlock) {
+                 SlabType type = itemBlock.getDefaultState().get(SlabBlock.TYPE); 
+                 
+                 BooleanProperty propToSet = null;
+                 boolean targetTop = (hitResult.getPos().y - pos.getY() > 0.5) || hitResult.getSide() == net.minecraft.util.math.Direction.DOWN; 
+                 
+                 if (hitResult.getSide() == net.minecraft.util.math.Direction.UP) targetTop = false; 
+                 
+                 if (state.get(MixedSlabBlock.BOTTOM) && !state.get(MixedSlabBlock.TOP)) {
+                     if (hitResult.getSide() == net.minecraft.util.math.Direction.UP || (hitResult.getSide().getAxis().isHorizontal() && (hitResult.getPos().y - pos.getY() > 0.5))) {
+                         propToSet = MixedSlabBlock.TOP;
+                     }
+                 } else if (!state.get(MixedSlabBlock.BOTTOM) && state.get(MixedSlabBlock.TOP)) {
+                     if (hitResult.getSide() == net.minecraft.util.math.Direction.DOWN || (hitResult.getSide().getAxis().isHorizontal() && (hitResult.getPos().y - pos.getY() < 0.5))) {
+                         propToSet = MixedSlabBlock.BOTTOM;
+                     }
+                 }
+                 
+                 if (propToSet != null) {
+                     if (!world.isClient) {
+                         BlockState newState = state.with(propToSet, true);
+                         world.setBlockState(pos, newState, 3);
+                         
+                         BlockEntity be = world.getBlockEntity(pos);
+                         if (be instanceof SlabBlockEntity sbe) {
+                             sbe.setMaterial(propToSet == MixedSlabBlock.BOTTOM ? 0 : 1, Registries.BLOCK.getId(itemBlock));
+                         }
+                         consumeItem(player, stack, itemBlock, world, pos);
+                     }
+                     return net.minecraft.util.ActionResult.SUCCESS;
+                 }
             }
             // Logic for MixedCornerBlock additions is handled in CornerBlock.getPlacementState/onPlaced
             // because there is no Block type change, just state update.
@@ -148,7 +489,10 @@ public class Reshaped implements ModInitializer {
 
         // Handle corner block partial mining
         PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, blockEntity) -> {
-            if (state.getBlock() instanceof CornerBlock || state.getBlock() instanceof MixedCornerBlock || state.getBlock() instanceof StepBlock || state.getBlock() instanceof VerticalStepBlock) {
+             if (state.getBlock() instanceof CornerBlock || state.getBlock() instanceof MixedCornerBlock 
+             || state.getBlock() instanceof StepBlock || state.getBlock() instanceof MixedStepBlock 
+             || state.getBlock() instanceof VerticalStepBlock || state.getBlock() instanceof MixedVerticalStepBlock
+             || state.getBlock() instanceof MixedSlabBlock || state.getBlock() instanceof MixedVerticalSlabBlock) {
                 // Client side prediction causes desync/invisibility because the client predicts "Air" before receiving updates.
                 // We handle this on the Server by enforcing the Block State restoration and Delaying the BE update.
                 if (world.isClient) return true;
@@ -171,8 +515,16 @@ public class Reshaped implements ModInitializer {
                             property = mcb.getPropertyFromHit(hitX, hitY, hitZ, blockHitResult.getSide(), false);
                         } else if (state.getBlock() instanceof StepBlock sb) {
                             property = sb.getPropertyFromHit(hitX, hitY, hitZ, blockHitResult.getSide(), false, state);
+                        } else if (state.getBlock() instanceof MixedStepBlock msb) {
+                            property = msb.getPropertyFromHit(hitX, hitY, hitZ, blockHitResult.getSide(), false, state);
                         } else if (state.getBlock() instanceof VerticalStepBlock vsb) {
                             property = vsb.getPropertyFromHit(hitX, hitY, hitZ, blockHitResult.getSide(), false);
+                        } else if (state.getBlock() instanceof MixedVerticalStepBlock mvsb) {
+                            property = mvsb.getPropertyFromHit(hitX, hitY, hitZ, blockHitResult.getSide(), false);
+                        } else if (state.getBlock() instanceof MixedSlabBlock msb) {
+                             property = msb.getPropertyFromHit(hitX, hitY, hitZ, blockHitResult.getSide(), false, state);
+                        } else if (state.getBlock() instanceof MixedVerticalSlabBlock mvsb) {
+                             property = mvsb.getPropertyFromHit(hitX, hitY, hitZ, blockHitResult.getSide(), false, state);
                         }
 
                         if (property != null && state.get(property)) {
@@ -181,10 +533,14 @@ public class Reshaped implements ModInitializer {
                             if (state.getBlock() instanceof CornerBlock || state.getBlock() instanceof MixedCornerBlock) {
                                 allProps = new BooleanProperty[] {CornerBlock.DOWN_NW, CornerBlock.DOWN_NE, CornerBlock.DOWN_SW, CornerBlock.DOWN_SE,
                                         CornerBlock.UP_NW, CornerBlock.UP_NE, CornerBlock.UP_SW, CornerBlock.UP_SE};
-                            } else if (state.getBlock() instanceof StepBlock) {
+                            } else if (state.getBlock() instanceof StepBlock || state.getBlock() instanceof MixedStepBlock) {
                                 allProps = new BooleanProperty[] {StepBlock.DOWN_FRONT, StepBlock.DOWN_BACK, StepBlock.UP_FRONT, StepBlock.UP_BACK};
-                            } else {
+                            } else if (state.getBlock() instanceof VerticalStepBlock || state.getBlock() instanceof MixedVerticalStepBlock) {
                                 allProps = new BooleanProperty[] {VerticalStepBlock.NORTH_WEST, VerticalStepBlock.NORTH_EAST, VerticalStepBlock.SOUTH_WEST, VerticalStepBlock.SOUTH_EAST};
+                            } else if (state.getBlock() instanceof MixedSlabBlock) {
+                                allProps = new BooleanProperty[] {MixedSlabBlock.BOTTOM, MixedSlabBlock.TOP};
+                            } else {
+                                allProps = new BooleanProperty[] {MixedVerticalSlabBlock.NEGATIVE, MixedVerticalSlabBlock.POSITIVE};
                             }
                             for (BooleanProperty p : allProps) {
                                 if (state.get(p)) count++;
@@ -193,38 +549,282 @@ public class Reshaped implements ModInitializer {
                             if (count > 1) {
                                 Identifier materialId = null;
 
-                                if (state.getBlock() instanceof MixedCornerBlock) {
-                                    BlockEntity be = world.getBlockEntity(pos);
-                                    if (be instanceof CornerBlockEntity cbe) {
-                                        // 1. Capture current materials
-                                        Identifier[] capturedMaterials = new Identifier[8];
-                                        for (int i = 0; i < 8; i++) {
-                                            capturedMaterials[i] = cbe.getCornerMaterial(i);
-                                        }
-
-                                        // 2. Update Block State (Restore block from potential client-side Air prediction)
-                                        world.setBlockState(pos, state.with(property, false), 3);
-
-                                        // 3. Update Block Entity (Locally on Server)
-                                        BlockEntity newBe = world.getBlockEntity(pos);
-                                        if (newBe instanceof CornerBlockEntity newCbe) {
+                                    if (state.getBlock() instanceof MixedCornerBlock) {
+                                        BlockEntity be = world.getBlockEntity(pos);
+                                        if (be instanceof CornerBlockEntity cbe) {
+                                            // 1. Capture current materials
+                                            Identifier[] capturedMaterials = new Identifier[8];
                                             for (int i = 0; i < 8; i++) {
-                                                if (allProps[i] == property) {
-                                                    newCbe.setCornerMaterial(i, null);
-                                                } else {
-                                                    Identifier target = capturedMaterials[i];
-                                                    if (target != null) newCbe.setCornerMaterial(i, target);
+                                                capturedMaterials[i] = cbe.getCornerMaterial(i);
+                                            }
+
+                                            // 2. Check if we should revert to unmixed
+                                            // Determine new state and remaining segments
+                                            BlockState newState = state.with(property, false);
+                                            
+                                            Identifier commonMaterial = null;
+                                            boolean isMixed = false;
+                                            boolean hasRemaining = false;
+
+                                            for (int i = 0; i < 8; i++) {
+                                                if (newState.get(allProps[i])) {
+                                                    hasRemaining = true;
+                                                    Identifier mat = capturedMaterials[i];
+                                                    if (commonMaterial == null) {
+                                                        commonMaterial = mat;
+                                                    } else if (mat != null && !mat.equals(commonMaterial)) {
+                                                        isMixed = true;
+                                                    }
                                                 }
                                             }
-                                        }
 
-                                        // Extract materialID for drop from captured
-                                        for (int k = 0; k < 8; k++) {
-                                            if (allProps[k] == property) materialId = capturedMaterials[k];
+                                            boolean converted = false;
+                                            if (!isMixed && commonMaterial != null && hasRemaining) {
+                                                Block unmixedBlock = Registries.BLOCK.get(commonMaterial);
+                                                if (unmixedBlock instanceof CornerBlock) {
+                                                    BlockState unmixedState = unmixedBlock.getDefaultState();
+                                                    for (BooleanProperty p : allProps) {
+                                                        if (newState.get(p)) {
+                                                            unmixedState = unmixedState.with(p, true);
+                                                        }
+                                                    }
+                                                    unmixedState = unmixedState.with(CornerBlock.WATERLOGGED, state.get(CornerBlock.WATERLOGGED));
+                                                    world.setBlockState(pos, unmixedState, 3);
+                                                    converted = true;
+                                                }
+                                            }
+
+                                            if (!converted) {
+                                                // 2. Update Block State (Restore block from potential client-side Air prediction)
+                                                world.setBlockState(pos, newState, 3);
+
+                                                // 3. Update Block Entity (Locally on Server)
+                                                BlockEntity newBe = world.getBlockEntity(pos);
+                                                if (newBe instanceof CornerBlockEntity newCbe) {
+                                                    for (int i = 0; i < 8; i++) {
+                                                        if (allProps[i] == property) {
+                                                            newCbe.setCornerMaterial(i, null);
+                                                        } else {
+                                                            Identifier target = capturedMaterials[i];
+                                                            if (target != null) newCbe.setCornerMaterial(i, target);
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            // Extract materialID for drop from captured
+                                            for (int k = 0; k < 8; k++) {
+                                                if (allProps[k] == property) materialId = capturedMaterials[k];
+                                            }
                                         }
-                                    }
+                                    } else if (state.getBlock() instanceof MixedStepBlock) {
+                                        BlockEntity be = world.getBlockEntity(pos);
+                                        if (be instanceof StepBlockEntity sbe) {
+                                            Identifier[] capturedMaterials = new Identifier[4];
+                                            for (int i = 0; i < 4; i++) capturedMaterials[i] = sbe.getMaterial(i);
+                                            
+                                            // Check unmixed Logic
+                                            BlockState newState = state.with(property, false);
+                                            Identifier commonMaterial = null;
+                                            boolean isMixed = false;
+                                            boolean hasRemaining = false;
+                                            
+                                            for (int i = 0; i < 4; i++) {
+                                                if (newState.get(allProps[i])) {
+                                                    hasRemaining = true;
+                                                    Identifier mat = capturedMaterials[i];
+                                                    if (commonMaterial == null) commonMaterial = mat;
+                                                    else if (mat != null && !mat.equals(commonMaterial)) isMixed = true;
+                                                }
+                                            }
+                                            
+                                            boolean converted = false;
+                                            if (!isMixed && commonMaterial != null && hasRemaining) {
+                                                Block unmixedBlock = Registries.BLOCK.get(commonMaterial);
+                                                if (unmixedBlock instanceof StepBlock) {
+                                                    BlockState unmixedState = unmixedBlock.getDefaultState()
+                                                        .with(StepBlock.AXIS, state.get(StepBlock.AXIS))
+                                                        .with(StepBlock.WATERLOGGED, state.get(StepBlock.WATERLOGGED));
+                                                    
+                                                    for (BooleanProperty p : allProps) {
+                                                        if (newState.get(p)) unmixedState = unmixedState.with(p, true);
+                                                    }
+                                                    world.setBlockState(pos, unmixedState, 3);
+                                                    converted = true;
+                                                }
+                                            }
+                                            
+                                            if (!converted) {
+                                                world.setBlockState(pos, newState, 3);
+                                                BlockEntity newBe = world.getBlockEntity(pos);
+                                                if (newBe instanceof StepBlockEntity newSbe) {
+                                                    for (int i = 0; i < 4; i++) {
+                                                        if (allProps[i] == property) newSbe.setMaterial(i, null);
+                                                        else if (capturedMaterials[i] != null) newSbe.setMaterial(i, capturedMaterials[i]);
+                                                    }
+                                                }
+                                            }
+                                            
+                                            for (int k = 0; k < 4; k++) if (allProps[k] == property) materialId = capturedMaterials[k];
+                                        }
+                                    } else if (state.getBlock() instanceof MixedVerticalStepBlock) {
+                                        BlockEntity be = world.getBlockEntity(pos);
+                                        if (be instanceof VerticalStepBlockEntity vsbe) {
+                                            Identifier[] capturedMaterials = new Identifier[4];
+                                            for (int i = 0; i < 4; i++) capturedMaterials[i] = vsbe.getMaterial(i);
+                                            
+                                            BlockState newState = state.with(property, false);
+                                            Identifier commonMaterial = null;
+                                            boolean isMixed = false;
+                                            boolean hasRemaining = false;
+                                            
+                                            for (int i = 0; i < 4; i++) {
+                                                if (newState.get(allProps[i])) {
+                                                    hasRemaining = true;
+                                                    Identifier mat = capturedMaterials[i];
+                                                    if (commonMaterial == null) commonMaterial = mat;
+                                                    else if (mat != null && !mat.equals(commonMaterial)) isMixed = true;
+                                                }
+                                            }
+                                            
+                                            boolean converted = false;
+                                            if (!isMixed && commonMaterial != null && hasRemaining) {
+                                                Block unmixedBlock = Registries.BLOCK.get(commonMaterial);
+                                                if (unmixedBlock instanceof VerticalStepBlock) {
+                                                    BlockState unmixedState = unmixedBlock.getDefaultState()
+                                                        .with(VerticalStepBlock.WATERLOGGED, state.get(VerticalStepBlock.WATERLOGGED));
+                                                    
+                                                    for (BooleanProperty p : allProps) {
+                                                        if (newState.get(p)) unmixedState = unmixedState.with(p, true);
+                                                    }
+                                                    world.setBlockState(pos, unmixedState, 3);
+                                                    converted = true;
+                                                }
+                                            }
+                                            
+                                            if (!converted) {
+                                                world.setBlockState(pos, newState, 3);
+                                                BlockEntity newBe = world.getBlockEntity(pos);
+                                                if (newBe instanceof VerticalStepBlockEntity newVsbe) {
+                                                    for (int i = 0; i < 4; i++) {
+                                                        if (allProps[i] == property) newVsbe.setMaterial(i, null);
+                                                        else if (capturedMaterials[i] != null) newVsbe.setMaterial(i, capturedMaterials[i]);
+                                                    }
+                                                }
+                                            }
+                                            
+                                            for (int k = 0; k < 4; k++) if (allProps[k] == property) materialId = capturedMaterials[k];
+                                        }
+                                    } else if (state.getBlock() instanceof MixedSlabBlock) {
+                                     BlockEntity be = world.getBlockEntity(pos);
+                                     if (be instanceof SlabBlockEntity sbe) {
+                                         Identifier[] capturedMaterials = new Identifier[2];
+                                         for(int i=0; i<2; i++) capturedMaterials[i] = sbe.getMaterial(i);
+                                         
+                                         // In MixedSlab, we only have 2 parts. If we are here, we had 2 parts (count > 1).
+                                         // Removing 1 means 1 remains.
+                                         // If 1 remains, it is BY DEFINITION "same material" (unique).
+                                         
+                                         BlockState newState = state.with(property, false);
+                                         Identifier remainingMaterial = null;
+                                         BooleanProperty remainingProp = null;
+                                         
+                                         for(int i=0; i<2; i++) {
+                                             if (newState.get(allProps[i])) {
+                                                 remainingMaterial = capturedMaterials[i];
+                                                 remainingProp = allProps[i];
+                                             }
+                                         }
+                                         
+                                         boolean converted = false;
+                                         if (remainingMaterial != null) {
+                                             Block unmixedBlock = Registries.BLOCK.get(remainingMaterial);
+                                             if (unmixedBlock instanceof SlabBlock) {
+                                                  BlockState unmixedState = unmixedBlock.getDefaultState()
+                                                      .with(Properties.WATERLOGGED, state.get(Properties.WATERLOGGED));
+                                                  
+                                                  if (remainingProp == MixedSlabBlock.BOTTOM) {
+                                                      unmixedState = unmixedState.with(Properties.SLAB_TYPE, SlabType.BOTTOM);
+                                                  } else {
+                                                      unmixedState = unmixedState.with(Properties.SLAB_TYPE, SlabType.TOP);
+                                                  }
+                                                  
+                                                  world.setBlockState(pos, unmixedState, 3);
+                                                  converted = true;
+                                             }
+                                         }
+                                         
+                                         if (!converted) {
+                                             world.setBlockState(pos, newState, 3);
+                                             
+                                             BlockEntity newBe = world.getBlockEntity(pos);
+                                             if (newBe instanceof SlabBlockEntity newSbe) {
+                                                 for(int i=0; i<2; i++) {
+                                                     if (allProps[i] == property) newSbe.setMaterial(i, null);
+                                                     else if (capturedMaterials[i] != null) newSbe.setMaterial(i, capturedMaterials[i]);
+                                                 }
+                                             }
+                                         }
+                                         
+                                         for(int k=0; k<2; k++) if(allProps[k] == property) materialId = capturedMaterials[k];
+                                     }
+                                } else if (state.getBlock() instanceof MixedVerticalSlabBlock) {
+                                     BlockEntity be = world.getBlockEntity(pos);
+                                     if (be instanceof VerticalSlabBlockEntity vsbe) {
+                                         Identifier[] capturedMaterials = new Identifier[2];
+                                         for(int i=0; i<2; i++) capturedMaterials[i] = vsbe.getMaterial(i);
+                                         
+                                         BlockState newState = state.with(property, false);
+                                         Identifier remainingMaterial = null;
+                                         BooleanProperty remainingProp = null;
+                                         
+                                         for(int i=0; i<2; i++) {
+                                             if (newState.get(allProps[i])) {
+                                                  remainingMaterial = capturedMaterials[i];
+                                                  remainingProp = allProps[i];
+                                             }
+                                         }
+                                         
+                                         boolean converted = false;
+                                         if (remainingMaterial != null) {
+                                              Block unmixedBlock = Registries.BLOCK.get(remainingMaterial);
+                                              if (unmixedBlock instanceof VerticalSlabBlock) {
+                                                  BlockState unmixedState = unmixedBlock.getDefaultState()
+                                                       .with(VerticalSlabBlock.WATERLOGGED, state.get(VerticalSlabBlock.WATERLOGGED));
+                                                  
+                                                  net.minecraft.util.math.Direction.Axis axis = state.get(MixedVerticalSlabBlock.AXIS);
+                                                  net.minecraft.util.math.Direction facing = null;
+                                                  
+                                                  if (axis == net.minecraft.util.math.Direction.Axis.Z) {
+                                                      if (remainingProp == MixedVerticalSlabBlock.NEGATIVE) facing = net.minecraft.util.math.Direction.NORTH;
+                                                      else facing = net.minecraft.util.math.Direction.SOUTH;
+                                                  } else {
+                                                      if (remainingProp == MixedVerticalSlabBlock.NEGATIVE) facing = net.minecraft.util.math.Direction.WEST;
+                                                      else facing = net.minecraft.util.math.Direction.EAST;
+                                                  }
+                                                  
+                                                  unmixedState = unmixedState.with(VerticalSlabBlock.FACING, facing);
+                                                  world.setBlockState(pos, unmixedState, 3);
+                                                  converted = true;
+                                              }
+                                         }
+                                         
+                                         if (!converted) {
+                                             world.setBlockState(pos, newState, 3);
+                                             
+                                             BlockEntity newBe = world.getBlockEntity(pos);
+                                             if (newBe instanceof VerticalSlabBlockEntity newVsbe) {
+                                                 for(int i=0; i<2; i++) {
+                                                     if (allProps[i] == property) newVsbe.setMaterial(i, null);
+                                                     else if (capturedMaterials[i] != null) newVsbe.setMaterial(i, capturedMaterials[i]);
+                                                 }
+                                             }
+                                         }
+                                         
+                                         for(int k=0; k<2; k++) if(allProps[k] == property) materialId = capturedMaterials[k];
+                                     }
                                 } else {
-                                    // Regular CornerBlock or StepBlock
+                                    // Regular CornerBlock or StepBlock or VerticalStepBlock
                                     world.setBlockState(pos, state.with(property, false), 3);
                                 }
 
@@ -251,5 +851,12 @@ public class Reshaped implements ModInitializer {
         });
 
         LOGGER.info("Reshaping complete - Block matrix is now reactive.");
+    }
+    private static void consumeItem(net.minecraft.entity.player.PlayerEntity player, ItemStack stack, Block itemBlock, net.minecraft.world.World world, BlockPos pos) {
+        if (!player.isCreative()) {
+            stack.decrement(1);
+        }
+        net.minecraft.sound.BlockSoundGroup sound = itemBlock.getSoundGroup(itemBlock.getDefaultState());
+        world.playSound(null, pos, sound.getPlaceSound(), net.minecraft.sound.SoundCategory.BLOCKS, (sound.getVolume() + 1.0F) / 2.0F, sound.getPitch() * 0.8F);
     }
 }

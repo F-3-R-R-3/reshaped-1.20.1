@@ -14,7 +14,13 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
+import net.minecraft.util.Identifier;
 import net.minecraft.world.BlockView;
+import net.minecraft.world.World;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.registry.Registries;
+import net.f3rr3.reshaped.block.entity.StepBlockEntity;
 import org.jetbrains.annotations.Nullable;
 
 public class StepBlock extends ReshapedBlock {
@@ -80,6 +86,14 @@ public class StepBlock extends ReshapedBlock {
                 return existingState.with(targetProp, true);
             }
             return existingState.with(targetProp, true);
+        } else if (existingState.getBlock() instanceof MixedStepBlock msb) {
+            // Merging into MixedStepBlock
+            // We adopt the existing block's axis.
+            BooleanProperty targetProp = msb.getPropertyFromHit(ctx.getHitPos().x - pos.getX(), ctx.getHitPos().y - pos.getY(), ctx.getHitPos().z - pos.getZ(), ctx.getSide(), true, existingState);
+            if (targetProp != null && !existingState.get(targetProp)) {
+                 return existingState.with(targetProp, true);
+            }
+            return existingState;
         }
 
         // New Placement
@@ -135,6 +149,32 @@ public class StepBlock extends ReshapedBlock {
     protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
         super.appendProperties(builder);
         builder.add(AXIS, DOWN_FRONT, DOWN_BACK, UP_FRONT, UP_BACK);
+    }
+
+    @Override
+    public void onPlaced(World world, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack itemStack) {
+        super.onPlaced(world, pos, state, placer, itemStack);
+        if (!world.isClient) {
+            // Check if we merged into a MixedStepBlock
+            if (state.getBlock() instanceof MixedStepBlock) {
+                 BlockEntity be = world.getBlockEntity(pos);
+                 if (be instanceof StepBlockEntity sbe) {
+                     // We need to identify WHICH segment was just added.
+                     // Since onPlaced doesn't give us the hit result easily, we iterate.
+                     // The segment that is TRUE in state but NULL in BE is the new one.
+                     // (Assuming existing segments have materials).
+                     
+                     Identifier newMaterial = Registries.BLOCK.getId(this);
+                     BooleanProperty[] allProps = {DOWN_FRONT, DOWN_BACK, UP_FRONT, UP_BACK};
+                     
+                     for (int i = 0; i < 4; i++) {
+                         if (state.get(allProps[i]) && sbe.getMaterial(i) == null) {
+                             sbe.setMaterial(i, newMaterial);
+                         }
+                     }
+                 }
+            }
+        }
     }
 
     public enum StepAxis implements net.minecraft.util.StringIdentifiable {

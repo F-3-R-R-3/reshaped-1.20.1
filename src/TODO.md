@@ -3,7 +3,7 @@
 ## before release 0
 
 - [x] add vertical steps
-- [ ] make vertical stairs connect with normal stairs
+
 - [x] fix textures for certain blocks
 - [ ] fix particles for corner blocks
 - [x] fix step block placement
@@ -16,12 +16,12 @@
 
 - [x] fix step block placement
 - [x] fix vertical slab placement
-- [ ] fix oxidization for step blocks
-- [ ] make all blocks mixable
+- [x] make all blocks mixable
 - [ ] clean up code
 
 ## after release
 
+- [ ] make vertical stairs connect with normal stairs
 - [ ] add panel blocks
 - [ ] fix transparent blocks
 - [ ] check if dorps work
@@ -29,6 +29,7 @@
 - [ ] change recipies
 - [ ] fix pick-block for mixed blocks
 - [ ] fix particles for corner blocks
+- [ ] fix oxidization for step blocks
 - [ ] check if dorps work
     - [ ] fix them
 - [ ] change recipies

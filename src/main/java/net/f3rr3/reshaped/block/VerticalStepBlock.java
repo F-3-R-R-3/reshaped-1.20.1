@@ -14,6 +14,12 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.BlockView;
+import net.minecraft.world.World;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.registry.Registries;
+import net.minecraft.util.Identifier;
+import net.f3rr3.reshaped.block.entity.VerticalStepBlockEntity;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -57,6 +63,13 @@ public class VerticalStepBlock extends ReshapedBlock {
             BooleanProperty targetProp = getPropertyFromHit(ctx.getHitPos().x - pos.getX(), ctx.getHitPos().y - pos.getY(), ctx.getHitPos().z - pos.getZ(), ctx.getSide(), true);
             if (targetProp != null && !existingState.get(targetProp)) {
                 return existingState.with(targetProp, true);
+            }
+            return existingState;
+        } else if (existingState.getBlock() instanceof MixedVerticalStepBlock mvsb) {
+            // Merging into MixedVerticalStepBlock
+            BooleanProperty targetProp = mvsb.getPropertyFromHit(ctx.getHitPos().x - pos.getX(), ctx.getHitPos().y - pos.getY(), ctx.getHitPos().z - pos.getZ(), ctx.getSide(), true);
+             if (targetProp != null && !existingState.get(targetProp)) {
+                 return existingState.with(targetProp, true);
             }
             return existingState;
         }
@@ -106,6 +119,29 @@ public class VerticalStepBlock extends ReshapedBlock {
             return quadrant.isWest() ? NORTH_WEST : NORTH_EAST;
         } else {
             return quadrant.isWest() ? SOUTH_WEST : SOUTH_EAST;
+        }
+    }
+
+
+
+    @Override
+    public void onPlaced(World world, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack itemStack) {
+        super.onPlaced(world, pos, state, placer, itemStack);
+        if (!world.isClient) {
+            // Check if we merged into a MixedVerticalStepBlock
+            if (state.getBlock() instanceof MixedVerticalStepBlock) {
+                 BlockEntity be = world.getBlockEntity(pos);
+                 if (be instanceof VerticalStepBlockEntity vsbe) {
+                     Identifier newMaterial = Registries.BLOCK.getId(this);
+                     BooleanProperty[] allProps = {NORTH_WEST, NORTH_EAST, SOUTH_WEST, SOUTH_EAST};
+                     
+                     for (int i = 0; i < 4; i++) {
+                         if (state.get(allProps[i]) && vsbe.getMaterial(i) == null) {
+                             vsbe.setMaterial(i, newMaterial);
+                         }
+                     }
+                 }
+            }
         }
     }
 

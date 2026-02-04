@@ -1,7 +1,7 @@
 package net.f3rr3.reshaped.client;
 
 import net.f3rr3.reshaped.Reshaped;
-import net.f3rr3.reshaped.client.render.CornerBakedModel;
+import net.f3rr3.reshaped.client.render.CompositeBakedModel;
 import net.f3rr3.reshaped.util.RuntimeResourceGenerator;
 import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
 import net.minecraft.block.Block;
@@ -153,8 +153,8 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                             }
                         }
                     });
-                } else if (path.equals("mixed_corner")) {
-                    // Manual resolver for MixedCornerBlock - just map to empty/air model since CornerBakedModel handles it
+                } else if (path.startsWith("mixed_")) {
+                    // Manual resolver for Mixed Blocks - just map to empty/air model since CompositeBakedModel handles it
                     context.registerBlockStateResolver(block, resolverContext -> resolverContext.setModel(block.getDefaultState(), new WeightedUnbakedModel(Collections.singletonList(new ModelVariant(new Identifier("minecraft:block/air"), null, false, 1)))));
                 }
 
@@ -165,6 +165,14 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                     context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_outer"));
                 } else if (block instanceof SlabBlock) {
                     context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_top"));
+                }
+                
+                // Add models for Vertical Slabs components
+                if (path.endsWith("_vertical_slab")) {
+                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_north"));
+                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_south"));
+                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_east"));
+                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_west"));
                 }
 
                 if (path.endsWith("_corner")) {
@@ -207,9 +215,24 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
 
         context.modifyModelAfterBake().register((model, context1) -> {
             Identifier id = context1.id();
-            if (id.getNamespace().equals(Reshaped.MOD_ID) && id.getPath().endsWith("_corner") && !id.getPath().contains("_corner_")) {
-                // Wrap the base corner blocks (the ones returned by registerBlockStateResolver)
-                return new CornerBakedModel(model);
+            if (id.getNamespace().equals(Reshaped.MOD_ID)) {
+                // Apply Composite Model wrapper to base blocks that support mixing
+                if (id.getPath().endsWith("_corner") && !id.getPath().contains("_corner_")) {
+                     return new CompositeBakedModel(model);
+                }
+                if (id.getPath().endsWith("_vertical_step") && !id.getPath().contains("_vertical_step_")) {
+                     return new CompositeBakedModel(model);
+                }
+                if (id.getPath().endsWith("_step") && !id.getPath().contains("_step_")) {
+                     return new CompositeBakedModel(model);
+                }
+                // Vertical Slabs and Slabs might need explicit wrapping if they are base types?
+                // Or Mixed blocks only?
+                // Mixed blocks (mixed_corner, etc) use custom resolvers.
+                // WE ALSO NEED TO WRAP THE MIXED BLOCKS models (which are placeholders)
+                if (id.getPath().startsWith("mixed_")) {
+                    return new CompositeBakedModel(model);
+                }
             }
             return model;
         });
