@@ -43,14 +43,14 @@ public class CornerBlock extends ReshapedBlock {
     @Override
     public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
         VoxelShape shape = VoxelShapes.empty();
-        if (state.get(DOWN_NW)) shape = VoxelShapes.union(shape, Block.createCuboidShape(0, 0, 0, 8, 8, 8));
-        if (state.get(DOWN_NE)) shape = VoxelShapes.union(shape, Block.createCuboidShape(8, 0, 0, 16, 8, 8));
-        if (state.get(DOWN_SW)) shape = VoxelShapes.union(shape, Block.createCuboidShape(0, 0, 8, 8, 8, 16));
-        if (state.get(DOWN_SE)) shape = VoxelShapes.union(shape, Block.createCuboidShape(8, 0, 8, 16, 8, 16));
-        if (state.get(UP_NW)) shape = VoxelShapes.union(shape, Block.createCuboidShape(0, 8, 0, 8, 16, 8));
-        if (state.get(UP_NE)) shape = VoxelShapes.union(shape, Block.createCuboidShape(8, 8, 0, 16, 16, 8));
-        if (state.get(UP_SW)) shape = VoxelShapes.union(shape, Block.createCuboidShape(0, 8, 8, 8, 16, 16));
-        if (state.get(UP_SE)) shape = VoxelShapes.union(shape, Block.createCuboidShape(8, 8, 8, 16, 16, 16));
+        if (state.get(DOWN_NW)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_DOWN_NW);
+        if (state.get(DOWN_NE)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_DOWN_NE);
+        if (state.get(DOWN_SW)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_DOWN_SW);
+        if (state.get(DOWN_SE)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_DOWN_SE);
+        if (state.get(UP_NW)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_UP_NW);
+        if (state.get(UP_NE)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_UP_NE);
+        if (state.get(UP_SW)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_UP_SW);
+        if (state.get(UP_SE)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_UP_SE);
         return shape.isEmpty() ? VoxelShapes.fullCube() : shape;
     }
 
@@ -139,13 +139,7 @@ public class CornerBlock extends ReshapedBlock {
 
     public BooleanProperty getPropertyFromHit(double hitX, double hitY, double hitZ, Direction side, boolean isPlacement) {
         var quadrant = net.f3rr3.reshaped.util.BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement, true);
-        if (quadrant.isUp()) {
-            if (!quadrant.isWest()) return quadrant.isPlusZ() ? UP_SE : UP_NE;
-            else return quadrant.isPlusZ() ? UP_SW : UP_NW;
-        } else {
-            if (!quadrant.isWest()) return quadrant.isPlusZ() ? DOWN_SE : DOWN_NE;
-            else return quadrant.isPlusZ() ? DOWN_SW : DOWN_NW;
-        }
+        return net.f3rr3.reshaped.util.BlockSegmentUtils.getCornerProperty(quadrant);
     }
 
     @Override

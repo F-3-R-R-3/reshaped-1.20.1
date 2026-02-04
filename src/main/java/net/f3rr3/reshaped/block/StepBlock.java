@@ -45,33 +45,15 @@ public class StepBlock extends ReshapedBlock {
         StepAxis axis = state.get(AXIS);
         VoxelShape shape = VoxelShapes.empty();
 
-        if (state.get(DOWN_FRONT)) shape = VoxelShapes.union(shape, getShape(axis, true, true));
-        if (state.get(DOWN_BACK)) shape = VoxelShapes.union(shape, getShape(axis, false, true));
-        if (state.get(UP_FRONT)) shape = VoxelShapes.union(shape, getShape(axis, true, false));
-        if (state.get(UP_BACK)) shape = VoxelShapes.union(shape, getShape(axis, false, false));
+        if (state.get(DOWN_FRONT)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.getStepShape(axis, true, true));
+        if (state.get(DOWN_BACK)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.getStepShape(axis, false, true));
+        if (state.get(UP_FRONT)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.getStepShape(axis, true, false));
+        if (state.get(UP_BACK)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.getStepShape(axis, false, false));
 
         return shape.isEmpty() ? VoxelShapes.fullCube() : shape;
     }
 
-    private VoxelShape getShape(StepAxis axis, boolean isFront, boolean isDown) {
-        double yMin = isDown ? 0.0 : 8.0;
-        double yMax = isDown ? 8.0 : 16.0;
 
-        double xMin = 0.0, xMax = 16.0;
-        double zMin = 0.0, zMax = 16.0;
-
-        if (axis == StepAxis.NORTH_SOUTH) {
-            // Front is North (Low Z), Back is South (High Z)
-            zMin = isFront ? 0.0 : 8.0;
-            zMax = isFront ? 8.0 : 16.0;
-        } else {
-            // Front is West (Low X), Back is East (High X)
-            xMin = isFront ? 0.0 : 8.0;
-            xMax = isFront ? 8.0 : 16.0;
-        }
-
-        return Block.createCuboidShape(xMin, yMin, zMin, xMax, yMax, zMax);
-    }
 
     @Override
     @Nullable
@@ -131,13 +113,7 @@ public class StepBlock extends ReshapedBlock {
     public BooleanProperty getPropertyFromHit(double hitX, double hitY, double hitZ, Direction side, boolean isPlacement, BlockState state) {
         var quadrant = net.f3rr3.reshaped.util.BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement, true);
         StepAxis axis = state.get(AXIS);
-        boolean isFront = (axis == StepAxis.NORTH_SOUTH) ? quadrant.isNorth() : quadrant.isWest();
-
-        if (quadrant.isUp()) {
-            return isFront ? UP_FRONT : UP_BACK;
-        } else {
-            return isFront ? DOWN_FRONT : DOWN_BACK;
-        }
+        return net.f3rr3.reshaped.util.BlockSegmentUtils.getStepProperty(quadrant, axis);
     }
 
     @Override

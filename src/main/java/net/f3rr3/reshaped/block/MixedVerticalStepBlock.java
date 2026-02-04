@@ -44,10 +44,10 @@ public class MixedVerticalStepBlock extends ReshapedBlock implements BlockEntity
     public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
         VoxelShape shape = VoxelShapes.empty();
 
-        if (state.get(NORTH_WEST)) shape = VoxelShapes.union(shape, Block.createCuboidShape(0, 0, 0, 8, 16, 8));
-        if (state.get(NORTH_EAST)) shape = VoxelShapes.union(shape, Block.createCuboidShape(8, 0, 0, 16, 16, 8));
-        if (state.get(SOUTH_WEST)) shape = VoxelShapes.union(shape, Block.createCuboidShape(0, 0, 8, 8, 16, 16));
-        if (state.get(SOUTH_EAST)) shape = VoxelShapes.union(shape, Block.createCuboidShape(8, 0, 8, 16, 16, 16));
+        if (state.get(NORTH_WEST)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.VSTEP_NW);
+        if (state.get(NORTH_EAST)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.VSTEP_NE);
+        if (state.get(SOUTH_WEST)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.VSTEP_SW);
+        if (state.get(SOUTH_EAST)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.VSTEP_SE);
 
         return shape.isEmpty() ? VoxelShapes.fullCube() : shape;
     }
@@ -110,12 +110,7 @@ public class MixedVerticalStepBlock extends ReshapedBlock implements BlockEntity
 
     public BooleanProperty getPropertyFromHit(double hitX, double hitY, double hitZ, Direction side, boolean isPlacement) {
         var quadrant = net.f3rr3.reshaped.util.BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement, false);
-
-        if (quadrant.isNorth()) {
-            return quadrant.isWest() ? NORTH_WEST : NORTH_EAST;
-        } else {
-            return quadrant.isWest() ? SOUTH_WEST : SOUTH_EAST;
-        }
+        return net.f3rr3.reshaped.util.BlockSegmentUtils.getVerticalStepProperty(quadrant);
     }
 
     @Override
