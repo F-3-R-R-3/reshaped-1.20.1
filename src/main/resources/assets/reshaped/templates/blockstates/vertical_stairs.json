@@ -11,9 +11,10 @@
     },
     "orientation=plus_x_minus_z": {
       "model": "reshaped:block/{{path}}",
-      "y": 180
+      "y": 180,
+      "uvlock": true
     },
-    "orientation=plus_x_plus_z":   {
+    "orientation=plus_x_plus_z": {
       "model": "reshaped:block/{{path}}",
       "y": 270,
       "uvlock": true
