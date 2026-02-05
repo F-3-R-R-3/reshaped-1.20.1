@@ -1,41 +1,40 @@
 {
-	"schemaVersion": 1,
-	"id": "reshaped",
-	"version": "${version}",
-	"name": "reshaped",
-	"description": "This is an example description! Tell everyone what your mod is about!",
-	"authors": [
-		"Me!"
-	],
-	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
-	},
-	"license": "CC0-1.0",
-	"icon": "assets/reshaped/icon.png",
-	"environment": "*",
-	"entrypoints": {
-		"main": [
-			"net.f3rr3.reshaped.Reshaped"
-		],
-		"client": [
-			"net.f3rr3.reshaped.client.ReshapedClient"
-		],
-		"modmenu": [
+  "schemaVersion": 1,
+  "id": "reshaped",
+  "version": "${version}",
+  "name": "reshaped",
+  "description": "This is an example description! Tell everyone what your mod is about!",
+  "authors": [
+    "Me!"
+  ],
+  "contact": {
+    "homepage": "https://fabricmc.net/",
+    "sources": "https://github.com/FabricMC/fabric-example-mod"
+  },
+  "license": "CC0-1.0",
+  "icon": "assets/reshaped/icon.gif",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "net.f3rr3.reshaped.Reshaped"
+    ],
+    "client": [
+      "net.f3rr3.reshaped.client.ReshapedClient"
+    ],
+  "modmenu": [
 			"net.f3rr3.reshaped.client.gui.ConfigScreen.ModMenuIntegration"
-		]
-	},
-	"mixins": [
-		"reshaped.mixins.json",
-		{
-			"config": "reshaped.client.mixins.json",
-			"environment": "client"
-		}
-	],
-	"depends": {
-		"fabricloader": ">=0.18.4",
-		"minecraft": "~1.20.1",
-		"java": ">=17",
-		"fabric-api": "*"
-	}
+		]},
+  "mixins": [
+    "reshaped.mixins.json",
+    {
+      "config": "reshaped.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.18.4",
+    "minecraft": "~1.20.1",
+    "java": ">=17",
+    "fabric-api": "*"
+  }
 }
