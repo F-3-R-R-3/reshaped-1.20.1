@@ -1,8 +1,15 @@
 {
   "block.reshaped.vertical_stairs": "Vertical Stairs",
   "block.reshaped.vertical_slab": "Vertical Slab",
+  "block.reshaped.mixed_vertical_slab": "Mixed Vertical Slabs",
   "block.reshaped.corner": "Corner",
-  "block.reshaped.step": "Step"
+  "block.reshaped.mixed_corner": "Mixed Vertical Slab",
+  "block.reshaped.step": "Step",
+  "block.reshaped.mixed_vertical_step": "Mixed Vertical Slab",
+  "block.reshaped.mixed_step": "Mixed Step",
+  "block.reshaped.mixed_slab": "Mixed Slab",
+  "category.reshaped": "Reshaped",
+  "key.reshaped.open_radial_menu": "Open Radial Menu"
 }
   "text.autoconfig.reshaped.title" : "ReShaped config",
 
