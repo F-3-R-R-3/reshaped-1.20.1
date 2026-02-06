@@ -461,8 +461,8 @@ public class RuntimeResourceGenerator {
      */
     public static String generateStepModelForSegments(boolean downFront, boolean downBack, boolean upFront, boolean upBack, Map<String, String> textures) {
         return generateSegmentedModel("models/block/step.json", textures, elements -> {
-            if (downFront) elements.add(createSegmentElement(8, 0, 0, 16, 8, 16, Map.of("north", "north", "south", "south", "east", "east")));
-            if (downBack) elements.add(createSegmentElement(0, 0, 0, 8, 8, 16, Map.of("north", "north", "south", "south", "west", "west")));
+            if (downFront) elements.add(createSegmentElement(8, 0, 0, 16, 8, 16, Map.of("north", "north", "south", "south", "east", "east", "down", "down")));
+            if (downBack) elements.add(createSegmentElement(0, 0, 0, 8, 8, 16, Map.of("north", "north", "south", "south", "west", "west", "down", "down")));
             if (upFront) elements.add(createSegmentElement(8, 8, 0, 16, 16, 16, Map.of("north", "north", "south", "south", "up", "up", "east", "east")));
             if (upBack) elements.add(createSegmentElement(0, 8, 0, 8, 16, 16, Map.of("north", "north", "south", "south", "up", "up", "west", "west")));
         });
