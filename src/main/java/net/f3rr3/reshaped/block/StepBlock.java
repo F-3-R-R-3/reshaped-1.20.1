@@ -12,17 +12,15 @@ import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.EnumProperty;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.util.shape.VoxelShapes;
-import net.minecraft.util.Identifier;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
-import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.registry.Registries;
 import net.f3rr3.reshaped.block.entity.StepBlockEntity;
 import org.jetbrains.annotations.Nullable;
 
+@SuppressWarnings("deprecation")
 public class StepBlock extends ReshapedBlock {
     public static final EnumProperty<StepAxis> AXIS = EnumProperty.of("axis", StepAxis.class);
     // Segments: Front/Back relative to AXIS (North/West are Front), Up/Down relative to Y.
@@ -42,15 +40,7 @@ public class StepBlock extends ReshapedBlock {
 
     @Override
     public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
-        StepAxis axis = state.get(AXIS);
-        VoxelShape shape = VoxelShapes.empty();
-
-        if (state.get(DOWN_FRONT)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.getStepShape(axis, true, true));
-        if (state.get(DOWN_BACK)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.getStepShape(axis, false, true));
-        if (state.get(UP_FRONT)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.getStepShape(axis, true, false));
-        if (state.get(UP_BACK)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.getStepShape(axis, false, false));
-
-        return shape.isEmpty() ? VoxelShapes.fullCube() : shape;
+        return net.f3rr3.reshaped.util.BlockSegmentUtils.buildStepShape(state);
     }
 
 
@@ -60,18 +50,19 @@ public class StepBlock extends ReshapedBlock {
     public BlockState getPlacementState(ItemPlacementContext ctx) {
         BlockPos pos = ctx.getBlockPos();
         BlockState existingState = ctx.getWorld().getBlockState(pos);
+        Vec3d localHit = getLocalHit(ctx);
         
         // If merging into existing StepBlock
         if (existingState.isOf(this)) {
-            BooleanProperty targetProp = getPropertyFromHit(ctx.getHitPos().x - pos.getX(), ctx.getHitPos().y - pos.getY(), ctx.getHitPos().z - pos.getZ(), ctx.getSide(), true, existingState);
+            BooleanProperty targetProp = getPropertyFromHit(localHit.x, localHit.y, localHit.z, ctx.getSide(), true, existingState);
             if (targetProp != null && !existingState.get(targetProp)) {
                 return existingState.with(targetProp, true);
             }
-            return existingState.with(targetProp, true);
-        } else if (existingState.getBlock() instanceof MixedStepBlock msb) {
+            return existingState;
+        } else if (existingState.getBlock() instanceof MixedStepBlock mixedStepBlock) {
             // Merging into MixedStepBlock
             // We adopt the existing block's axis.
-            BooleanProperty targetProp = msb.getPropertyFromHit(ctx.getHitPos().x - pos.getX(), ctx.getHitPos().y - pos.getY(), ctx.getHitPos().z - pos.getZ(), ctx.getSide(), true, existingState);
+            BooleanProperty targetProp = mixedStepBlock.getPropertyFromHit(localHit.x, localHit.y, localHit.z, ctx.getSide(), true, existingState);
             if (targetProp != null && !existingState.get(targetProp)) {
                  return existingState.with(targetProp, true);
             }
@@ -87,7 +78,7 @@ public class StepBlock extends ReshapedBlock {
                 .with(AXIS, axis)
                 .with(WATERLOGGED, fluidState.getFluid() == Fluids.WATER);
 
-        BooleanProperty targetProp = getPropertyFromHit(ctx.getHitPos().x - pos.getX(), ctx.getHitPos().y - pos.getY(), ctx.getHitPos().z - pos.getZ(), ctx.getSide(), true, defaultState);
+        BooleanProperty targetProp = getPropertyFromHit(localHit.x, localHit.y, localHit.z, ctx.getSide(), true, defaultState);
         if (targetProp != null) {
             return defaultState.with(targetProp, true);
         }
@@ -103,7 +94,8 @@ public class StepBlock extends ReshapedBlock {
         }
 
         if (context.canReplaceExisting()) {
-             BooleanProperty targetProp = getPropertyFromHit(context.getHitPos().x - context.getBlockPos().getX(), context.getHitPos().y - context.getBlockPos().getY(), context.getHitPos().z - context.getBlockPos().getZ(), context.getSide(), true, state);
+             Vec3d localHit = getLocalHit(context);
+             BooleanProperty targetProp = getPropertyFromHit(localHit.x, localHit.y, localHit.z, context.getSide(), true, state);
              return targetProp != null && !state.get(targetProp);
         }
         
@@ -111,7 +103,7 @@ public class StepBlock extends ReshapedBlock {
     }
     
     public BooleanProperty getPropertyFromHit(double hitX, double hitY, double hitZ, Direction side, boolean isPlacement, BlockState state) {
-        var quadrant = net.f3rr3.reshaped.util.BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement, true);
+        var quadrant = net.f3rr3.reshaped.util.BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement);
         StepAxis axis = state.get(AXIS);
         return net.f3rr3.reshaped.util.BlockSegmentUtils.getStepProperty(quadrant, axis);
     }
@@ -133,24 +125,20 @@ public class StepBlock extends ReshapedBlock {
         if (!world.isClient) {
             // Check if we merged into a MixedStepBlock
             if (state.getBlock() instanceof MixedStepBlock) {
-                 BlockEntity be = world.getBlockEntity(pos);
-                 if (be instanceof StepBlockEntity sbe) {
-                     // We need to identify WHICH segment was just added.
-                     // Since onPlaced doesn't give us the hit result easily, we iterate.
-                     // The segment that is TRUE in state but NULL in BE is the new one.
-                     // (Assuming existing segments have materials).
-                     
-                     Identifier newMaterial = Registries.BLOCK.getId(this);
-                     BooleanProperty[] allProps = {DOWN_FRONT, DOWN_BACK, UP_FRONT, UP_BACK};
-                     
-                     for (int i = 0; i < 4; i++) {
-                         if (state.get(allProps[i]) && sbe.getMaterial(i) == null) {
-                             sbe.setMaterial(i, newMaterial);
-                         }
-                     }
-                 }
-            }
-        }
+                 // We need to identify WHICH segment was just added.
+                 // Since onPlaced doesn't give us the hit result easily, we iterate.
+                 // The segment that is TRUE in state but NULL in BE is the new one.
+                 // (Assuming existing segments have materials).
+                 net.f3rr3.reshaped.util.BlockSegmentUtils.fillMissingMaterialsFromItem(
+                         world,
+                         pos,
+                         state,
+                         itemStack,
+                         net.f3rr3.reshaped.util.BlockSegmentUtils.STEP_PROPERTIES,
+                         StepBlockEntity.class
+                 );
+             }
+         }
     }
 
     public enum StepAxis implements net.minecraft.util.StringIdentifiable {

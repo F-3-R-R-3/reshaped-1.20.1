@@ -17,6 +17,7 @@ import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.BlockView;
 import org.jetbrains.annotations.Nullable;
 
+@SuppressWarnings("deprecation")
 public class VerticalSlabBlock extends ReshapedBlock {
     public static final DirectionProperty FACING = Properties.HORIZONTAL_FACING;
     public static final EnumProperty<SlabType> TYPE = Properties.SLAB_TYPE;
@@ -73,23 +74,14 @@ public class VerticalSlabBlock extends ReshapedBlock {
             return false;
         }
 
-        if (context.canReplaceExisting()) {
-            Direction direction = context.getSide();
-            
-            // Allow merging if we click on the internal (exposed) face of the existing vertical slab
-            // A NORTH-facing slab has its exposed face at z=8, pointing NORTH
-            // So clicking on the NORTH face of a NORTH-facing slab should merge
-            Direction existingFacing = state.get(FACING);
-            
-            if (existingFacing == Direction.NORTH && direction == Direction.NORTH) return true;
-            if (existingFacing == Direction.SOUTH && direction == Direction.SOUTH) return true;
-            if (existingFacing == Direction.EAST && direction == Direction.EAST) return true;
-            if (existingFacing == Direction.WEST && direction == Direction.WEST) return true;
-            
-            return false;
-        } else {
+        if (!context.canReplaceExisting()) {
             return true;
         }
+
+        // Allow merging if we click on the internal (exposed) face of the existing vertical slab
+        // A NORTH-facing slab has its exposed face at z=8, pointing NORTH
+        // So clicking on the NORTH face of a NORTH-facing slab should merge
+        return state.get(FACING) == context.getSide();
     }
 
     @Override

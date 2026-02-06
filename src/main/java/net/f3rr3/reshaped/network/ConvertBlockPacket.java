@@ -5,24 +5,8 @@ import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.Identifier;
 
-public class ConvertBlockPacket {
+public record ConvertBlockPacket(Identifier targetBlockId, int slot) {
     public static final Identifier ID = new Identifier(Reshaped.MOD_ID, "convert_block");
-
-    private final Identifier targetBlockId;
-    private final int slot;
-
-    public ConvertBlockPacket(Identifier targetBlockId, int slot) {
-        this.targetBlockId = targetBlockId;
-        this.slot = slot;
-    }
-
-    public Identifier getTargetBlockId() {
-        return targetBlockId;
-    }
-
-    public int getSlot() {
-        return slot;
-    }
 
     public PacketByteBuf toBuffer() {
         PacketByteBuf buf = PacketByteBufs.create();

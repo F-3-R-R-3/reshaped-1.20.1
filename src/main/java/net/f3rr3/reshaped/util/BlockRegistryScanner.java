@@ -72,35 +72,8 @@ public class BlockRegistryScanner {
                 }
 
                 if (baseName != null) {
-                    List<String> candidates = Arrays.asList(
-                        baseName + "_planks",
-                        baseName + "_block",
-                        baseName + "s",
-                        baseName.replace("_brick", "_bricks"),
-                        baseName.replace("_tile", "_tiles"),
-                        baseName.replace("_shingle", "_shingles"),
-                        baseName
-                    );
-
-                    for (String candidate : candidates) {
-                        Identifier candidateId = new Identifier(namespace, candidate);
-                        Block b = Registries.BLOCK.get(candidateId);
-                        if (b != Blocks.AIR && !(b instanceof SlabBlock) && !(b instanceof StairsBlock)) {
-                            base = b;
-                            break;
-                        }
-                    }
-
-                    if (base == null && !namespace.equals("minecraft")) {
-                        for (String candidate : candidates) {
-                            Identifier candidateId = new Identifier("minecraft", candidate);
-                            Block b = Registries.BLOCK.get(candidateId);
-                            if (b != Blocks.AIR && !(b instanceof SlabBlock) && !(b instanceof StairsBlock)) {
-                                base = b;
-                                break;
-                            }
-                        }
-                    }
+                    List<String> candidates = buildCandidates(baseName);
+                    base = findBaseCandidate(namespace, candidates);
 
                     if (base != null) {
                         reason = "Classified as Slab based on its name matching base block: " + Registries.BLOCK.getId(base);
@@ -137,35 +110,8 @@ public class BlockRegistryScanner {
 
 
                 if (baseName != null) {
-                    List<String> candidates = Arrays.asList(
-                            baseName + "_planks",
-                            baseName + "_block",
-                            baseName + "s",
-                            baseName.replace("_brick", "_bricks"),
-                            baseName.replace("_tile", "_tiles"),
-                            baseName.replace("_shingle", "_shingles"),
-                            baseName
-                    );
-
-                    for (String candidate : candidates) {
-                        Identifier candidateId = new Identifier(namespace, candidate);
-                        Block b = Registries.BLOCK.get(candidateId);
-                        if (b != Blocks.AIR && !(b instanceof SlabBlock) && !(b instanceof StairsBlock)) {
-                            base = b;
-                            break;
-                        }
-                    }
-
-                    if (base == null && !namespace.equals("minecraft")) {
-                        for (String candidate : candidates) {
-                            Identifier candidateId = new Identifier("minecraft", candidate);
-                            Block b = Registries.BLOCK.get(candidateId);
-                            if (b != Blocks.AIR && !(b instanceof SlabBlock) && !(b instanceof StairsBlock)) {
-                                base = b;
-                                break;
-                            }
-                        }
-                    }
+                    List<String> candidates = buildCandidates(baseName);
+                    base = findBaseCandidate(namespace, candidates);
 
                     if (base != null) {
                         reason = "Classified as Other variant based on its name matching base block: " + Registries.BLOCK.getId(base);
@@ -199,5 +145,36 @@ public class BlockRegistryScanner {
                 if (shouldRefresh) matrix.refresh();
             }
         }
+    }
+
+    private static List<String> buildCandidates(String baseName) {
+        return Arrays.asList(
+                baseName + "_planks",
+                baseName + "_block",
+                baseName + "s",
+                baseName.replace("_brick", "_bricks"),
+                baseName.replace("_tile", "_tiles"),
+                baseName.replace("_shingle", "_shingles"),
+                baseName
+        );
+    }
+
+    private static Block findBaseCandidate(String namespace, List<String> candidates) {
+        Block base = findBaseCandidateInNamespace(namespace, candidates);
+        if (base == null && !namespace.equals("minecraft")) {
+            base = findBaseCandidateInNamespace("minecraft", candidates);
+        }
+        return base;
+    }
+
+    private static Block findBaseCandidateInNamespace(String namespace, List<String> candidates) {
+        for (String candidate : candidates) {
+            Identifier candidateId = new Identifier(namespace, candidate);
+            Block block = Registries.BLOCK.get(candidateId);
+            if (block != Blocks.AIR && !(block instanceof SlabBlock) && !(block instanceof StairsBlock)) {
+                return block;
+            }
+        }
+        return null;
     }
 }

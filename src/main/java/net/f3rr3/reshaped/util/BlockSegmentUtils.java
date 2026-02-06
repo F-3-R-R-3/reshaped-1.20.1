@@ -3,10 +3,20 @@ package net.f3rr3.reshaped.util;
 import net.f3rr3.reshaped.block.CornerBlock;
 import net.f3rr3.reshaped.block.StepBlock;
 import net.f3rr3.reshaped.block.VerticalStepBlock;
+import net.f3rr3.reshaped.block.entity.MixedBlockEntity;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.item.BlockItem;
+import net.minecraft.item.ItemStack;
+import net.minecraft.registry.Registries;
 import net.minecraft.state.property.BooleanProperty;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.util.shape.VoxelShapes;
+import net.minecraft.world.World;
 
 /**
  * Shared utility methods for segment-based blocks (Steps, Vertical Steps, Corners).
@@ -19,7 +29,7 @@ public class BlockSegmentUtils {
      * Common hit detection logic for quadrant-based blocks.
      * Extracts logic used in VerticalStepBlock and CornerBlock.
      */
-    public static Quadrant getQuadrantFromHit(double hitX, double hitY, double hitZ, Direction side, boolean isPlacement, boolean checkY) {
+    public static Quadrant getQuadrantFromHit(double hitX, double hitY, double hitZ, Direction side, boolean isPlacement) {
         double offset = isPlacement ? 0.05 : -0.05;
         double testX = hitX + side.getOffsetX() * offset;
         double testY = hitY + side.getOffsetY() * offset;
@@ -101,6 +111,75 @@ public class BlockSegmentUtils {
         }
 
         return Block.createCuboidShape(xMin, yMin, zMin, xMax, yMax, zMax);
+    }
+
+    public static VoxelShape buildStepShape(BlockState state) {
+        StepBlock.StepAxis axis = state.get(StepBlock.AXIS);
+        VoxelShape shape = VoxelShapes.empty();
+
+        if (state.get(StepBlock.DOWN_FRONT)) shape = VoxelShapes.union(shape, getStepShape(axis, true, true));
+        if (state.get(StepBlock.DOWN_BACK)) shape = VoxelShapes.union(shape, getStepShape(axis, false, true));
+        if (state.get(StepBlock.UP_FRONT)) shape = VoxelShapes.union(shape, getStepShape(axis, true, false));
+        if (state.get(StepBlock.UP_BACK)) shape = VoxelShapes.union(shape, getStepShape(axis, false, false));
+
+        return shape.isEmpty() ? VoxelShapes.fullCube() : shape;
+    }
+
+    public static VoxelShape buildVerticalStepShape(BlockState state) {
+        VoxelShape shape = VoxelShapes.empty();
+        if (state.get(VerticalStepBlock.NORTH_WEST)) shape = VoxelShapes.union(shape, VSTEP_NW);
+        if (state.get(VerticalStepBlock.NORTH_EAST)) shape = VoxelShapes.union(shape, VSTEP_NE);
+        if (state.get(VerticalStepBlock.SOUTH_WEST)) shape = VoxelShapes.union(shape, VSTEP_SW);
+        if (state.get(VerticalStepBlock.SOUTH_EAST)) shape = VoxelShapes.union(shape, VSTEP_SE);
+        return shape.isEmpty() ? VoxelShapes.fullCube() : shape;
+    }
+
+    public static VoxelShape buildCornerShape(BlockState state) {
+        VoxelShape shape = VoxelShapes.empty();
+        if (state.get(CornerBlock.DOWN_NW)) shape = VoxelShapes.union(shape, CORNER_DOWN_NW);
+        if (state.get(CornerBlock.DOWN_NE)) shape = VoxelShapes.union(shape, CORNER_DOWN_NE);
+        if (state.get(CornerBlock.DOWN_SW)) shape = VoxelShapes.union(shape, CORNER_DOWN_SW);
+        if (state.get(CornerBlock.DOWN_SE)) shape = VoxelShapes.union(shape, CORNER_DOWN_SE);
+        if (state.get(CornerBlock.UP_NW)) shape = VoxelShapes.union(shape, CORNER_UP_NW);
+        if (state.get(CornerBlock.UP_NE)) shape = VoxelShapes.union(shape, CORNER_UP_NE);
+        if (state.get(CornerBlock.UP_SW)) shape = VoxelShapes.union(shape, CORNER_UP_SW);
+        if (state.get(CornerBlock.UP_SE)) shape = VoxelShapes.union(shape, CORNER_UP_SE);
+        return shape.isEmpty() ? VoxelShapes.fullCube() : shape;
+    }
+
+    public static final BooleanProperty[] CORNER_PROPERTIES = {
+            CornerBlock.DOWN_NW, CornerBlock.DOWN_NE, CornerBlock.DOWN_SW, CornerBlock.DOWN_SE,
+            CornerBlock.UP_NW, CornerBlock.UP_NE, CornerBlock.UP_SW, CornerBlock.UP_SE
+    };
+
+    public static final BooleanProperty[] VERTICAL_STEP_PROPERTIES = {
+            VerticalStepBlock.NORTH_WEST, VerticalStepBlock.NORTH_EAST, VerticalStepBlock.SOUTH_WEST, VerticalStepBlock.SOUTH_EAST
+    };
+
+    public static final BooleanProperty[] STEP_PROPERTIES = {
+            StepBlock.DOWN_FRONT, StepBlock.DOWN_BACK, StepBlock.UP_FRONT, StepBlock.UP_BACK
+    };
+
+    public static void fillMissingMaterials(MixedBlockEntity blockEntity, BlockState state, BooleanProperty[] properties, Identifier materialId) {
+        for (int i = 0; i < properties.length; i++) {
+            if (state.get(properties[i]) && blockEntity.getMaterial(i) == null) {
+                blockEntity.setMaterial(i, materialId);
+            }
+        }
+    }
+
+    public static void fillMissingMaterialsFromItem(ItemStack itemStack, MixedBlockEntity blockEntity, BlockState state, BooleanProperty[] properties) {
+        if (itemStack.getItem() instanceof BlockItem blockItem) {
+            fillMissingMaterials(blockEntity, state, properties, Registries.BLOCK.getId(blockItem.getBlock()));
+        }
+    }
+
+    public static void fillMissingMaterialsFromItem(World world, BlockPos pos, BlockState state, ItemStack itemStack,
+                                                    BooleanProperty[] properties, Class<? extends MixedBlockEntity> entityClass) {
+        BlockEntity be = world.getBlockEntity(pos);
+        if (entityClass.isInstance(be)) {
+            fillMissingMaterialsFromItem(itemStack, entityClass.cast(be), state, properties);
+        }
     }
 
     // Corner shape constants

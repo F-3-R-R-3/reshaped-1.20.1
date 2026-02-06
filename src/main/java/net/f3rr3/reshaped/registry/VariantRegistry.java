@@ -22,9 +22,7 @@ public class VariantRegistry {
      */
     public static void registerAll(Block baseBlock, BlockMatrix matrix) {
         for (BlockVariantType variant : VARIANTS) {
-            if (variant.appliesTo(baseBlock)) {
-                variant.register(baseBlock, matrix);
-            }
+            variant.register(baseBlock, matrix);
         }
     }
 

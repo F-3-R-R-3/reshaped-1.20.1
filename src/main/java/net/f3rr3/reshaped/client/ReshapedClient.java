@@ -20,7 +20,6 @@ public class ReshapedClient implements ClientModInitializer {
     public void onInitializeClient() {
         ModelLoadingPlugin.register(new ReshapedModelLoadingPlugin());
         ModKeybindings.register();
-        NetworkHandler.registerClientSenders();
         ClientTickHandler.register();
         AutoConfig.register(ModConfig.class, GsonConfigSerializer::new);
         ItemTooltipCallback.EVENT.register((stack, context, lines) -> {

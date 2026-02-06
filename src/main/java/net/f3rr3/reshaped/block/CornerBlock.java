@@ -4,24 +4,23 @@ import net.f3rr3.reshaped.block.entity.CornerBlockEntity;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.ShapeContext;
-import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
+@SuppressWarnings("deprecation")
 public class CornerBlock extends ReshapedBlock {
     public static final BooleanProperty DOWN_NW = BooleanProperty.of("down_nw");
     public static final BooleanProperty DOWN_NE = BooleanProperty.of("down_ne");
@@ -42,16 +41,7 @@ public class CornerBlock extends ReshapedBlock {
 
     @Override
     public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
-        VoxelShape shape = VoxelShapes.empty();
-        if (state.get(DOWN_NW)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_DOWN_NW);
-        if (state.get(DOWN_NE)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_DOWN_NE);
-        if (state.get(DOWN_SW)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_DOWN_SW);
-        if (state.get(DOWN_SE)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_DOWN_SE);
-        if (state.get(UP_NW)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_UP_NW);
-        if (state.get(UP_NE)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_UP_NE);
-        if (state.get(UP_SW)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_UP_SW);
-        if (state.get(UP_SE)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_UP_SE);
-        return shape.isEmpty() ? VoxelShapes.fullCube() : shape;
+        return net.f3rr3.reshaped.util.BlockSegmentUtils.buildCornerShape(state);
     }
 
     @Override
@@ -59,11 +49,8 @@ public class CornerBlock extends ReshapedBlock {
         ItemStack itemStack = context.getStack();
         // Allow replacement if the item is ANY corner block and the target quadrant is empty
         if (itemStack.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof CornerBlock) {
-            double hitX = context.getHitPos().x - (double) context.getBlockPos().getX();
-            double hitY = context.getHitPos().y - (double) context.getBlockPos().getY();
-            double hitZ = context.getHitPos().z - (double) context.getBlockPos().getZ();
-
-            BooleanProperty property = getPropertyFromHit(hitX, hitY, hitZ, context.getSide(), true);
+            Vec3d localHit = getLocalHit(context);
+            BooleanProperty property = getPropertyFromHit(localHit.x, localHit.y, localHit.z, context.getSide(), true);
             if (property != null && !state.get(property)) {
                 return true;
             }
@@ -77,11 +64,8 @@ public class CornerBlock extends ReshapedBlock {
         World world = ctx.getWorld();
         BlockState existingState = world.getBlockState(pos);
 
-        double hitX = ctx.getHitPos().x - (double) pos.getX();
-        double hitY = ctx.getHitPos().y - (double) pos.getY();
-        double hitZ = ctx.getHitPos().z - (double) pos.getZ();
-
-        BooleanProperty property = getPropertyFromHit(hitX, hitY, hitZ, ctx.getSide(), true);
+        Vec3d localHit = getLocalHit(ctx);
+        BooleanProperty property = getPropertyFromHit(localHit.x, localHit.y, localHit.z, ctx.getSide(), true);
         if (property == null) return null;
 
         if (existingState.getBlock() == this) {
@@ -116,29 +100,20 @@ public class CornerBlock extends ReshapedBlock {
             // Note: 'state' passed here is the state *after* placement.
             // If we merged into Mixed, 'state' is MixedCornerBlock.
             if (state.getBlock() instanceof MixedCornerBlock) {
-                BlockEntity be = world.getBlockEntity(pos);
-                if (be instanceof CornerBlockEntity cbe) {
-                    if (itemStack.getItem() instanceof BlockItem blockItem) {
-                        Block block = blockItem.getBlock();
-                        // Find which quadrant matches the property we just added.
-                        // Wait, we don't know which property we added easily here without re-calculating or iterating.
-                        // Iterating is fine. If bit is set and BE is null, fill it.
-                        // This logic works for both "Add to Mixed" and "Transition" (if Callback used standard logic, but it doesn't).
-
-                        BooleanProperty[] allProps = {DOWN_NW, DOWN_NE, DOWN_SW, DOWN_SE, UP_NW, UP_NE, UP_SW, UP_SE};
-                        for (int i = 0; i < 8; i++) {
-                            if (state.get(allProps[i]) && cbe.getCornerMaterial(i) == null) {
-                                cbe.setCornerMaterial(i, Registries.BLOCK.getId(block));
-                            }
-                        }
-                    }
-                }
+                net.f3rr3.reshaped.util.BlockSegmentUtils.fillMissingMaterialsFromItem(
+                        world,
+                        pos,
+                        state,
+                        itemStack,
+                        net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_PROPERTIES,
+                        CornerBlockEntity.class
+                );
             }
         }
     }
 
     public BooleanProperty getPropertyFromHit(double hitX, double hitY, double hitZ, Direction side, boolean isPlacement) {
-        var quadrant = net.f3rr3.reshaped.util.BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement, true);
+        var quadrant = net.f3rr3.reshaped.util.BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement);
         return net.f3rr3.reshaped.util.BlockSegmentUtils.getCornerProperty(quadrant);
     }
 

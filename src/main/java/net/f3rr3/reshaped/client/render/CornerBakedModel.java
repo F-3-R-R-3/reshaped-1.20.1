@@ -52,11 +52,11 @@ public class CornerBakedModel extends ForwardingBakedModel {
 
                 if (materialId == null) {
                     // Fallback to the block's own material if BE data is missing
-                    // This handles simple CornerBlocks (no BE) and uninitialized MixedCornerBlocks (shouldn't happen but safe backup)
+                    // This handles simple CornerBlocks (without BE data) and uninitialized MixedCornerBlocks (shouldn't happen but safe backup)
                     if (state.getBlock() instanceof CornerBlock) {
                         materialId = Registries.BLOCK.getId(state.getBlock());
                     } else {
-                        // MixedCornerBlock with no data - skip
+                        // MixedCornerBlock without data - skip
                         continue;
                     }
                 }
@@ -83,23 +83,16 @@ public class CornerBakedModel extends ForwardingBakedModel {
     @Override
     public void emitItemQuads(ItemStack stack, Supplier<Random> randomSupplier, RenderContext context) {
         // Items are usually just one material (the item itself)
-        // We could implement logic here to render item model with corner cut, 
-        // but typically item model is static json.
+        // We could implement logic here to render item model with corner cut,
+        // but typically item model is static JSON.
         super.emitItemQuads(stack, randomSupplier, context);
     }
 
     private boolean isBitSet(BlockState state, int index) {
-        return switch (index) {
-            case 0 -> state.get(CornerBlock.DOWN_NW);
-            case 1 -> state.get(CornerBlock.DOWN_NE);
-            case 2 -> state.get(CornerBlock.DOWN_SW);
-            case 3 -> state.get(CornerBlock.DOWN_SE);
-            case 4 -> state.get(CornerBlock.UP_NW);
-            case 5 -> state.get(CornerBlock.UP_NE);
-            case 6 -> state.get(CornerBlock.UP_SW);
-            case 7 -> state.get(CornerBlock.UP_SE);
-            default -> false;
-        };
+        if (index < 0 || index >= net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_PROPERTIES.length) {
+            return false;
+        }
+        return state.get(net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_PROPERTIES[index]);
     }
 
     private String getSingleBitMask(int index) {

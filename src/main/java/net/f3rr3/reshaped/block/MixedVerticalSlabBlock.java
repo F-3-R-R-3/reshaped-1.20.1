@@ -14,7 +14,6 @@ import net.minecraft.registry.Registries;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.EnumProperty;
-import net.minecraft.util.StringIdentifiable;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.shape.VoxelShape;
@@ -23,6 +22,7 @@ import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
+@SuppressWarnings("deprecation")
 public class MixedVerticalSlabBlock extends ReshapedBlock implements BlockEntityProvider {
     public static final EnumProperty<Direction.Axis> AXIS = EnumProperty.of("axis", Direction.Axis.class, Direction.Axis.X, Direction.Axis.Z);
     // Negative = Lower Coordinates (North or West)
@@ -104,14 +104,14 @@ public class MixedVerticalSlabBlock extends ReshapedBlock implements BlockEntity
         super.onPlaced(world, pos, state, placer, itemStack);
         if (!world.isClient) {
             BlockEntity be = world.getBlockEntity(pos);
-            if (be instanceof VerticalSlabBlockEntity vsbe) {
+            if (be instanceof VerticalSlabBlockEntity verticalSlabBlockEntity) {
                  if (itemStack.getItem() instanceof BlockItem blockItem) {
                     Block block = blockItem.getBlock();
                     
                     BooleanProperty[] allProps = {NEGATIVE, POSITIVE};
                     for (int i = 0; i < 2; i++) {
-                        if (state.get(allProps[i]) && vsbe.getMaterial(i) == null) {
-                            vsbe.setMaterial(i, Registries.BLOCK.getId(block));
+                        if (state.get(allProps[i]) && verticalSlabBlockEntity.getMaterial(i) == null) {
+                            verticalSlabBlockEntity.setMaterial(i, Registries.BLOCK.getId(block));
                         }
                     }
                 }

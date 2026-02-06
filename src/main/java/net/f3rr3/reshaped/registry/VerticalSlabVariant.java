@@ -32,12 +32,6 @@ public class VerticalSlabVariant implements BlockVariantType {
     }
 
     @Override
-    public boolean appliesTo(Block baseBlock) {
-        // Vertical slabs apply to most solid blocks (handled by scanner logic mostly)
-        return true;
-    }
-
-    @Override
     public void register(Block baseBlock, BlockMatrix matrix) {
         Identifier baseId = Registries.BLOCK.getId(baseBlock);
 

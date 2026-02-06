@@ -206,11 +206,6 @@ public class RadialMenuScreen extends Screen {
     }
 
     @Override
-    protected void init() {
-        super.init();
-    }
-
-    @Override
     public void tick() {
         super.tick();
 

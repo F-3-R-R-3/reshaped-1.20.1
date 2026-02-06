@@ -4,6 +4,7 @@ import net.f3rr3.reshaped.Reshaped;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
@@ -21,19 +22,8 @@ public class NetworkHandler {
     public static void registerServerReceivers() {
         ServerPlayNetworking.registerGlobalReceiver(ConvertBlockPacket.ID, (server, player, handler, buf, responseSender) -> {
             ConvertBlockPacket packet = ConvertBlockPacket.fromBuffer(buf);
-            
-            server.execute(() -> {
-                handleConvertBlock(player, packet);
-            });
+            server.execute(() -> handleConvertBlock(player, packet));
         });
-    }
-
-    /**
-     * Register client-side packet senders.
-     * Call this from the client mod initializer.
-     */
-    public static void registerClientSenders() {
-        // No client receivers needed for now, but this could be extended
     }
 
     /**
@@ -45,8 +35,8 @@ public class NetworkHandler {
     }
 
     private static void handleConvertBlock(ServerPlayerEntity player, ConvertBlockPacket packet) {
-        int slot = packet.getSlot();
-        Identifier targetId = packet.getTargetBlockId();
+        int slot = packet.slot();
+        Identifier targetId = packet.targetBlockId();
 
         // Validate slot
         if (slot < 0 || slot >= player.getInventory().size()) {
@@ -72,7 +62,7 @@ public class NetworkHandler {
 
         // Get the target block
         Block targetBlock = Registries.BLOCK.get(targetId);
-        if (targetBlock == null || targetBlock == Registries.BLOCK.get(new Identifier("minecraft:air"))) {
+        if (targetBlock == Blocks.AIR) {
             Reshaped.LOGGER.warn("Target block {} does not exist for {}", targetId, player.getName().getString());
             return;
         }
@@ -91,7 +81,10 @@ public class NetworkHandler {
         
         // Copy NBT data if present (for blocks with special data)
         if (currentStack.hasNbt()) {
-            newStack.setNbt(currentStack.getNbt().copy());
+            net.minecraft.nbt.NbtCompound nbt = currentStack.getNbt();
+            if (nbt != null) {
+                newStack.setNbt(nbt.copy());
+            }
         }
 
         // Replace the item in the slot

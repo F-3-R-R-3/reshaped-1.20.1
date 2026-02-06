@@ -6,6 +6,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.random.Random;
 
+@SuppressWarnings("deprecation")
 public class OxidizableVerticalSlabBlock extends VerticalSlabBlock implements ReshapedOxidizable {
     private final Oxidizable.OxidationLevel oxidationLevel;
 

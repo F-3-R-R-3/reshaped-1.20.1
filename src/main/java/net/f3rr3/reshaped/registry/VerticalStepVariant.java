@@ -32,11 +32,6 @@ public class VerticalStepVariant implements BlockVariantType {
     }
 
     @Override
-    public boolean appliesTo(Block baseBlock) {
-        return true;
-    }
-
-    @Override
     public void register(Block baseBlock, BlockMatrix matrix) {
         Identifier baseId = Registries.BLOCK.getId(baseBlock);
         String baseName = baseId.getPath().replace("_planks", "").replace("_block", "");
@@ -142,34 +137,20 @@ public class VerticalStepVariant implements BlockVariantType {
         if (path.contains("_vertical_step")) {
             // Check for segment mask (e.g. "_1010")
             // Default to single segment (1000 - North West) if no mask found
-            boolean nw = true;
-            boolean ne = false;
-            boolean sw = false;
-            boolean se = false;
-            
-            String basePath = path;
-            
-            if (path.matches(".*_\\d{4}$")) {
-                String maskString = path.substring(path.length() - 4);
-                nw = maskString.charAt(0) == '1';
-                ne = maskString.charAt(1) == '1';
-                sw = maskString.charAt(2) == '1';
-                se = maskString.charAt(3) == '1';
-                basePath = path.substring(0, path.length() - 5); // remove _XXXX
-            }
-            
-            Block targetBlock = block;
-            if (basePath.equals(path)) {
-                targetBlock = block;
-            } else {
-                Identifier blockId = new Identifier(Reshaped.MOD_ID, basePath);
-                targetBlock = Registries.BLOCK.get(blockId);
-            }
-            
+            String maskString = RuntimeResourceGenerator.extractMaskSuffix(path);
+            boolean[] segments = RuntimeResourceGenerator.parseMaskOrDefault(maskString, true, false, false, false);
+
+            Block targetBlock = RuntimeResourceGenerator.resolveBlockForPath(path, block);
             Block baseBlock = Reshaped.MATRIX.getBaseBlock(targetBlock);
             if (baseBlock != null) {
                 Map<String, String> textures = RuntimeResourceGenerator.getModelTextures(baseBlock);
-                return RuntimeResourceGenerator.generateVerticalStepModelForSegments(nw, ne, sw, se, textures);
+                return RuntimeResourceGenerator.generateVerticalStepModelForSegments(
+                        segments[0],
+                        segments[1],
+                        segments[2],
+                        segments[3],
+                        textures
+                );
             }
         }
         return null;

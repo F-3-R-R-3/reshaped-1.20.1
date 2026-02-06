@@ -10,18 +10,18 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.EnumProperty;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
+@SuppressWarnings("deprecation")
 public class MixedStepBlock extends ReshapedBlock implements BlockEntityProvider {
     public static final EnumProperty<StepBlock.StepAxis> AXIS = StepBlock.AXIS;
     public static final BooleanProperty DOWN_FRONT = StepBlock.DOWN_FRONT;
@@ -45,17 +45,8 @@ public class MixedStepBlock extends ReshapedBlock implements BlockEntityProvider
 
     @Override
     public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
-        StepBlock.StepAxis axis = state.get(AXIS);
-        VoxelShape shape = VoxelShapes.empty();
-
-        if (state.get(DOWN_FRONT)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.getStepShape(axis, true, true));
-        if (state.get(DOWN_BACK)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.getStepShape(axis, false, true));
-        if (state.get(UP_FRONT)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.getStepShape(axis, true, false));
-        if (state.get(UP_BACK)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.getStepShape(axis, false, false));
-
-        return shape.isEmpty() ? VoxelShapes.fullCube() : shape;
+        return net.f3rr3.reshaped.util.BlockSegmentUtils.buildStepShape(state);
     }
-
 
 
     @Override
@@ -66,11 +57,8 @@ public class MixedStepBlock extends ReshapedBlock implements BlockEntityProvider
              // Ideally we shouldn't allow mixing specific axis blocks into a different axis configuration easily
              // But here we just assume the axis is already locked by the block state.
              
-             double hitX = context.getHitPos().x - (double)context.getBlockPos().getX();
-             double hitY = context.getHitPos().y - (double)context.getBlockPos().getY();
-             double hitZ = context.getHitPos().z - (double)context.getBlockPos().getZ();
-
-             BooleanProperty property = getPropertyFromHit(hitX, hitY, hitZ, context.getSide(), true, state);
+             Vec3d localHit = getLocalHit(context);
+             BooleanProperty property = getPropertyFromHit(localHit.x, localHit.y, localHit.z, context.getSide(), true, state);
              if (property != null && !state.get(property)) {
                  return true;
              }
@@ -83,12 +71,9 @@ public class MixedStepBlock extends ReshapedBlock implements BlockEntityProvider
         BlockPos pos = ctx.getBlockPos();
         World world = ctx.getWorld();
         BlockState existingState = world.getBlockState(pos);
-        
-        double hitX = ctx.getHitPos().x - (double)pos.getX();
-        double hitY = ctx.getHitPos().y - (double)pos.getY();
-        double hitZ = ctx.getHitPos().z - (double)pos.getZ();
-        
-        BooleanProperty property = getPropertyFromHit(hitX, hitY, hitZ, ctx.getSide(), true, existingState);
+
+        Vec3d localHit = getLocalHit(ctx);
+        BooleanProperty property = getPropertyFromHit(localHit.x, localHit.y, localHit.z, ctx.getSide(), true, existingState);
         if (property == null) return null;
 
         if (existingState.isOf(this)) {
@@ -102,24 +87,19 @@ public class MixedStepBlock extends ReshapedBlock implements BlockEntityProvider
     public void onPlaced(World world, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack itemStack) {
         super.onPlaced(world, pos, state, placer, itemStack);
         if (!world.isClient) {
-            BlockEntity be = world.getBlockEntity(pos);
-            if (be instanceof StepBlockEntity sbe) {
-                if (itemStack.getItem() instanceof BlockItem blockItem) {
-                    Block block = blockItem.getBlock();
-                    
-                    BooleanProperty[] allProps = {DOWN_FRONT, DOWN_BACK, UP_FRONT, UP_BACK};
-                    for (int i = 0; i < 4; i++) {
-                        if (state.get(allProps[i]) && sbe.getMaterial(i) == null) {
-                            sbe.setMaterial(i, Registries.BLOCK.getId(block));
-                        }
-                    }
-                }
-            }
+            net.f3rr3.reshaped.util.BlockSegmentUtils.fillMissingMaterialsFromItem(
+                    world,
+                    pos,
+                    state,
+                    itemStack,
+                    net.f3rr3.reshaped.util.BlockSegmentUtils.STEP_PROPERTIES,
+                    StepBlockEntity.class
+            );
         }
     }
 
     public BooleanProperty getPropertyFromHit(double hitX, double hitY, double hitZ, Direction side, boolean isPlacement, BlockState state) {
-        var quadrant = net.f3rr3.reshaped.util.BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement, true);
+        var quadrant = net.f3rr3.reshaped.util.BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement);
         StepBlock.StepAxis axis = state.get(AXIS);
         return net.f3rr3.reshaped.util.BlockSegmentUtils.getStepProperty(quadrant, axis);
     }

@@ -25,7 +25,4 @@ public class CornerBlockEntity extends MixedBlockEntity {
         return getMaterial(index);
     }
 
-    public static void register() {
-        // Called once all blocks are registered
-    }
 }

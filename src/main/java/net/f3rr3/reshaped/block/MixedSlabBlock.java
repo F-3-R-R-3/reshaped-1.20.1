@@ -7,7 +7,6 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.ShapeContext;
 import net.minecraft.block.SlabBlock;
 import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.enums.SlabType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemPlacementContext;
@@ -16,12 +15,14 @@ import net.minecraft.registry.Registries;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
+@SuppressWarnings("deprecation")
 public class MixedSlabBlock extends ReshapedBlock implements BlockEntityProvider {
     public static final BooleanProperty BOTTOM = BooleanProperty.of("bottom");
     public static final BooleanProperty TOP = BooleanProperty.of("top");
@@ -50,34 +51,11 @@ public class MixedSlabBlock extends ReshapedBlock implements BlockEntityProvider
     public boolean canReplace(BlockState state, ItemPlacementContext context) {
         ItemStack itemStack = context.getStack();
         if (itemStack.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof SlabBlock) {
-             // Improved Logic calling getPropertyFromHit
-             BooleanProperty property = getPropertyFromHit(context.getHitPos().x - context.getBlockPos().getX(),
-                                                         context.getHitPos().y - context.getBlockPos().getY(),
-                                                         context.getHitPos().z - context.getBlockPos().getZ(),
-                                                         context.getSide(),
-                                                         true,
-                                                         state);
-                                                         
-             if (property != null && !state.get(property)) return true;
-             return false;
-             /*
-             boolean isTop = context.getHitPos().y - (double)context.getBlockPos().getY() > 0.5;
-             if (context.getSide().getAxis().isHorizontal()) {
-                 // Side hit
-             } else {
-                 isTop = context.getSide() == net.minecraft.util.math.Direction.DOWN; // If hitting bottom face, we target TOP? wait.
-             }
-             
-             /*
-             // Simple Logic: if item is slab, checks if we can add to the empty part
-             if (state.get(BOTTOM) && !state.get(TOP)) {
-                 // Only bottom exists, can we replace to add top?
-                 return true; 
-             }
-             if (!state.get(BOTTOM) && state.get(TOP)) {
-                 return true;
-             }
-             */
+             Vec3d localHit = getLocalHit(context);
+             BooleanProperty property = getPropertyFromHit(localHit.y,
+                     context.getSide(),
+                     true);
+             return property != null && !state.get(property);
         }
         return super.canReplace(state, context);
     }
@@ -88,12 +66,10 @@ public class MixedSlabBlock extends ReshapedBlock implements BlockEntityProvider
           BlockPos pos = ctx.getBlockPos();
           BlockState existingState = ctx.getWorld().getBlockState(pos);
           if (existingState.isOf(this)) {
-              BooleanProperty property = getPropertyFromHit(ctx.getHitPos().x - pos.getX(),
-                                                          ctx.getHitPos().y - pos.getY(),
-                                                          ctx.getHitPos().z - pos.getZ(),
-                                                          ctx.getSide(),
-                                                          true,
-                                                          existingState);
+              Vec3d localHit = getLocalHit(ctx);
+              BooleanProperty property = getPropertyFromHit(localHit.y,
+                      ctx.getSide(),
+                      true);
                if (property != null && !existingState.get(property)) return existingState.with(property, true);
           }
           return null;
@@ -126,7 +102,7 @@ public class MixedSlabBlock extends ReshapedBlock implements BlockEntityProvider
         builder.add(BOTTOM, TOP);
     }
     
-    public BooleanProperty getPropertyFromHit(double hitX, double hitY, double hitZ, net.minecraft.util.math.Direction side, boolean isPlacement, BlockState state) {
+    public BooleanProperty getPropertyFromHit(double hitY, net.minecraft.util.math.Direction side, boolean isPlacement) {
         double offset = isPlacement ? 0.001 : -0.001;
         double y = hitY + side.getOffsetY() * offset;
         return y < 0.5 ? BOTTOM : TOP;

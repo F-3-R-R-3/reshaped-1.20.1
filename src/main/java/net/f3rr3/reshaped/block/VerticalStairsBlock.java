@@ -12,6 +12,7 @@ import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.BlockView;
 
+@SuppressWarnings("deprecation")
 public class VerticalStairsBlock extends ReshapedBlock {
     public static final EnumProperty<VerticalStairOrientation> ORIENTATION = EnumProperty.of("orientation", VerticalStairOrientation.class);
 

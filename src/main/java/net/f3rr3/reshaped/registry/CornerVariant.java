@@ -12,20 +12,12 @@ import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public class CornerVariant implements BlockVariantType {
-    private static final Map<Block, CornerBlock> BASE_TO_CORNER = new HashMap<>();
-
     @Override
     public String getName() {
         return "corner";
-    }
-
-    @Override
-    public boolean appliesTo(Block baseBlock) {
-        return true;
     }
 
     @Override
@@ -44,7 +36,6 @@ public class CornerVariant implements BlockVariantType {
 
         matrix.addVariant(baseBlock, corner, true);
         matrix.setReason(corner, "Dynamically registered Corner (1/8 block) for " + baseBlock.getName().getString());
-        BASE_TO_CORNER.put(baseBlock, corner);
     }
 
     @Override

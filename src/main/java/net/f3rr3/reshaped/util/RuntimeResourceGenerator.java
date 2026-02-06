@@ -30,7 +30,7 @@ public class RuntimeResourceGenerator {
     /**
      * Cache for analyzed texture mappings. Prevents repeated analysis of the same base block
      * during a single resource reload session. Cache is cleared when resources are reloaded.
-     * 
+     * <p>
      * Key: Base block
      * Value: Map of texture keys (e.g., "top", "bottom", "side") to texture resource paths
      */
@@ -92,9 +92,7 @@ public class RuntimeResourceGenerator {
         if (Reshaped.MATRIX == null) return null;
 
         // Normalize path
-        String path = cleanPath;
-        if (path.startsWith("models/")) path = path.substring(7);
-        if (path.endsWith(".json")) path = path.substring(0, path.length() - 5);
+        String path = normalizePath(cleanPath);
 
         // Handle Item Models
         if (path.startsWith("item/")) {
@@ -144,13 +142,10 @@ public class RuntimeResourceGenerator {
             } else if (block instanceof net.f3rr3.reshaped.block.VerticalStairsBlock) {
                 return generateModelFromTemplate("block/vertical_stairs", textures);
             } else if (block instanceof net.f3rr3.reshaped.block.VerticalStepBlock) {
-                if (blockPath.matches(".*_\\d{4}$")) {
-                    String mask = blockPath.substring(blockPath.length() - 4);
-                    boolean nw = mask.charAt(0) == '1';
-                    boolean ne = mask.charAt(1) == '1';
-                    boolean sw = mask.charAt(2) == '1';
-                    boolean se = mask.charAt(3) == '1';
-                    return generateVerticalStepModelForSegments(nw, ne, sw, se, textures);
+                String mask = extractMaskSuffix(blockPath);
+                if (mask != null) {
+                    boolean[] segments = parseMaskOrDefault(mask, true, false, false, false);
+                    return generateVerticalStepModelForSegments(segments[0], segments[1], segments[2], segments[3], textures);
                 }
                 // Fallback for item model: full block or single segment?
                 // StepBlock uses single segment (true, false, false, false).
@@ -158,13 +153,10 @@ public class RuntimeResourceGenerator {
                 return generateVerticalStepModelForSegments(true, false, false, false, textures);
             } else if (block instanceof net.f3rr3.reshaped.block.StepBlock) {
                 // Check for segment mask suffix (e.g., "_1010")
-                if (blockPath.matches(".*_\\d{4}$")) {
-                    String mask = blockPath.substring(blockPath.length() - 4);
-                    boolean df = mask.charAt(0) == '1';
-                    boolean db = mask.charAt(1) == '1';
-                    boolean uf = mask.charAt(2) == '1';
-                    boolean ub = mask.charAt(3) == '1';
-                    return generateStepModelForSegments(df, db, uf, ub, textures);
+                String mask = extractMaskSuffix(blockPath);
+                if (mask != null) {
+                    boolean[] segments = parseMaskOrDefault(mask, true, false, false, false);
+                    return generateStepModelForSegments(segments[0], segments[1], segments[2], segments[3], textures);
                 }
                 // Fallback for base item/block (full block or single step)
                 // If it's the item or just the block name, usually we want the full block or a default state
@@ -243,7 +235,7 @@ public class RuntimeResourceGenerator {
             }
 
             com.google.gson.JsonArray elements = fullModel.getAsJsonArray("elements");
-            if (elements.size() == 0) {
+            if (elements.isEmpty()) {
                 return;
             }
 
@@ -305,7 +297,7 @@ public class RuntimeResourceGenerator {
             }
 
         } catch (Exception e) {
-            Reshaped.LOGGER.warn("Failed to analyze face textures for model: " + modelId, e);
+            Reshaped.LOGGER.warn("Failed to analyze face textures for model: {}", modelId, e);
         }
     }
 
@@ -435,8 +427,8 @@ public class RuntimeResourceGenerator {
     /**
      * Internal helper to create a cuboid element for a model with appropriate UVs and cullfaces.
      */
-    private static JsonObject createSegmentElement(double x1, double y1, double z1, double x2, double y2, double z2, 
-                                                  Map<String, String> cullfaces, Map<String, String> textures) {
+    private static JsonObject createSegmentElement(double x1, double y1, double z1, double x2, double y2, double z2,
+                                                  Map<String, String> cullfaces) {
         JsonObject element = new JsonObject();
         setFromTo(element, x1, y1, z1, x2, y2, z2);
         
@@ -466,10 +458,10 @@ public class RuntimeResourceGenerator {
      */
     public static String generateStepModelForSegments(boolean downFront, boolean downBack, boolean upFront, boolean upBack, Map<String, String> textures) {
         return generateSegmentedModel("models/block/step.json", textures, elements -> {
-            if (downFront) elements.add(createSegmentElement(8, 0, 0, 16, 8, 16, Map.of("north", "north", "south", "south", "east", "east"), textures));
-            if (downBack) elements.add(createSegmentElement(0, 0, 0, 8, 8, 16, Map.of("north", "north", "south", "south", "west", "west"), textures));
-            if (upFront) elements.add(createSegmentElement(8, 8, 0, 16, 16, 16, Map.of("north", "north", "south", "south", "up", "up", "east", "east"), textures));
-            if (upBack) elements.add(createSegmentElement(0, 8, 0, 8, 16, 16, Map.of("north", "north", "south", "south", "up", "up", "west", "west"), textures));
+            if (downFront) elements.add(createSegmentElement(8, 0, 0, 16, 8, 16, Map.of("north", "north", "south", "south", "east", "east")));
+            if (downBack) elements.add(createSegmentElement(0, 0, 0, 8, 8, 16, Map.of("north", "north", "south", "south", "west", "west")));
+            if (upFront) elements.add(createSegmentElement(8, 8, 0, 16, 16, 16, Map.of("north", "north", "south", "south", "up", "up", "east", "east")));
+            if (upBack) elements.add(createSegmentElement(0, 8, 0, 8, 16, 16, Map.of("north", "north", "south", "south", "up", "up", "west", "west")));
         });
     }
 
@@ -478,10 +470,10 @@ public class RuntimeResourceGenerator {
      */
     public static String generateVerticalStepModelForSegments(boolean nw, boolean ne, boolean sw, boolean se, Map<String, String> textures) {
         return generateSegmentedModel("models/block/vertical_step.json", textures, elements -> {
-            if (nw) elements.add(createSegmentElement(0, 0, 0, 8, 16, 8, Map.of("north", "north", "west", "west", "up", "up", "down", "down"), textures));
-            if (ne) elements.add(createSegmentElement(8, 0, 0, 16, 16, 8, Map.of("north", "north", "east", "east", "up", "up", "down", "down"), textures));
-            if (sw) elements.add(createSegmentElement(0, 0, 8, 8, 16, 16, Map.of("south", "south", "west", "west", "up", "up", "down", "down"), textures));
-            if (se) elements.add(createSegmentElement(8, 0, 8, 16, 16, 16, Map.of("south", "south", "east", "east", "up", "up", "down", "down"), textures));
+            if (nw) elements.add(createSegmentElement(0, 0, 0, 8, 16, 8, Map.of("north", "north", "west", "west", "up", "up", "down", "down")));
+            if (ne) elements.add(createSegmentElement(8, 0, 0, 16, 16, 8, Map.of("north", "north", "east", "east", "up", "up", "down", "down")));
+            if (sw) elements.add(createSegmentElement(0, 0, 8, 8, 16, 16, Map.of("south", "south", "west", "west", "up", "up", "down", "down")));
+            if (se) elements.add(createSegmentElement(8, 0, 8, 16, 16, 16, Map.of("south", "south", "east", "east", "up", "up", "down", "down")));
         });
     }
 
@@ -535,7 +527,7 @@ public class RuntimeResourceGenerator {
                 }
                 return builder.toString();
             } catch (Exception e) {
-                Reshaped.LOGGER.error("Failed to load template: " + id, e);
+                Reshaped.LOGGER.error("Failed to load template: {}", id, e);
             }
         }
         return null;
@@ -547,13 +539,13 @@ public class RuntimeResourceGenerator {
             try {
                 return JsonParser.parseString(template).getAsJsonObject();
             } catch (Exception e) {
-                Reshaped.LOGGER.error("Failed to parse template JSON: " + path, e);
+                Reshaped.LOGGER.error("Failed to parse template JSON: {}", path, e);
             }
         }
         return null;
     }
 
-    public static String generateBlockStateJson(Block block, String templateName, Map<String, String> placeholders) {
+    public static String generateBlockStateJson(String templateName, Map<String, String> placeholders) {
         String template = loadTemplate("blockstates/" + templateName + ".json");
         if (template == null) return null;
 
@@ -582,13 +574,13 @@ public class RuntimeResourceGenerator {
             return textures;
         }
 
-        // 2. If valid model not found, try to check blockstate for model redirection
+        // 2. If valid model not found, try to check block state for model redirection
         // (Common for waxed blocks or aliased blocks)
-        Identifier blockstateId = new Identifier(blockId.getNamespace(), "blockstates/" + blockId.getPath() + ".json");
-        Optional<Resource> bsResource = MinecraftClient.getInstance().getResourceManager().getResource(blockstateId);
+        Identifier blockStateId = new Identifier(blockId.getNamespace(), "blockstates/" + blockId.getPath() + ".json");
+        Optional<Resource> blockStateResource = MinecraftClient.getInstance().getResourceManager().getResource(blockStateId);
 
-        if (bsResource.isPresent()) {
-            try (InputStreamReader reader = new InputStreamReader(bsResource.get().getInputStream())) {
+        if (blockStateResource.isPresent()) {
+            try (InputStreamReader reader = new InputStreamReader(blockStateResource.get().getInputStream())) {
                 JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
                 String variantModel = null;
 
@@ -622,7 +614,7 @@ public class RuntimeResourceGenerator {
                 }
 
             } catch (Exception e) {
-                Reshaped.LOGGER.error("Failed to read blockstate for block: " + blockId, e);
+                Reshaped.LOGGER.error("Failed to read block state for block: {}", blockId, e);
             }
         }
 
@@ -641,7 +633,7 @@ public class RuntimeResourceGenerator {
                     return true;
                 }
             } catch (Exception e) {
-                Reshaped.LOGGER.error("Failed to read model: " + modelId, e);
+                Reshaped.LOGGER.error("Failed to read model: {}", modelId, e);
             }
         }
         return false;
@@ -654,6 +646,41 @@ public class RuntimeResourceGenerator {
         return normalized;
     }
 
+    public static String extractMaskSuffix(String path) {
+        if (path.matches(".*_\\d{4}$")) {
+            return path.substring(path.length() - 4);
+        }
+        return null;
+    }
+
+    public static boolean[] parseMaskOrDefault(String mask, boolean first, boolean second, boolean third, boolean fourth) {
+        if (mask == null || mask.length() != 4) {
+            return new boolean[]{first, second, third, fourth};
+        }
+        return new boolean[]{
+                mask.charAt(0) == '1',
+                mask.charAt(1) == '1',
+                mask.charAt(2) == '1',
+                mask.charAt(3) == '1'
+        };
+    }
+
+    public static String stripMaskSuffix(String path) {
+        if (path.matches(".*_\\d{4}$")) {
+            return path.substring(0, path.length() - 5);
+        }
+        return path;
+    }
+
+    public static Block resolveBlockForPath(String path, Block block) {
+        String basePath = stripMaskSuffix(path);
+        if (basePath.equals(path)) {
+            return block;
+        }
+        Identifier blockId = new Identifier(Reshaped.MOD_ID, basePath);
+        return Registries.BLOCK.get(blockId);
+    }
+
     private static Block findBaseBlock(Block variant) {
         if (Reshaped.MATRIX == null) return null;
         for (Map.Entry<Block, List<Block>> entry : Reshaped.MATRIX.getMatrix().entrySet()) {
@@ -663,7 +690,7 @@ public class RuntimeResourceGenerator {
     }
 
     /**
-     * Resolves the actual model ID for a block, handling blockstate redirection.
+     * Resolves the actual model ID for a block, handling block state redirection.
      * Returns null if direct model exists or if resolution fails.
      */
     public static Identifier resolveBlockModelId(Block block) {
@@ -677,9 +704,9 @@ public class RuntimeResourceGenerator {
             return new Identifier(blockId.getNamespace(), "block/" + blockId.getPath());
         }
 
-        // Check blockstate for model redirection
-        Identifier blockstateId = new Identifier(blockId.getNamespace(), "blockstates/" + blockId.getPath() + ".json");
-        Optional<Resource> bsResource = MinecraftClient.getInstance().getResourceManager().getResource(blockstateId);
+        // Check block state for model redirection
+        Identifier blockStateId = new Identifier(blockId.getNamespace(), "blockstates/" + blockId.getPath() + ".json");
+        Optional<Resource> bsResource = MinecraftClient.getInstance().getResourceManager().getResource(blockStateId);
 
         if (bsResource.isPresent()) {
             try (InputStreamReader reader = new InputStreamReader(bsResource.get().getInputStream())) {

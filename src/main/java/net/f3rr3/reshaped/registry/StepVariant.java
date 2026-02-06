@@ -32,11 +32,6 @@ public class StepVariant implements BlockVariantType {
     }
 
     @Override
-    public boolean appliesTo(Block baseBlock) {
-        return true;
-    }
-
-    @Override
     public void register(Block baseBlock, BlockMatrix matrix) {
         Identifier baseId = Registries.BLOCK.getId(baseBlock);
         String baseName = baseId.getPath().replace("_planks", "").replace("_block", "");
@@ -142,37 +137,20 @@ public class StepVariant implements BlockVariantType {
         if (path.contains("_step") && !path.contains("_vertical_step")) {
             // Check for segment mask (e.g. "_1010")
             // Default to single segment (1000 - Down Front) if no mask found
-            boolean df = true;
-            boolean db = false;
-            boolean uf = false;
-            boolean ub = false;
-            
-            String basePath = path;
-            
-            if (path.matches(".*_\\d{4}$")) {
-                String mask = path.substring(path.length() - 4);
-                df = mask.charAt(0) == '1';
-                db = mask.charAt(1) == '1';
-                uf = mask.charAt(2) == '1';
-                ub = mask.charAt(3) == '1';
-                basePath = path.substring(0, path.length() - 5); // remove _XXXX
-            }
-            
-            // Get base block from the block parameter if available, or resolve from registry
-            Block targetBlock = block;
-            if (basePath.equals(path)) {
-                // No suffix, use the block parameter directly
-                targetBlock = block;
-            } else {
-                // Has suffix, need to resolve the actual step block
-                Identifier blockId = new Identifier(Reshaped.MOD_ID, basePath);
-                targetBlock = Registries.BLOCK.get(blockId);
-            }
-            
+            String mask = RuntimeResourceGenerator.extractMaskSuffix(path);
+            boolean[] segments = RuntimeResourceGenerator.parseMaskOrDefault(mask, true, false, false, false);
+
+            Block targetBlock = RuntimeResourceGenerator.resolveBlockForPath(path, block);
             Block baseBlock = Reshaped.MATRIX.getBaseBlock(targetBlock);
             if (baseBlock != null) {
                 Map<String, String> textures = RuntimeResourceGenerator.getModelTextures(baseBlock);
-                return RuntimeResourceGenerator.generateStepModelForSegments(df, db, uf, ub, textures);
+                return RuntimeResourceGenerator.generateStepModelForSegments(
+                        segments[0],
+                        segments[1],
+                        segments[2],
+                        segments[3],
+                        textures
+                );
             }
         }
         return null;

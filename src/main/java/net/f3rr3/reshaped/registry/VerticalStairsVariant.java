@@ -33,12 +33,6 @@ public class VerticalStairsVariant implements BlockVariantType {
     }
 
     @Override
-    public boolean appliesTo(Block baseBlock) {
-        // Apply to blocks that can normally have stairs
-        return true;
-    }
-
-    @Override
     public void register(Block baseBlock, BlockMatrix matrix) {
         Identifier baseId = Registries.BLOCK.getId(baseBlock);
         String baseName = baseId.getPath().replace("_planks", "").replace("_block", "");

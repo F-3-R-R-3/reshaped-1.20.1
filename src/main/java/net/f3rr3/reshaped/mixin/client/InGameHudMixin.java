@@ -22,10 +22,4 @@ public abstract class InGameHudMixin {
         }
     }
 
-    @Inject(
-            method = "renderHotbar",
-            at = @At("HEAD")
-    )
-    private void allowHotbar(float tickDelta, DrawContext context, CallbackInfo ci) {
-    }
 }

@@ -12,13 +12,9 @@ import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
-import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.Identifier;
 import net.f3rr3.reshaped.block.entity.VerticalStepBlockEntity;
 import org.jetbrains.annotations.Nullable;
 
@@ -26,6 +22,7 @@ import org.jetbrains.annotations.Nullable;
  * A block that allows combining up to four 8x16x8 vertical pillars (quadrants).
  * Each pillar is represented by a BooleanProperty.
  */
+@SuppressWarnings("deprecation")
 public class VerticalStepBlock extends ReshapedBlock {
     public static final BooleanProperty NORTH_WEST = BooleanProperty.of("north_west");
     public static final BooleanProperty NORTH_EAST = BooleanProperty.of("north_east");
@@ -42,14 +39,7 @@ public class VerticalStepBlock extends ReshapedBlock {
 
     @Override
     public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
-        VoxelShape shape = VoxelShapes.empty();
-
-        if (state.get(NORTH_WEST)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.VSTEP_NW);
-        if (state.get(NORTH_EAST)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.VSTEP_NE);
-        if (state.get(SOUTH_WEST)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.VSTEP_SW);
-        if (state.get(SOUTH_EAST)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.VSTEP_SE);
-
-        return shape.isEmpty() ? VoxelShapes.fullCube() : shape;
+        return net.f3rr3.reshaped.util.BlockSegmentUtils.buildVerticalStepShape(state);
     }
 
     @Override
@@ -65,9 +55,9 @@ public class VerticalStepBlock extends ReshapedBlock {
                 return existingState.with(targetProp, true);
             }
             return existingState;
-        } else if (existingState.getBlock() instanceof MixedVerticalStepBlock mvsb) {
+        } else if (existingState.getBlock() instanceof MixedVerticalStepBlock mixedVerticalStepBlock) {
             // Merging into MixedVerticalStepBlock
-            BooleanProperty targetProp = mvsb.getPropertyFromHit(ctx.getHitPos().x - pos.getX(), ctx.getHitPos().y - pos.getY(), ctx.getHitPos().z - pos.getZ(), ctx.getSide(), true);
+            BooleanProperty targetProp = mixedVerticalStepBlock.getPropertyFromHit(ctx.getHitPos().x - pos.getX(), ctx.getHitPos().y - pos.getY(), ctx.getHitPos().z - pos.getZ(), ctx.getSide(), true);
              if (targetProp != null && !existingState.get(targetProp)) {
                  return existingState.with(targetProp, true);
             }
@@ -113,7 +103,7 @@ public class VerticalStepBlock extends ReshapedBlock {
      * @return The BooleanProperty for the hit quadrant
      */
     public BooleanProperty getPropertyFromHit(double hitX, double hitY, double hitZ, Direction side, boolean isPlacement) {
-        var quadrant = net.f3rr3.reshaped.util.BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement, false);
+        var quadrant = net.f3rr3.reshaped.util.BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement);
         return net.f3rr3.reshaped.util.BlockSegmentUtils.getVerticalStepProperty(quadrant);
     }
 
@@ -125,17 +115,14 @@ public class VerticalStepBlock extends ReshapedBlock {
         if (!world.isClient) {
             // Check if we merged into a MixedVerticalStepBlock
             if (state.getBlock() instanceof MixedVerticalStepBlock) {
-                 BlockEntity be = world.getBlockEntity(pos);
-                 if (be instanceof VerticalStepBlockEntity vsbe) {
-                     Identifier newMaterial = Registries.BLOCK.getId(this);
-                     BooleanProperty[] allProps = {NORTH_WEST, NORTH_EAST, SOUTH_WEST, SOUTH_EAST};
-                     
-                     for (int i = 0; i < 4; i++) {
-                         if (state.get(allProps[i]) && vsbe.getMaterial(i) == null) {
-                             vsbe.setMaterial(i, newMaterial);
-                         }
-                     }
-                 }
+                net.f3rr3.reshaped.util.BlockSegmentUtils.fillMissingMaterialsFromItem(
+                        world,
+                        pos,
+                        state,
+                        itemStack,
+                        net.f3rr3.reshaped.util.BlockSegmentUtils.VERTICAL_STEP_PROPERTIES,
+                        VerticalStepBlockEntity.class
+                );
             }
         }
     }

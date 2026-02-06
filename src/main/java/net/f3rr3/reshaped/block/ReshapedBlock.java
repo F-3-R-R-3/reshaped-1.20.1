@@ -6,14 +6,17 @@ import net.minecraft.block.Waterloggable;
 import net.minecraft.entity.ai.pathing.NavigationType;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.fluid.Fluids;
+import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.Properties;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.WorldAccess;
 
+@SuppressWarnings("deprecation")
 public abstract class ReshapedBlock extends Block implements Waterloggable {
     public static final BooleanProperty WATERLOGGED = Properties.WATERLOGGED;
 
@@ -37,6 +40,11 @@ public abstract class ReshapedBlock extends Block implements Waterloggable {
     @Override
     public boolean canPathfindThrough(BlockState state, BlockView world, BlockPos pos, NavigationType type) {
         return false;
+    }
+
+    protected static Vec3d getLocalHit(ItemPlacementContext context) {
+        BlockPos pos = context.getBlockPos();
+        return context.getHitPos().subtract(pos.getX(), pos.getY(), pos.getZ());
     }
 
     @Override

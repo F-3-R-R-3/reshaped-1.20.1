@@ -14,11 +14,6 @@ public interface BlockVariantType {
     String getName();
 
     /**
-     * Checks if this variant type can be applied to the given base block.
-     */
-    boolean appliesTo(Block baseBlock);
-
-    /**
      * Registers the variant for the given base block if it hasn't been registered yet.
      */
     void register(Block baseBlock, BlockMatrix matrix);

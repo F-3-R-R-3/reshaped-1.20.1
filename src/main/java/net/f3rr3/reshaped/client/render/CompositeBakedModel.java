@@ -11,7 +11,6 @@ import net.minecraft.block.SlabBlock;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.model.BakedModel;
-import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
@@ -70,7 +69,7 @@ public class CompositeBakedModel extends ForwardingBakedModel {
     }
 
     private void renderVerticalStepBlock(BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, RenderContext context, BlockEntity be) {
-        VerticalStepBlockEntity vsbe = (be instanceof VerticalStepBlockEntity entity) ? entity : null;
+        VerticalStepBlockEntity verticalStepBlockEntity = (be instanceof VerticalStepBlockEntity entity) ? entity : null;
 
         // NW=8, NE=4, SW=2, SE=1 (matching bitmask logic in Plugin)
         // Indices: 0-NW, 1-NE, 2-SW, 3-SE (arbitrary mapping, must match BE)
@@ -79,7 +78,7 @@ public class CompositeBakedModel extends ForwardingBakedModel {
         
         for (int i = 0; i < 4; i++) {
             if (isVerticalStepBitSet(state, i)) {
-                Identifier materialId = (vsbe != null) ? vsbe.getMaterial(i) : null;
+                Identifier materialId = (verticalStepBlockEntity != null) ? verticalStepBlockEntity.getMaterial(i) : null;
                 if (materialId == null) {
                     if (state.getBlock() instanceof VerticalStepBlock) materialId = Registries.BLOCK.getId(state.getBlock());
                     else continue;
@@ -94,12 +93,12 @@ public class CompositeBakedModel extends ForwardingBakedModel {
     }
 
     private void renderStepBlock(BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, RenderContext context, BlockEntity be) {
-        StepBlockEntity sbe = (be instanceof StepBlockEntity entity) ? entity : null;
+        StepBlockEntity stepBlockEntity = (be instanceof StepBlockEntity entity) ? entity : null;
         // DF, DB, UF, UB
         
         for (int i = 0; i < 4; i++) {
             if (isStepBitSet(state, i)) {
-                Identifier materialId = (sbe != null) ? sbe.getMaterial(i) : null;
+                Identifier materialId = (stepBlockEntity != null) ? stepBlockEntity.getMaterial(i) : null;
                 if (materialId == null) {
                      if (state.getBlock() instanceof StepBlock) materialId = Registries.BLOCK.getId(state.getBlock());
                      else continue;
@@ -121,17 +120,14 @@ public class CompositeBakedModel extends ForwardingBakedModel {
                 // EAST_WEST -> 180.
                 
                 net.f3rr3.reshaped.block.StepBlock.StepAxis axis = state.get(StepBlock.AXIS);
-                int yRotation = switch (axis) {
-                    case NORTH_SOUTH -> 270; 
-                    case EAST_WEST -> 180;
-                };
+                boolean rotate180 = axis == StepBlock.StepAxis.EAST_WEST;
+                boolean rotate270 = axis == StepBlock.StepAxis.NORTH_SOUTH;
                 
                 // Apply rotation
                 // Note: We need a MatrixStack or create a wrapped model that applies rotation.
                 // Or use context.pushTransform().
                 
                 context.pushTransform(quad -> {
-                     net.minecraft.util.math.Direction face = quad.lightFace();
                      // Simplified rotation for Y-axis 90 degree increments
                      // We need to rotate the quad geometry and the lightFace.
                      
@@ -141,9 +137,6 @@ public class CompositeBakedModel extends ForwardingBakedModel {
                      
                      // Let's use a QuadTransform that applies the rotation using Vector rotation.
                      // Just use a utility if available? No.
-                     
-                     // HARDCODED ROTATION LOGIC:
-                     if (yRotation == 0) return true;
                      
                      // Rotate Position
                      // Center is 0.5, 0.5, 0.5
@@ -158,15 +151,15 @@ public class CompositeBakedModel extends ForwardingBakedModel {
                          float z = quad.z(idx);
                          float newX = x;
                          float newZ = z;
-                         
-                         if (yRotation == 180) {
+
+                         if (rotate180) {
                              newX = 1.0f - x;
                              newZ = 1.0f - z;
-                         } else if (yRotation == 270) {
+                         } else if (rotate270) {
                              newX = z;
                              newZ = 1.0f - x;
                          }
-                         
+
                          quad.pos(idx, newX, quad.y(idx), newZ);
                      }
                      
@@ -217,14 +210,6 @@ public class CompositeBakedModel extends ForwardingBakedModel {
                      // So I apply 270 or 180.
                      
                      // Face rotation: 
-                     net.minecraft.util.math.Direction newFace = face;
-                     if (face.getAxis().isHorizontal()) {
-                          if (yRotation == 180) newFace = face.getOpposite();
-                          else if (yRotation == 270) newFace = face.rotateYCounterclockwise(); 
-                     }
-                     // quad.cullFace() might need update?
-                     // Usually unnecessary for dynamic rendering unless we really care about culling.
-                     
                      return true;
                 });
                 
@@ -235,14 +220,14 @@ public class CompositeBakedModel extends ForwardingBakedModel {
     }
     
     private void renderVerticalSlabBlock(BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, RenderContext context, BlockEntity be) {
-        VerticalSlabBlockEntity vsbe = (be instanceof VerticalSlabBlockEntity entity) ? entity : null;
+        VerticalSlabBlockEntity verticalSlabBlockEntity = (be instanceof VerticalSlabBlockEntity entity) ? entity : null;
         
         net.minecraft.util.math.Direction.Axis axis = state.get(MixedVerticalSlabBlock.AXIS);
         
         // 0=Negative (North/West), 1=Positive (South/East)
         for (int i = 0; i < 2; i++) {
             if (isVerticalSlabBitSet(state, i)) {
-                 Identifier materialId = (vsbe != null) ? vsbe.getMaterial(i) : null;
+                 Identifier materialId = (verticalSlabBlockEntity != null) ? verticalSlabBlockEntity.getMaterial(i) : null;
                  if (materialId == null) {
                      if (state.getBlock() instanceof VerticalSlabBlock) materialId = Registries.BLOCK.getId(state.getBlock());
                      else continue;
@@ -266,12 +251,12 @@ public class CompositeBakedModel extends ForwardingBakedModel {
     }
 
     private void renderSlabBlock(BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, RenderContext context, BlockEntity be) {
-         SlabBlockEntity sbe = (be instanceof SlabBlockEntity entity) ? entity : null;
+         SlabBlockEntity slabBlockEntity = (be instanceof SlabBlockEntity entity) ? entity : null;
          
          // 0=Bottom, 1=Top
          for (int i = 0; i < 2; i++) {
              if (isSlabBitSet(state, i)) {
-                 Identifier materialId = (sbe != null) ? sbe.getMaterial(i) : null;
+                 Identifier materialId = (slabBlockEntity != null) ? slabBlockEntity.getMaterial(i) : null;
                  if (materialId == null) {
                      if (state.getBlock() instanceof SlabBlock) materialId = Registries.BLOCK.getId(state.getBlock());
                      else continue;
@@ -309,17 +294,10 @@ public class CompositeBakedModel extends ForwardingBakedModel {
     // --- Bit Helpers ---
 
     private boolean isCornerBitSet(BlockState state, int index) {
-        return switch (index) {
-            case 0 -> state.get(CornerBlock.DOWN_NW);
-            case 1 -> state.get(CornerBlock.DOWN_NE);
-            case 2 -> state.get(CornerBlock.DOWN_SW);
-            case 3 -> state.get(CornerBlock.DOWN_SE);
-            case 4 -> state.get(CornerBlock.UP_NW);
-            case 5 -> state.get(CornerBlock.UP_NE);
-            case 6 -> state.get(CornerBlock.UP_SW);
-            case 7 -> state.get(CornerBlock.UP_SE);
-            default -> false;
-        };
+        if (index < 0 || index >= net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_PROPERTIES.length) {
+            return false;
+        }
+        return state.get(net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_PROPERTIES[index]);
     }
     
     private String getCornerBitMask(int index) {

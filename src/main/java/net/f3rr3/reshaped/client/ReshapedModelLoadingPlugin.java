@@ -39,20 +39,7 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                             if (state.get(net.f3rr3.reshaped.block.StepBlock.UP_FRONT)) bitmask |= 2;
                             if (state.get(net.f3rr3.reshaped.block.StepBlock.UP_BACK)) bitmask |= 1;
 
-                            Identifier modelId;
-                            // Optimization: If full block, use base block model
-                            if (bitmask == 15) {
-                                Block base = Reshaped.MATRIX != null ? Reshaped.MATRIX.getBaseBlock(block) : null;
-                                if (base != null) {
-                                    Identifier baseId = Registries.BLOCK.getId(base);
-                                    modelId = new Identifier(baseId.getNamespace(), "block/" + baseId.getPath());
-                                } else {
-                                    modelId = new Identifier(Reshaped.MOD_ID, "block/" + path);
-                                }
-                            } else {
-                                String mask = String.format("%04d", Integer.parseInt(Integer.toBinaryString(bitmask)));
-                                modelId = new Identifier(Reshaped.MOD_ID, "block/" + path + "_" + mask);
-                            }
+                            Identifier modelId = resolveSegmentModelId(block, path, bitmask, 4);
 
                             // Determine rotation based on axis
                             net.f3rr3.reshaped.block.StepBlock.StepAxis axis = state.get(net.f3rr3.reshaped.block.StepBlock.AXIS);
@@ -68,12 +55,7 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                     });
                     
                     // Pre-register all possible segment combinations
-                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path));
-                    for (int i = 0; i < 16; i++) {
-                        String mask = String.format("%04d", Integer.parseInt(Integer.toBinaryString(i)));
-                        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_" + mask));
-                    }
-                    context.addModels(new Identifier(Reshaped.MOD_ID, "item/" + path));
+                    addSegmentModels(context, path, 4);
                     continue; // Skip generic handling
                 }
 
@@ -88,20 +70,7 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                             if (state.get(net.f3rr3.reshaped.block.VerticalStepBlock.SOUTH_WEST)) bitmask |= 2;
                             if (state.get(net.f3rr3.reshaped.block.VerticalStepBlock.SOUTH_EAST)) bitmask |= 1;
 
-                            Identifier modelId;
-                            if (bitmask == 15) {
-                                // Full block
-                                Block base = Reshaped.MATRIX != null ? Reshaped.MATRIX.getBaseBlock(block) : null;
-                                if (base != null) {
-                                    Identifier baseId = Registries.BLOCK.getId(base);
-                                    modelId = new Identifier(baseId.getNamespace(), "block/" + baseId.getPath());
-                                } else {
-                                    modelId = new Identifier(Reshaped.MOD_ID, "block/" + path);
-                                }
-                            } else {
-                                String mask = String.format("%04d", Integer.parseInt(Integer.toBinaryString(bitmask)));
-                                modelId = new Identifier(Reshaped.MOD_ID, "block/" + path + "_" + mask);
-                            }
+                            Identifier modelId = resolveSegmentModelId(block, path, bitmask, 4);
 
                             // No rotation needed for vertical step segments as they are absolute
                             ModelVariant variant = new ModelVariant(modelId, net.minecraft.client.render.model.ModelRotation.X0_Y0.getRotation(), true, 1);
@@ -110,12 +79,7 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                     });
 
                     // Pre-register all possible segment combinations
-                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path));
-                    for (int i = 0; i < 16; i++) {
-                        String mask = String.format("%04d", Integer.parseInt(Integer.toBinaryString(i)));
-                        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_" + mask));
-                    }
-                    context.addModels(new Identifier(Reshaped.MOD_ID, "item/" + path));
+                    addSegmentModels(context, path, 4);
                     continue; // Skip generic handling
                 }
 
@@ -133,10 +97,10 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                             placeholders.put("base_model", baseId.getNamespace() + ":block/" + baseId.getPath());
                         }
 
-                        String blockstateJson = RuntimeResourceGenerator.generateBlockStateJson(block, finalTemplateType, placeholders);
-                        if (blockstateJson != null) {
+                        String blockStateJson = RuntimeResourceGenerator.generateBlockStateJson(finalTemplateType, placeholders);
+                        if (blockStateJson != null) {
                             try {
-                                com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(blockstateJson).getAsJsonObject();
+                                com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(blockStateJson).getAsJsonObject();
                                 if (json.has("variants")) {
                                     com.google.gson.JsonObject variants = json.getAsJsonObject("variants");
                                     for (BlockState state : block.getStateManager().getStates()) {
@@ -149,7 +113,7 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                                     }
                                 }
                             } catch (Exception e) {
-                                Reshaped.LOGGER.error("Failed to apply blockstate template for " + id, e);
+                                Reshaped.LOGGER.error("Failed to apply block state template for {}", id, e);
                             }
                         }
                     });
@@ -169,16 +133,12 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                 
                 // Add models for Vertical Slabs components
                 if (path.endsWith("_vertical_slab")) {
-                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_north"));
-                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_south"));
-                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_east"));
-                    context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_west"));
+                    addDirectionalModels(context, path);
                 }
 
                 if (path.endsWith("_corner")) {
                     for (int i = 0; i < 256; i++) {
-                        String mask = String.format("%8s", Integer.toBinaryString(i)).replace(' ', '0');
-                        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_" + mask));
+                        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_" + toBitMask(i, 8)));
                     }
                 }
                 context.addModels(new Identifier(Reshaped.MOD_ID, "item/" + path));
@@ -195,7 +155,7 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                     try {
                         return JsonUnbakedModel.deserialize(json);
                     } catch (Exception e) {
-                        Reshaped.LOGGER.error("Failed to deserialize dynamic model: " + id, e);
+                        Reshaped.LOGGER.error("Failed to deserialize dynamic model: {}", id, e);
                     }
                 }
             }
@@ -228,7 +188,7 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                 }
                 // Vertical Slabs and Slabs might need explicit wrapping if they are base types?
                 // Or Mixed blocks only?
-                // Mixed blocks (mixed_corner, etc) use custom resolvers.
+                // Mixed blocks (mixed_corner, etc.) use custom resolvers.
                 // WE ALSO NEED TO WRAP THE MIXED BLOCKS models (which are placeholders)
                 if (id.getPath().startsWith("mixed_")) {
                     return new CompositeBakedModel(model);
@@ -236,5 +196,37 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
             }
             return model;
         });
+    }
+
+    private static void addSegmentModels(Context context, String path, int bitCount) {
+        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path));
+        int max = 1 << bitCount;
+        for (int i = 0; i < max; i++) {
+            context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_" + toBitMask(i, bitCount)));
+        }
+        context.addModels(new Identifier(Reshaped.MOD_ID, "item/" + path));
+    }
+
+    private static void addDirectionalModels(Context context, String path) {
+        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_north"));
+        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_south"));
+        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_east"));
+        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_west"));
+    }
+
+    private static Identifier resolveSegmentModelId(Block block, String path, int bitmask, int bitCount) {
+        if (bitmask == (1 << bitCount) - 1) {
+            Block base = Reshaped.MATRIX != null ? Reshaped.MATRIX.getBaseBlock(block) : null;
+            if (base != null) {
+                Identifier baseId = Registries.BLOCK.getId(base);
+                return new Identifier(baseId.getNamespace(), "block/" + baseId.getPath());
+            }
+            return new Identifier(Reshaped.MOD_ID, "block/" + path);
+        }
+        return new Identifier(Reshaped.MOD_ID, "block/" + path + "_" + toBitMask(bitmask, bitCount));
+    }
+
+    private static String toBitMask(int value, int length) {
+        return String.format("%" + length + "s", Integer.toBinaryString(value)).replace(' ', '0');
     }
 }

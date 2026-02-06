@@ -10,17 +10,17 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
+@SuppressWarnings("deprecation")
 public class MixedVerticalStepBlock extends ReshapedBlock implements BlockEntityProvider {
     public static final BooleanProperty NORTH_WEST = VerticalStepBlock.NORTH_WEST;
     public static final BooleanProperty NORTH_EAST = VerticalStepBlock.NORTH_EAST;
@@ -42,25 +42,15 @@ public class MixedVerticalStepBlock extends ReshapedBlock implements BlockEntity
 
     @Override
     public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
-        VoxelShape shape = VoxelShapes.empty();
-
-        if (state.get(NORTH_WEST)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.VSTEP_NW);
-        if (state.get(NORTH_EAST)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.VSTEP_NE);
-        if (state.get(SOUTH_WEST)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.VSTEP_SW);
-        if (state.get(SOUTH_EAST)) shape = VoxelShapes.union(shape, net.f3rr3.reshaped.util.BlockSegmentUtils.VSTEP_SE);
-
-        return shape.isEmpty() ? VoxelShapes.fullCube() : shape;
+        return net.f3rr3.reshaped.util.BlockSegmentUtils.buildVerticalStepShape(state);
     }
 
     @Override
     public boolean canReplace(BlockState state, ItemPlacementContext context) {
         ItemStack itemStack = context.getStack();
         if (itemStack.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof VerticalStepBlock) {
-             double hitX = context.getHitPos().x - (double)context.getBlockPos().getX();
-             double hitY = context.getHitPos().y - (double)context.getBlockPos().getY();
-             double hitZ = context.getHitPos().z - (double)context.getBlockPos().getZ();
-
-             BooleanProperty property = getPropertyFromHit(hitX, hitY, hitZ, context.getSide(), true);
+             Vec3d localHit = getLocalHit(context);
+             BooleanProperty property = getPropertyFromHit(localHit.x, localHit.y, localHit.z, context.getSide(), true);
              if (property != null && !state.get(property)) {
                  return true;
              }
@@ -73,12 +63,9 @@ public class MixedVerticalStepBlock extends ReshapedBlock implements BlockEntity
         BlockPos pos = ctx.getBlockPos();
         World world = ctx.getWorld();
         BlockState existingState = world.getBlockState(pos);
-        
-        double hitX = ctx.getHitPos().x - (double)pos.getX();
-        double hitY = ctx.getHitPos().y - (double)pos.getY();
-        double hitZ = ctx.getHitPos().z - (double)pos.getZ();
-        
-        BooleanProperty property = getPropertyFromHit(hitX, hitY, hitZ, ctx.getSide(), true);
+
+        Vec3d localHit = getLocalHit(ctx);
+        BooleanProperty property = getPropertyFromHit(localHit.x, localHit.y, localHit.z, ctx.getSide(), true);
         if (property == null) return null;
 
         if (existingState.isOf(this)) {
@@ -92,24 +79,19 @@ public class MixedVerticalStepBlock extends ReshapedBlock implements BlockEntity
     public void onPlaced(World world, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack itemStack) {
         super.onPlaced(world, pos, state, placer, itemStack);
         if (!world.isClient) {
-            BlockEntity be = world.getBlockEntity(pos);
-            if (be instanceof VerticalStepBlockEntity vsbe) {
-                if (itemStack.getItem() instanceof BlockItem blockItem) {
-                    Block block = blockItem.getBlock();
-                    
-                    BooleanProperty[] allProps = {NORTH_WEST, NORTH_EAST, SOUTH_WEST, SOUTH_EAST};
-                    for (int i = 0; i < 4; i++) {
-                        if (state.get(allProps[i]) && vsbe.getMaterial(i) == null) {
-                            vsbe.setMaterial(i, Registries.BLOCK.getId(block));
-                        }
-                    }
-                }
-            }
+            net.f3rr3.reshaped.util.BlockSegmentUtils.fillMissingMaterialsFromItem(
+                    world,
+                    pos,
+                    state,
+                    itemStack,
+                    net.f3rr3.reshaped.util.BlockSegmentUtils.VERTICAL_STEP_PROPERTIES,
+                    VerticalStepBlockEntity.class
+            );
         }
     }
 
     public BooleanProperty getPropertyFromHit(double hitX, double hitY, double hitZ, Direction side, boolean isPlacement) {
-        var quadrant = net.f3rr3.reshaped.util.BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement, false);
+        var quadrant = net.f3rr3.reshaped.util.BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement);
         return net.f3rr3.reshaped.util.BlockSegmentUtils.getVerticalStepProperty(quadrant);
     }
 
