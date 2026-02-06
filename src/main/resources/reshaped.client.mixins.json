@@ -3,6 +3,8 @@
   "package": "net.f3rr3.reshaped.mixin.client",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
+    "BlockModelsMixin",
+    "ClientPlayerInteractionManagerMixin",
     "DrawContextMixin",
     "KeyboardInputMixin",
     "MouseInputMixin",

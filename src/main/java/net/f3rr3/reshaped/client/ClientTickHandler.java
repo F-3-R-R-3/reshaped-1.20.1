@@ -39,6 +39,8 @@ public class ClientTickHandler {
                     }
                 }
             }
+
+            MixedBlockParticleTracker.tick(client.world);
         });
     }
 }

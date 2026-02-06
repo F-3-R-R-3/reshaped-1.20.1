@@ -1,0 +1,57 @@
+package net.f3rr3.reshaped.client;
+
+import net.f3rr3.reshaped.block.*;
+import net.f3rr3.reshaped.block.entity.MixedBlockEntity;
+import net.f3rr3.reshaped.util.BlockSegmentUtils;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.state.property.BooleanProperty;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.BlockRenderView;
+
+public final class MixedBlockParticleUtils {
+    private MixedBlockParticleUtils() {
+    }
+
+    public static Identifier resolveMaterialForHit(BlockRenderView world, BlockPos pos, BlockState state, BlockHitResult hit) {
+        BooleanProperty property = null;
+        BooleanProperty[] properties = null;
+
+        Vec3d localHit = hit.getPos().subtract(pos.getX(), pos.getY(), pos.getZ());
+
+        if (state.getBlock() instanceof MixedCornerBlock mixedCornerBlock) {
+            property = mixedCornerBlock.getPropertyFromHit(localHit.x, localHit.y, localHit.z, hit.getSide(), false);
+            properties = BlockSegmentUtils.CORNER_PROPERTIES;
+        } else if (state.getBlock() instanceof MixedStepBlock mixedStepBlock) {
+            property = mixedStepBlock.getPropertyFromHit(localHit.x, localHit.y, localHit.z, hit.getSide(), false, state);
+            properties = BlockSegmentUtils.STEP_PROPERTIES;
+        } else if (state.getBlock() instanceof MixedVerticalStepBlock mixedVerticalStepBlock) {
+            property = mixedVerticalStepBlock.getPropertyFromHit(localHit.x, localHit.y, localHit.z, hit.getSide(), false);
+            properties = BlockSegmentUtils.VERTICAL_STEP_PROPERTIES;
+        } else if (state.getBlock() instanceof MixedSlabBlock mixedSlabBlock) {
+            property = mixedSlabBlock.getPropertyFromHit(localHit.y, hit.getSide(), false);
+            properties = new BooleanProperty[]{MixedSlabBlock.BOTTOM, MixedSlabBlock.TOP};
+        } else if (state.getBlock() instanceof MixedVerticalSlabBlock mixedVerticalSlabBlock) {
+            property = mixedVerticalSlabBlock.getPropertyFromHit(localHit.x, localHit.y, localHit.z, hit.getSide(), false, state);
+            properties = new BooleanProperty[]{MixedVerticalSlabBlock.NEGATIVE, MixedVerticalSlabBlock.POSITIVE};
+        }
+
+        if (property == null || !state.get(property)) {
+            return null;
+        }
+
+        BlockEntity be = world.getBlockEntity(pos);
+        if (be instanceof MixedBlockEntity mixedBlockEntity) {
+            for (int i = 0; i < properties.length; i++) {
+                if (properties[i] == property) {
+                    return mixedBlockEntity.getMaterial(i);
+                }
+            }
+        }
+
+        return null;
+    }
+}

@@ -22,6 +22,8 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
 
     @Override
     public void onInitializeModelLoader(Context context) {
+        context.addModels(new Identifier(Reshaped.MOD_ID, "block/mixed_placeholder"));
+
         // Register block state resolvers for all reshaped blocks currently in registry
         for (Block block : Registries.BLOCK) {
             Identifier id = Registries.BLOCK.getId(block);
@@ -118,8 +120,14 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                         }
                     });
                 } else if (path.startsWith("mixed_")) {
-                    // Manual resolver for Mixed Blocks - just map to empty/air model since CompositeBakedModel handles it
-                    context.registerBlockStateResolver(block, resolverContext -> resolverContext.setModel(block.getDefaultState(), new WeightedUnbakedModel(Collections.singletonList(new ModelVariant(new Identifier("minecraft:block/air"), null, false, 1)))));
+                    // Manual resolver for Mixed Blocks - use a placeholder model to provide particles.
+                    Identifier placeholder = new Identifier(Reshaped.MOD_ID, "block/mixed_placeholder");
+                    context.registerBlockStateResolver(block, resolverContext -> {
+                        WeightedUnbakedModel model = new WeightedUnbakedModel(Collections.singletonList(new ModelVariant(placeholder, null, false, 1)));
+                        for (BlockState state : block.getStateManager().getStates()) {
+                            resolverContext.setModel(state, model);
+                        }
+                    });
                 }
 
                 // Pre-register basic models

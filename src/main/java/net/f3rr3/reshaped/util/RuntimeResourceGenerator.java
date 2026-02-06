@@ -103,6 +103,9 @@ public class RuntimeResourceGenerator {
         // Handle Block Models
         String blockPath = path;
         if (blockPath.startsWith("block/")) blockPath = blockPath.substring(6);
+        if (blockPath.startsWith("mixed_") && !blockPath.equals("mixed_placeholder")) {
+            return "{\"parent\":\"reshaped:block/mixed_placeholder\"}";
+        }
 
         // Delegate to VariantRegistry for custom variants
         String baseBlockPath = blockPath;
