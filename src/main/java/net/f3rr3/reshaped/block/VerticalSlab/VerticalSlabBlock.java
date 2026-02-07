@@ -88,6 +88,11 @@ public class VerticalSlabBlock extends ReshapedBlock {
     }
 
     @Override
+    public String getTranslationKey() {
+        return "block.reshaped.vertical_slab";
+    }
+
+    @Override
     protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
         super.appendProperties(builder);
         builder.add(FACING, TYPE);
