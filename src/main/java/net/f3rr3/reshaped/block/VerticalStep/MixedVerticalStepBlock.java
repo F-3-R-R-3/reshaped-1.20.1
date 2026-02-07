@@ -1,6 +1,6 @@
-package net.f3rr3.reshaped.block;
+package net.f3rr3.reshaped.block.VerticalStep;
 
-import net.f3rr3.reshaped.block.entity.VerticalStepBlockEntity;
+import net.f3rr3.reshaped.block.Template.ReshapedBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockEntityProvider;
 import net.minecraft.block.BlockState;
@@ -49,11 +49,11 @@ public class MixedVerticalStepBlock extends ReshapedBlock implements BlockEntity
     public boolean canReplace(BlockState state, ItemPlacementContext context) {
         ItemStack itemStack = context.getStack();
         if (itemStack.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof VerticalStepBlock) {
-             Vec3d localHit = getLocalHit(context);
-             BooleanProperty property = getPropertyFromHit(localHit.x, localHit.y, localHit.z, context.getSide(), true);
-             if (property != null && !state.get(property)) {
-                 return true;
-             }
+            Vec3d localHit = getLocalHit(context);
+            BooleanProperty property = getPropertyFromHit(localHit.x, localHit.y, localHit.z, context.getSide(), true);
+            if (property != null && !state.get(property)) {
+                return true;
+            }
         }
         return super.canReplace(state, context);
     }

@@ -1,4 +1,4 @@
-package net.f3rr3.reshaped.block.entity;
+package net.f3rr3.reshaped.block.Template;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
@@ -55,7 +55,7 @@ public abstract class MixedBlockEntity extends BlockEntity {
                 materials[i] = s.isEmpty() ? null : new Identifier(s);
             }
         }
-        
+
         if (world != null && world.isClient) {
             world.updateListeners(pos, getCachedState(), getCachedState(), 3);
         }

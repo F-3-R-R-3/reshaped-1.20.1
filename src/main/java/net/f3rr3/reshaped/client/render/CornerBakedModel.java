@@ -1,9 +1,9 @@
 package net.f3rr3.reshaped.client.render;
 
 import net.f3rr3.reshaped.Reshaped;
-import net.f3rr3.reshaped.block.CornerBlock;
-import net.f3rr3.reshaped.block.MixedCornerBlock;
-import net.f3rr3.reshaped.block.entity.CornerBlockEntity;
+import net.f3rr3.reshaped.block.Corner.CornerBlock;
+import net.f3rr3.reshaped.block.Corner.CornerBlockEntity;
+import net.f3rr3.reshaped.block.Corner.MixedCornerBlock;
 import net.fabricmc.fabric.api.renderer.v1.model.ForwardingBakedModel;
 import net.fabricmc.fabric.api.renderer.v1.render.RenderContext;
 import net.minecraft.block.BlockState;

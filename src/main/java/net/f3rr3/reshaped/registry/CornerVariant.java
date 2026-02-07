@@ -1,7 +1,7 @@
 package net.f3rr3.reshaped.registry;
 
 import net.f3rr3.reshaped.Reshaped;
-import net.f3rr3.reshaped.block.CornerBlock;
+import net.f3rr3.reshaped.block.Corner.CornerBlock;
 import net.f3rr3.reshaped.util.BlockMatrix;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
@@ -49,18 +49,18 @@ public class CornerVariant implements BlockVariantType {
                 int bitIndex = path.lastIndexOf('_');
                 if (bitIndex != -1 && path.length() - bitIndex == 9) {
                     String bits = path.substring(bitIndex + 1);
-                    
+
                     com.google.gson.JsonObject root = new com.google.gson.JsonObject();
                     root.addProperty("parent", "minecraft:block/block");
-                    
+
                     com.google.gson.JsonObject texturesObj = new com.google.gson.JsonObject();
                     net.f3rr3.reshaped.util.RuntimeResourceGenerator.applyTextures(texturesObj, textures);
                     root.add("textures", texturesObj);
-                    
+
                     com.google.gson.JsonArray elements = new com.google.gson.JsonArray();
                     String[] segmentTemplates = {
-                        "corner_down_nw", "corner_down_ne", "corner_down_sw", "corner_down_se",
-                        "corner_up_nw", "corner_up_ne", "corner_up_sw", "corner_up_se"
+                            "corner_down_nw", "corner_down_ne", "corner_down_sw", "corner_down_se",
+                            "corner_up_nw", "corner_up_ne", "corner_up_sw", "corner_up_se"
                     };
 
                     for (int i = 0; i < 8; i++) {

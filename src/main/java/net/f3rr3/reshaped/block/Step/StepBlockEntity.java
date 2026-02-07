@@ -1,5 +1,6 @@
-package net.f3rr3.reshaped.block.entity;
+package net.f3rr3.reshaped.block.Step;
 
+import net.f3rr3.reshaped.block.Template.MixedBlockEntity;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.util.math.BlockPos;

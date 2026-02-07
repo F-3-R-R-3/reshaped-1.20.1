@@ -1,9 +1,9 @@
 package net.f3rr3.reshaped.util;
 
-import net.f3rr3.reshaped.block.CornerBlock;
-import net.f3rr3.reshaped.block.StepBlock;
-import net.f3rr3.reshaped.block.VerticalStepBlock;
-import net.f3rr3.reshaped.block.entity.MixedBlockEntity;
+import net.f3rr3.reshaped.block.Corner.CornerBlock;
+import net.f3rr3.reshaped.block.Step.StepBlock;
+import net.f3rr3.reshaped.block.VerticalStep.VerticalStepBlock;
+import net.f3rr3.reshaped.block.Template.MixedBlockEntity;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
@@ -25,6 +25,35 @@ public class BlockSegmentUtils {
 
     // ==================== Quadrant Detection ====================
 
+    public static final BooleanProperty[] CORNER_PROPERTIES = {
+            CornerBlock.DOWN_NW, CornerBlock.DOWN_NE, CornerBlock.DOWN_SW, CornerBlock.DOWN_SE,
+            CornerBlock.UP_NW, CornerBlock.UP_NE, CornerBlock.UP_SW, CornerBlock.UP_SE
+    };
+    public static final BooleanProperty[] VERTICAL_STEP_PROPERTIES = {
+            VerticalStepBlock.NORTH_WEST, VerticalStepBlock.NORTH_EAST, VerticalStepBlock.SOUTH_WEST, VerticalStepBlock.SOUTH_EAST
+    };
+
+    // ==================== Property Mapping ====================
+    public static final BooleanProperty[] STEP_PROPERTIES = {
+            StepBlock.DOWN_FRONT, StepBlock.DOWN_BACK, StepBlock.UP_FRONT, StepBlock.UP_BACK
+    };
+    // Corner shape constants
+    public static final VoxelShape CORNER_DOWN_NW = Block.createCuboidShape(0, 0, 0, 8, 8, 8);
+    public static final VoxelShape CORNER_DOWN_NE = Block.createCuboidShape(8, 0, 0, 16, 8, 8);
+
+    // ==================== Shape Building ====================
+    public static final VoxelShape CORNER_DOWN_SW = Block.createCuboidShape(0, 0, 8, 8, 8, 16);
+    public static final VoxelShape CORNER_DOWN_SE = Block.createCuboidShape(8, 0, 8, 16, 8, 16);
+    public static final VoxelShape CORNER_UP_NW = Block.createCuboidShape(0, 8, 0, 8, 16, 8);
+    public static final VoxelShape CORNER_UP_NE = Block.createCuboidShape(8, 8, 0, 16, 16, 8);
+    public static final VoxelShape CORNER_UP_SW = Block.createCuboidShape(0, 8, 8, 8, 16, 16);
+    public static final VoxelShape CORNER_UP_SE = Block.createCuboidShape(8, 8, 8, 16, 16, 16);
+    // Vertical step shape constants
+    public static final VoxelShape VSTEP_NW = Block.createCuboidShape(0, 0, 0, 8, 16, 8);
+    public static final VoxelShape VSTEP_NE = Block.createCuboidShape(8, 0, 0, 16, 16, 8);
+    public static final VoxelShape VSTEP_SW = Block.createCuboidShape(0, 0, 8, 8, 16, 16);
+    public static final VoxelShape VSTEP_SE = Block.createCuboidShape(8, 0, 8, 16, 16, 16);
+
     /**
      * Common hit detection logic for quadrant-based blocks.
      * Extracts logic used in VerticalStepBlock and CornerBlock.
@@ -45,13 +74,6 @@ public class BlockSegmentUtils {
 
         return new Quadrant(isUp, isNorth, isWest);
     }
-
-    public record Quadrant(boolean isUp, boolean isNorth, boolean isWest) {
-        public boolean isPlusX() { return !isWest; }
-        public boolean isPlusZ() { return !isNorth; }
-    }
-
-    // ==================== Property Mapping ====================
 
     /**
      * Get the CornerBlock property for a given quadrant.
@@ -89,8 +111,6 @@ public class BlockSegmentUtils {
             return isFront ? StepBlock.DOWN_FRONT : StepBlock.DOWN_BACK;
         }
     }
-
-    // ==================== Shape Building ====================
 
     /**
      * Build the shape for a StepBlock or MixedStepBlock segment.
@@ -147,19 +167,6 @@ public class BlockSegmentUtils {
         return shape.isEmpty() ? VoxelShapes.fullCube() : shape;
     }
 
-    public static final BooleanProperty[] CORNER_PROPERTIES = {
-            CornerBlock.DOWN_NW, CornerBlock.DOWN_NE, CornerBlock.DOWN_SW, CornerBlock.DOWN_SE,
-            CornerBlock.UP_NW, CornerBlock.UP_NE, CornerBlock.UP_SW, CornerBlock.UP_SE
-    };
-
-    public static final BooleanProperty[] VERTICAL_STEP_PROPERTIES = {
-            VerticalStepBlock.NORTH_WEST, VerticalStepBlock.NORTH_EAST, VerticalStepBlock.SOUTH_WEST, VerticalStepBlock.SOUTH_EAST
-    };
-
-    public static final BooleanProperty[] STEP_PROPERTIES = {
-            StepBlock.DOWN_FRONT, StepBlock.DOWN_BACK, StepBlock.UP_FRONT, StepBlock.UP_BACK
-    };
-
     public static void fillMissingMaterials(MixedBlockEntity blockEntity, BlockState state, BooleanProperty[] properties, Identifier materialId) {
         for (int i = 0; i < properties.length; i++) {
             if (state.get(properties[i]) && blockEntity.getMaterial(i) == null) {
@@ -182,19 +189,13 @@ public class BlockSegmentUtils {
         }
     }
 
-    // Corner shape constants
-    public static final VoxelShape CORNER_DOWN_NW = Block.createCuboidShape(0, 0, 0, 8, 8, 8);
-    public static final VoxelShape CORNER_DOWN_NE = Block.createCuboidShape(8, 0, 0, 16, 8, 8);
-    public static final VoxelShape CORNER_DOWN_SW = Block.createCuboidShape(0, 0, 8, 8, 8, 16);
-    public static final VoxelShape CORNER_DOWN_SE = Block.createCuboidShape(8, 0, 8, 16, 8, 16);
-    public static final VoxelShape CORNER_UP_NW = Block.createCuboidShape(0, 8, 0, 8, 16, 8);
-    public static final VoxelShape CORNER_UP_NE = Block.createCuboidShape(8, 8, 0, 16, 16, 8);
-    public static final VoxelShape CORNER_UP_SW = Block.createCuboidShape(0, 8, 8, 8, 16, 16);
-    public static final VoxelShape CORNER_UP_SE = Block.createCuboidShape(8, 8, 8, 16, 16, 16);
+    public record Quadrant(boolean isUp, boolean isNorth, boolean isWest) {
+        public boolean isPlusX() {
+            return !isWest;
+        }
 
-    // Vertical step shape constants
-    public static final VoxelShape VSTEP_NW = Block.createCuboidShape(0, 0, 0, 8, 16, 8);
-    public static final VoxelShape VSTEP_NE = Block.createCuboidShape(8, 0, 0, 16, 16, 8);
-    public static final VoxelShape VSTEP_SW = Block.createCuboidShape(0, 0, 8, 8, 16, 16);
-    public static final VoxelShape VSTEP_SE = Block.createCuboidShape(8, 0, 8, 16, 16, 16);
+        public boolean isPlusZ() {
+            return !isNorth;
+        }
+    }
 }

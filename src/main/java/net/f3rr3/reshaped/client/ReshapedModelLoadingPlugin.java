@@ -1,6 +1,8 @@
 package net.f3rr3.reshaped.client;
 
 import net.f3rr3.reshaped.Reshaped;
+import net.f3rr3.reshaped.block.Step.StepBlock;
+import net.f3rr3.reshaped.block.VerticalStep.VerticalStepBlock;
 import net.f3rr3.reshaped.client.render.CompositeBakedModel;
 import net.f3rr3.reshaped.util.RuntimeResourceGenerator;
 import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
@@ -64,15 +66,15 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                 String path = id.getPath();
 
                 // Custom resolver for StepBlock - handles dynamic segment models and rotation
-                if (block instanceof net.f3rr3.reshaped.block.StepBlock) {
+                if (block instanceof StepBlock) {
                     context.registerBlockStateResolver(block, resolverContext -> {
                         for (BlockState state : block.getStateManager().getStates()) {
                             // Construct bitmask: DF DB UF UB
                             int bitmask = 0;
-                            if (state.get(net.f3rr3.reshaped.block.StepBlock.DOWN_FRONT)) bitmask |= 8;
-                            if (state.get(net.f3rr3.reshaped.block.StepBlock.DOWN_BACK)) bitmask |= 4;
-                            if (state.get(net.f3rr3.reshaped.block.StepBlock.UP_FRONT)) bitmask |= 2;
-                            if (state.get(net.f3rr3.reshaped.block.StepBlock.UP_BACK)) bitmask |= 1;
+                            if (state.get(StepBlock.DOWN_FRONT)) bitmask |= 8;
+                            if (state.get(StepBlock.DOWN_BACK)) bitmask |= 4;
+                            if (state.get(StepBlock.UP_FRONT)) bitmask |= 2;
+                            if (state.get(StepBlock.UP_BACK)) bitmask |= 1;
 
                             Identifier modelId = resolveSegmentModelId(block, path, bitmask);
 
@@ -88,15 +90,15 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                 }
 
                 // Custom resolver for VerticalStepBlock - handles absolute quadrant models
-                if (block instanceof net.f3rr3.reshaped.block.VerticalStepBlock) {
+                if (block instanceof VerticalStepBlock) {
                     context.registerBlockStateResolver(block, resolverContext -> {
                         for (BlockState state : block.getStateManager().getStates()) {
                             // Construct bitmask: NW NE SW SE
                             int bitmask = 0;
-                            if (state.get(net.f3rr3.reshaped.block.VerticalStepBlock.NORTH_WEST)) bitmask |= 8;
-                            if (state.get(net.f3rr3.reshaped.block.VerticalStepBlock.NORTH_EAST)) bitmask |= 4;
-                            if (state.get(net.f3rr3.reshaped.block.VerticalStepBlock.SOUTH_WEST)) bitmask |= 2;
-                            if (state.get(net.f3rr3.reshaped.block.VerticalStepBlock.SOUTH_EAST)) bitmask |= 1;
+                            if (state.get(VerticalStepBlock.NORTH_WEST)) bitmask |= 8;
+                            if (state.get(VerticalStepBlock.NORTH_EAST)) bitmask |= 4;
+                            if (state.get(VerticalStepBlock.SOUTH_WEST)) bitmask |= 2;
+                            if (state.get(VerticalStepBlock.SOUTH_EAST)) bitmask |= 1;
 
                             Identifier modelId = resolveSegmentModelId(block, path, bitmask);
 

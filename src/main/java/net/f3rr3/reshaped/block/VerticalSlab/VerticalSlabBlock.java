@@ -1,6 +1,9 @@
-package net.f3rr3.reshaped.block;
+package net.f3rr3.reshaped.block.VerticalSlab;
 
-import net.minecraft.block.*;
+import net.f3rr3.reshaped.block.Template.ReshapedBlock;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.ShapeContext;
 import net.minecraft.block.enums.SlabType;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.fluid.Fluids;
@@ -53,14 +56,14 @@ public class VerticalSlabBlock extends ReshapedBlock {
     public BlockState getPlacementState(ItemPlacementContext ctx) {
         BlockPos blockPos = ctx.getBlockPos();
         BlockState blockState = ctx.getWorld().getBlockState(blockPos);
-        
+
         if (blockState.isOf(this)) {
             return blockState.with(TYPE, SlabType.DOUBLE).with(WATERLOGGED, false);
         }
-        
+
         FluidState fluidState = ctx.getWorld().getFluidState(blockPos);
         BlockState defaultState = this.getDefaultState().with(WATERLOGGED, fluidState.getFluid() == Fluids.WATER);
-        
+
         // Simple logic:
         return defaultState.with(FACING, ctx.getHorizontalPlayerFacing().getOpposite());
     }
@@ -69,7 +72,7 @@ public class VerticalSlabBlock extends ReshapedBlock {
     public boolean canReplace(BlockState state, ItemPlacementContext context) {
         ItemStack itemStack = context.getStack();
         SlabType slabType = state.get(TYPE);
-        
+
         if (slabType == SlabType.DOUBLE || !itemStack.isOf(this.asItem())) {
             return false;
         }

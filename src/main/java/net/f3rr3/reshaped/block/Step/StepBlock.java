@@ -1,5 +1,6 @@
-package net.f3rr3.reshaped.block;
+package net.f3rr3.reshaped.block.Step;
 
+import net.f3rr3.reshaped.block.Template.ReshapedBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.ShapeContext;
@@ -17,7 +18,6 @@ import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
 import net.minecraft.entity.LivingEntity;
-import net.f3rr3.reshaped.block.entity.StepBlockEntity;
 import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings("deprecation")
@@ -44,14 +44,13 @@ public class StepBlock extends ReshapedBlock {
     }
 
 
-
     @Override
     @Nullable
     public BlockState getPlacementState(ItemPlacementContext ctx) {
         BlockPos pos = ctx.getBlockPos();
         BlockState existingState = ctx.getWorld().getBlockState(pos);
         Vec3d localHit = getLocalHit(ctx);
-        
+
         // If merging into existing StepBlock
         if (existingState.isOf(this)) {
             BooleanProperty targetProp = getPropertyFromHit(localHit.x, localHit.y, localHit.z, ctx.getSide(), true, existingState);
@@ -64,7 +63,7 @@ public class StepBlock extends ReshapedBlock {
             // We adopt the existing block's axis.
             BooleanProperty targetProp = mixedStepBlock.getPropertyFromHit(localHit.x, localHit.y, localHit.z, ctx.getSide(), true, existingState);
             if (targetProp != null && !existingState.get(targetProp)) {
-                 return existingState.with(targetProp, true);
+                return existingState.with(targetProp, true);
             }
             return existingState;
         }
@@ -94,14 +93,14 @@ public class StepBlock extends ReshapedBlock {
         }
 
         if (context.canReplaceExisting()) {
-             Vec3d localHit = getLocalHit(context);
-             BooleanProperty targetProp = getPropertyFromHit(localHit.x, localHit.y, localHit.z, context.getSide(), true, state);
-             return targetProp != null && !state.get(targetProp);
+            Vec3d localHit = getLocalHit(context);
+            BooleanProperty targetProp = getPropertyFromHit(localHit.x, localHit.y, localHit.z, context.getSide(), true, state);
+            return targetProp != null && !state.get(targetProp);
         }
-        
+
         return true;
     }
-    
+
     public BooleanProperty getPropertyFromHit(double hitX, double hitY, double hitZ, Direction side, boolean isPlacement, BlockState state) {
         var quadrant = net.f3rr3.reshaped.util.BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement);
         StepAxis axis = state.get(AXIS);
@@ -125,20 +124,20 @@ public class StepBlock extends ReshapedBlock {
         if (!world.isClient) {
             // Check if we merged into a MixedStepBlock
             if (state.getBlock() instanceof MixedStepBlock) {
-                 // We need to identify WHICH segment was just added.
-                 // Since onPlaced doesn't give us the hit result easily, we iterate.
-                 // The segment that is TRUE in state but NULL in BE is the new one.
-                 // (Assuming existing segments have materials).
-                 net.f3rr3.reshaped.util.BlockSegmentUtils.fillMissingMaterialsFromItem(
-                         world,
-                         pos,
-                         state,
-                         itemStack,
-                         net.f3rr3.reshaped.util.BlockSegmentUtils.STEP_PROPERTIES,
-                         StepBlockEntity.class
-                 );
-             }
-         }
+                // We need to identify WHICH segment was just added.
+                // Since onPlaced doesn't give us the hit result easily, we iterate.
+                // The segment that is TRUE in state but NULL in BE is the new one.
+                // (Assuming existing segments have materials).
+                net.f3rr3.reshaped.util.BlockSegmentUtils.fillMissingMaterialsFromItem(
+                        world,
+                        pos,
+                        state,
+                        itemStack,
+                        net.f3rr3.reshaped.util.BlockSegmentUtils.STEP_PROPERTIES,
+                        StepBlockEntity.class
+                );
+            }
+        }
     }
 
     public enum StepAxis implements net.minecraft.util.StringIdentifiable {

@@ -1,5 +1,6 @@
-package net.f3rr3.reshaped.block;
+package net.f3rr3.reshaped.block.VerticalStep;
 
+import net.f3rr3.reshaped.block.Template.ReshapedBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.ShapeContext;
@@ -15,7 +16,6 @@ import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
 import net.minecraft.entity.LivingEntity;
-import net.f3rr3.reshaped.block.entity.VerticalStepBlockEntity;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -47,7 +47,7 @@ public class VerticalStepBlock extends ReshapedBlock {
     public BlockState getPlacementState(ItemPlacementContext ctx) {
         BlockPos pos = ctx.getBlockPos();
         BlockState existingState = ctx.getWorld().getBlockState(pos);
-        
+
         // If merging into existing VerticalStepBlock
         if (existingState.isOf(this)) {
             BooleanProperty targetProp = getPropertyFromHit(ctx.getHitPos().x - pos.getX(), ctx.getHitPos().y - pos.getY(), ctx.getHitPos().z - pos.getZ(), ctx.getSide(), true);
@@ -58,8 +58,8 @@ public class VerticalStepBlock extends ReshapedBlock {
         } else if (existingState.getBlock() instanceof MixedVerticalStepBlock mixedVerticalStepBlock) {
             // Merging into MixedVerticalStepBlock
             BooleanProperty targetProp = mixedVerticalStepBlock.getPropertyFromHit(ctx.getHitPos().x - pos.getX(), ctx.getHitPos().y - pos.getY(), ctx.getHitPos().z - pos.getZ(), ctx.getSide(), true);
-             if (targetProp != null && !existingState.get(targetProp)) {
-                 return existingState.with(targetProp, true);
+            if (targetProp != null && !existingState.get(targetProp)) {
+                return existingState.with(targetProp, true);
             }
             return existingState;
         }
@@ -85,20 +85,20 @@ public class VerticalStepBlock extends ReshapedBlock {
         }
 
         if (context.canReplaceExisting()) {
-             BooleanProperty targetProp = getPropertyFromHit(context.getHitPos().x - context.getBlockPos().getX(), context.getHitPos().y - context.getBlockPos().getY(), context.getHitPos().z - context.getBlockPos().getZ(), context.getSide(), true);
-             return targetProp != null && !state.get(targetProp);
+            BooleanProperty targetProp = getPropertyFromHit(context.getHitPos().x - context.getBlockPos().getX(), context.getHitPos().y - context.getBlockPos().getY(), context.getHitPos().z - context.getBlockPos().getZ(), context.getSide(), true);
+            return targetProp != null && !state.get(targetProp);
         }
-        
+
         return true;
     }
-    
+
     /**
      * Determines which quadrant property corresponds to a hit position on the block.
-     * 
-     * @param hitX Local X coordinate (0-1)
-     * @param hitY Local Y coordinate (0-1)
-     * @param hitZ Local Z coordinate (0-1)
-     * @param side The side of the block hit
+     *
+     * @param hitX        Local X coordinate (0-1)
+     * @param hitY        Local Y coordinate (0-1)
+     * @param hitZ        Local Z coordinate (0-1)
+     * @param side        The side of the block hit
      * @param isPlacement True if calculating for placement/preview, False for mining/interaction
      * @return The BooleanProperty for the hit quadrant
      */
@@ -106,7 +106,6 @@ public class VerticalStepBlock extends ReshapedBlock {
         var quadrant = net.f3rr3.reshaped.util.BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement);
         return net.f3rr3.reshaped.util.BlockSegmentUtils.getVerticalStepProperty(quadrant);
     }
-
 
 
     @Override

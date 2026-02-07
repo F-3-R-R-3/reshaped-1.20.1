@@ -1,4 +1,4 @@
-package net.f3rr3.reshaped.block;
+package net.f3rr3.reshaped.block.Template;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -24,6 +24,11 @@ public abstract class ReshapedBlock extends Block implements Waterloggable {
         super(settings);
     }
 
+    protected static Vec3d getLocalHit(ItemPlacementContext context) {
+        BlockPos pos = context.getBlockPos();
+        return context.getHitPos().subtract(pos.getX(), pos.getY(), pos.getZ());
+    }
+
     @Override
     public FluidState getFluidState(BlockState state) {
         return state.get(WATERLOGGED) ? Fluids.WATER.getStill(false) : super.getFluidState(state);
@@ -40,11 +45,6 @@ public abstract class ReshapedBlock extends Block implements Waterloggable {
     @Override
     public boolean canPathfindThrough(BlockState state, BlockView world, BlockPos pos, NavigationType type) {
         return false;
-    }
-
-    protected static Vec3d getLocalHit(ItemPlacementContext context) {
-        BlockPos pos = context.getBlockPos();
-        return context.getHitPos().subtract(pos.getX(), pos.getY(), pos.getZ());
     }
 
     @Override

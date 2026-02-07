@@ -4,8 +4,8 @@ import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;
 import net.fabricmc.fabric.api.registry.OxidizableBlocksRegistry;
 import net.fabricmc.fabric.api.registry.StrippableBlockRegistry;
 import net.f3rr3.reshaped.Reshaped;
-import net.f3rr3.reshaped.block.OxidizableVerticalStairsBlock;
-import net.f3rr3.reshaped.block.VerticalStairsBlock;
+import net.f3rr3.reshaped.block.VericalStairs.OxidizableVerticalStairsBlock;
+import net.f3rr3.reshaped.block.VericalStairs.VerticalStairsBlock;
 import net.f3rr3.reshaped.util.BlockMatrix;
 import net.f3rr3.reshaped.util.RuntimeResourceGenerator;
 import net.minecraft.block.AbstractBlock;
@@ -76,7 +76,7 @@ public class VerticalStairsVariant implements BlockVariantType {
         matrix.addVariant(baseBlock, verticalStairs, true);
         matrix.setReason(verticalStairs, "Dynamically registered Vertical Stairs for " + baseBlock.getName().getString());
         BASE_TO_STAIRS.put(baseBlock, verticalStairs);
-        
+
         // Inherit Flammability
         FlammableBlockRegistry flammableRegistry = FlammableBlockRegistry.getDefaultInstance();
         FlammableBlockRegistry.Entry flammableEntry = flammableRegistry.get(baseBlock);
@@ -114,7 +114,8 @@ public class VerticalStairsVariant implements BlockVariantType {
                     OxidizableBlocksRegistry.registerWaxableBlockPair(unwaxedStairs, stairs);
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         // Stripping
         try {
@@ -130,7 +131,8 @@ public class VerticalStairsVariant implements BlockVariantType {
                     StrippableBlockRegistry.register(unstrippedStairs, stairs);
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 
     @Override

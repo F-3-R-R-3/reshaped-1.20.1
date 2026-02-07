@@ -1,8 +1,8 @@
 package net.f3rr3.reshaped.registry;
 
 import net.f3rr3.reshaped.Reshaped;
-import net.f3rr3.reshaped.block.OxidizableVerticalStepBlock;
-import net.f3rr3.reshaped.block.VerticalStepBlock;
+import net.f3rr3.reshaped.block.VerticalStep.OxidizableVerticalStepBlock;
+import net.f3rr3.reshaped.block.VerticalStep.VerticalStepBlock;
 import net.f3rr3.reshaped.util.BlockMatrix;
 import net.f3rr3.reshaped.util.RuntimeResourceGenerator;
 import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;

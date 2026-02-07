@@ -5,6 +5,10 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.f3rr3.reshaped.Reshaped;
+import net.f3rr3.reshaped.block.Step.StepBlock;
+import net.f3rr3.reshaped.block.VericalStairs.VerticalStairsBlock;
+import net.f3rr3.reshaped.block.VerticalStep.VerticalStepBlock;
+import net.f3rr3.reshaped.block.VerticalSlab.VerticalSlabBlock;
 import net.f3rr3.reshaped.registry.VariantRegistry;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -26,7 +30,7 @@ import java.util.Optional;
 public class RuntimeResourceGenerator {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    
+
     /**
      * Cache for analyzed texture mappings. Prevents repeated analysis of the same base block
      * during a single resource reload session. Cache is cleared when resources are reloaded.
@@ -140,11 +144,11 @@ public class RuntimeResourceGenerator {
         if (baseBlock != null) {
             Map<String, String> textures = getModelTextures(baseBlock);
 
-            if (block instanceof net.f3rr3.reshaped.block.VerticalSlabBlock) {
+            if (block instanceof VerticalSlabBlock) {
                 return generateModelFromTemplate("block/vertical_slab", textures);
-            } else if (block instanceof net.f3rr3.reshaped.block.VerticalStairsBlock) {
+            } else if (block instanceof VerticalStairsBlock) {
                 return generateModelFromTemplate("block/vertical_stairs", textures);
-            } else if (block instanceof net.f3rr3.reshaped.block.VerticalStepBlock) {
+            } else if (block instanceof VerticalStepBlock) {
                 String mask = extractMaskSuffix(blockPath);
                 if (mask != null) {
                     boolean[] segments = parseMaskOrDefault(mask, true, false, false, false);
@@ -154,7 +158,7 @@ public class RuntimeResourceGenerator {
                 // StepBlock uses single segment (true, false, false, false).
                 // Let's stick with single segment (NW) for the item model as well.
                 return generateVerticalStepModelForSegments(true, false, false, false, textures);
-            } else if (block instanceof net.f3rr3.reshaped.block.StepBlock) {
+            } else if (block instanceof StepBlock) {
                 // Check for segment mask suffix (e.g., "_1010")
                 String mask = extractMaskSuffix(blockPath);
                 if (mask != null) {
@@ -186,19 +190,19 @@ public class RuntimeResourceGenerator {
     /**
      * Generates a simple block model JSON by delegating to a parent model and applying textures.
      * Used for dynamically created slabs and stairs that follow vanilla model structures.
-     * 
-     * @param parent The parent model identifier (e.g., "minecraft:block/stairs")
+     *
+     * @param parent   The parent model identifier (e.g., "minecraft:block/stairs")
      * @param textures The texture mappings to apply
      * @return JSON string representing the complete model
      */
     public static String generateSimpleModel(String parent, Map<String, String> textures) {
         com.google.gson.JsonObject root = new com.google.gson.JsonObject();
         root.addProperty("parent", parent);
-        
+
         com.google.gson.JsonObject texturesObj = new com.google.gson.JsonObject();
         applyTextures(texturesObj, textures);
         root.add("textures", texturesObj);
-        
+
         return root.toString();
     }
 
@@ -217,7 +221,7 @@ public class RuntimeResourceGenerator {
      * Analyzes a block model's element faces to automatically determine texture mappings.
      * This enables support for blocks using non-standard texture keys (e.g., cube_column models
      * that use "end" for top/bottom and "side" for horizontal faces).
-     * 
+     *
      * <p>Algorithm:
      * <ol>
      *   <li>Loads the complete model hierarchy (including all parent models)</li>
@@ -226,8 +230,8 @@ public class RuntimeResourceGenerator {
      *   <li>Resolves texture references (e.g., #end, #side) to actual texture paths</li>
      *   <li>Translates to standard template keys: up→top, down→bottom, sides→side</li>
      * </ol>
-     * 
-     * @param modelId The model to analyze
+     *
+     * @param modelId  The model to analyze
      * @param textures The texture map to populate with standard keys. Modified in place.
      */
     private static void analyzeFaceTextures(Identifier modelId, Map<String, String> textures) {
@@ -308,17 +312,17 @@ public class RuntimeResourceGenerator {
      * Recursively loads a block model and all its parent models, merging them into a single structure.
      * This is necessary because model properties like "elements" and "textures" can be defined
      * in parent models and inherited by child models.
-     * 
+     *
      * <p>Example: quartz_block extends cube_column, which extends cube, which extends block.
      * This method resolves the entire chain.
-     * 
+     *
      * @param modelId The model identifier to load
      * @return Merged JSON object containing all properties from the model hierarchy, or null if not found
      */
     private static JsonObject loadModelHierarchy(Identifier modelId) {
         JsonObject merged = new JsonObject();
         JsonObject current = loadModelJson(modelId);
-        
+
         if (current == null) {
             return null;
         }
@@ -327,14 +331,14 @@ public class RuntimeResourceGenerator {
         if (current.has("parent")) {
             String parentPath = current.get("parent").getAsString();
             Identifier parentId;
-            
+
             if (parentPath.contains(":")) {
                 String[] parts = parentPath.split(":");
                 parentId = new Identifier(parts[0], "models/" + parts[1] + ".json");
             } else {
                 parentId = new Identifier("minecraft", "models/" + parentPath + ".json");
             }
-            
+
             JsonObject parentModel = loadModelHierarchy(parentId);
             if (parentModel != null) {
                 // Merge parent into current (parent properties first, then override with current)
@@ -354,7 +358,7 @@ public class RuntimeResourceGenerator {
 
     /**
      * Loads a single model JSON file from the resource manager.
-     * 
+     *
      * @param modelId The model identifier
      * @return The parsed JSON object, or null if the model doesn't exist or fails to parse
      */
@@ -373,7 +377,7 @@ public class RuntimeResourceGenerator {
     /**
      * Applies texture mappings to a model's textures object, with comprehensive fallback logic.
      * Handles various texture naming conventions from vanilla and modded blocks.
-     * 
+     *
      * <p>Fallback hierarchy:
      * <ol>
      *   <li>Applies all textures from the map directly</li>
@@ -382,8 +386,8 @@ public class RuntimeResourceGenerator {
      *   <li>Uses "side" as additional fallback for "top"/"bottom"</li>
      *   <li>Ensures "particle" is always set for proper break animations</li>
      * </ol>
-     * 
-     * @param texObj The JSON object to add texture properties to (modified in place)
+     *
+     * @param texObj   The JSON object to add texture properties to (modified in place)
      * @param textures The source texture mappings from the base block
      */
     public static void applyTextures(JsonObject texObj, Map<String, String> textures) {
@@ -431,13 +435,13 @@ public class RuntimeResourceGenerator {
      * Internal helper to create a cuboid element for a model with appropriate UVs and cullfaces.
      */
     private static JsonObject createSegmentElement(double x1, double y1, double z1, double x2, double y2, double z2,
-                                                  Map<String, String> cullfaces) {
+                                                   Map<String, String> cullfaces) {
         JsonObject element = new JsonObject();
         setFromTo(element, x1, y1, z1, x2, y2, z2);
-        
+
         JsonObject faces = new JsonObject();
         element.add("faces", faces);
-        
+
         // standard UV formulas:
         // North: [16-x2, 16-y2, 16-x1, 16-y1]
         // South: [x1, 16-y2, x2, 16-y1]
@@ -445,14 +449,14 @@ public class RuntimeResourceGenerator {
         // Down: [x1, 16-z2, x2, 16-z1]
         // East: [16-z2, 16-y2, 16-z1, 16-y1]
         // West: [z1, 16-y2, z2, 16-y1]
-        
+
         addFace(faces, "north", "#side", cullfaces.get("north"), new double[]{16 - x2, 16 - y2, 16 - x1, 16 - y1});
         addFace(faces, "south", "#side", cullfaces.get("south"), new double[]{x1, 16 - y2, x2, 16 - y1});
         addFace(faces, "up", "#top", cullfaces.get("up"), new double[]{x1, z1, x2, z2});
         addFace(faces, "down", "#bottom", cullfaces.get("down"), new double[]{x1, 16 - z2, x2, 16 - z1});
         addFace(faces, "east", "#side", cullfaces.get("east"), new double[]{16 - z2, 16 - y2, 16 - z1, 16 - y1});
         addFace(faces, "west", "#side", cullfaces.get("west"), new double[]{z1, 16 - y2, z2, 16 - y1});
-        
+
         return element;
     }
 
@@ -461,10 +465,14 @@ public class RuntimeResourceGenerator {
      */
     public static String generateStepModelForSegments(boolean downFront, boolean downBack, boolean upFront, boolean upBack, Map<String, String> textures) {
         return generateSegmentedModel("models/block/step.json", textures, elements -> {
-            if (downFront) elements.add(createSegmentElement(8, 0, 0, 16, 8, 16, Map.of("north", "north", "south", "south", "east", "east", "down", "down")));
-            if (downBack) elements.add(createSegmentElement(0, 0, 0, 8, 8, 16, Map.of("north", "north", "south", "south", "west", "west", "down", "down")));
-            if (upFront) elements.add(createSegmentElement(8, 8, 0, 16, 16, 16, Map.of("north", "north", "south", "south", "up", "up", "east", "east")));
-            if (upBack) elements.add(createSegmentElement(0, 8, 0, 8, 16, 16, Map.of("north", "north", "south", "south", "up", "up", "west", "west")));
+            if (downFront)
+                elements.add(createSegmentElement(8, 0, 0, 16, 8, 16, Map.of("north", "north", "south", "south", "east", "east", "down", "down")));
+            if (downBack)
+                elements.add(createSegmentElement(0, 0, 0, 8, 8, 16, Map.of("north", "north", "south", "south", "west", "west", "down", "down")));
+            if (upFront)
+                elements.add(createSegmentElement(8, 8, 0, 16, 16, 16, Map.of("north", "north", "south", "south", "up", "up", "east", "east")));
+            if (upBack)
+                elements.add(createSegmentElement(0, 8, 0, 8, 16, 16, Map.of("north", "north", "south", "south", "up", "up", "west", "west")));
         });
     }
 
@@ -473,10 +481,14 @@ public class RuntimeResourceGenerator {
      */
     public static String generateVerticalStepModelForSegments(boolean nw, boolean ne, boolean sw, boolean se, Map<String, String> textures) {
         return generateSegmentedModel("models/block/vertical_step.json", textures, elements -> {
-            if (nw) elements.add(createSegmentElement(0, 0, 0, 8, 16, 8, Map.of("north", "north", "west", "west", "up", "up", "down", "down")));
-            if (ne) elements.add(createSegmentElement(8, 0, 0, 16, 16, 8, Map.of("north", "north", "east", "east", "up", "up", "down", "down")));
-            if (sw) elements.add(createSegmentElement(0, 0, 8, 8, 16, 16, Map.of("south", "south", "west", "west", "up", "up", "down", "down")));
-            if (se) elements.add(createSegmentElement(8, 0, 8, 16, 16, 16, Map.of("south", "south", "east", "east", "up", "up", "down", "down")));
+            if (nw)
+                elements.add(createSegmentElement(0, 0, 0, 8, 16, 8, Map.of("north", "north", "west", "west", "up", "up", "down", "down")));
+            if (ne)
+                elements.add(createSegmentElement(8, 0, 0, 16, 16, 8, Map.of("north", "north", "east", "east", "up", "up", "down", "down")));
+            if (sw)
+                elements.add(createSegmentElement(0, 0, 8, 8, 16, 16, Map.of("south", "south", "west", "west", "up", "up", "down", "down")));
+            if (se)
+                elements.add(createSegmentElement(8, 0, 8, 16, 16, 16, Map.of("south", "south", "east", "east", "up", "up", "down", "down")));
         });
     }
 
@@ -499,21 +511,25 @@ public class RuntimeResourceGenerator {
         JsonObject face = new JsonObject();
         face.addProperty("texture", texture);
         if (cullface != null) face.addProperty("cullface", cullface);
-        
+
         com.google.gson.JsonArray uvArray = new com.google.gson.JsonArray();
         for (double v : uv) uvArray.add(v);
         face.add("uv", uvArray);
-        
+
         faces.add(side, face);
     }
 
     private static void setFromTo(JsonObject element, double x1, double y1, double z1, double x2, double y2, double z2) {
         com.google.gson.JsonArray from = new com.google.gson.JsonArray();
-        from.add(x1); from.add(y1); from.add(z1);
+        from.add(x1);
+        from.add(y1);
+        from.add(z1);
         element.add("from", from);
-        
+
         com.google.gson.JsonArray to = new com.google.gson.JsonArray();
-        to.add(x2); to.add(y2); to.add(z2);
+        to.add(x2);
+        to.add(y2);
+        to.add(z2);
         element.add("to", to);
     }
 

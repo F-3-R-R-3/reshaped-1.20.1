@@ -1,8 +1,18 @@
 package net.f3rr3.reshaped.client.render;
 
 import net.f3rr3.reshaped.Reshaped;
-import net.f3rr3.reshaped.block.*;
-import net.f3rr3.reshaped.block.entity.*;
+import net.f3rr3.reshaped.block.Corner.CornerBlock;
+import net.f3rr3.reshaped.block.Corner.CornerBlockEntity;
+import net.f3rr3.reshaped.block.Corner.MixedCornerBlock;
+import net.f3rr3.reshaped.block.Slab.MixedSlabBlock;
+import net.f3rr3.reshaped.block.Step.*;
+import net.f3rr3.reshaped.block.VerticalSlab.MixedVerticalSlabBlock;
+import net.f3rr3.reshaped.block.VerticalSlab.VerticalSlabBlock;
+import net.f3rr3.reshaped.block.VerticalSlab.VerticalSlabBlockEntity;
+import net.f3rr3.reshaped.block.VerticalStep.MixedVerticalStepBlock;
+import net.f3rr3.reshaped.block.VerticalStep.VerticalStepBlock;
+import net.f3rr3.reshaped.block.VerticalStep.VerticalStepBlockEntity;
+import net.f3rr3.reshaped.block.Slab.SlabBlockEntity;
 import net.fabricmc.fabric.api.renderer.v1.model.ForwardingBakedModel;
 import net.fabricmc.fabric.api.renderer.v1.render.RenderContext;
 import net.minecraft.block.Block;
@@ -110,7 +120,7 @@ public class CompositeBakedModel extends ForwardingBakedModel {
                 String mask = getStepBitMask(i);
                 Identifier segmentModelId = new Identifier(Reshaped.MOD_ID, "block/" + path + "_step_" + mask);
 
-                net.f3rr3.reshaped.block.StepBlock.StepAxis axis = state.get(StepBlock.AXIS);
+                StepBlock.StepAxis axis = state.get(StepBlock.AXIS);
                 boolean rotate180 = axis == StepBlock.StepAxis.EAST_WEST;
                 boolean rotate270 = axis == StepBlock.StepAxis.NORTH_SOUTH;
 

@@ -1,10 +1,10 @@
 package net.f3rr3.reshaped.mixin.client;
 
-import net.f3rr3.reshaped.block.MixedCornerBlock;
-import net.f3rr3.reshaped.block.MixedSlabBlock;
-import net.f3rr3.reshaped.block.MixedStepBlock;
-import net.f3rr3.reshaped.block.MixedVerticalSlabBlock;
-import net.f3rr3.reshaped.block.MixedVerticalStepBlock;
+import net.f3rr3.reshaped.block.Corner.MixedCornerBlock;
+import net.f3rr3.reshaped.block.Slab.MixedSlabBlock;
+import net.f3rr3.reshaped.block.Step.MixedStepBlock;
+import net.f3rr3.reshaped.block.VerticalStep.MixedVerticalStepBlock;
+import net.f3rr3.reshaped.block.VerticalSlab.MixedVerticalSlabBlock;
 import net.f3rr3.reshaped.client.MixedBlockParticleTracker;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;

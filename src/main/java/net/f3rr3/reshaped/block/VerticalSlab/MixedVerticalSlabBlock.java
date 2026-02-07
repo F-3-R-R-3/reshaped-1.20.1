@@ -1,6 +1,6 @@
-package net.f3rr3.reshaped.block;
+package net.f3rr3.reshaped.block.VerticalSlab;
 
-import net.f3rr3.reshaped.block.entity.VerticalSlabBlockEntity;
+import net.f3rr3.reshaped.block.Template.ReshapedBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockEntityProvider;
 import net.minecraft.block.BlockState;
@@ -38,6 +38,22 @@ public class MixedVerticalSlabBlock extends ReshapedBlock implements BlockEntity
                 .with(WATERLOGGED, false));
     }
 
+    // Helper to map Direction of VerticalSlab to Property
+    public static BooleanProperty getPropertyForDirection(Direction facing, Direction.Axis axis) {
+        if (axis == Direction.Axis.Z) {
+            // NORTH (Negative Z Face) -> Negative Property (South Shape)
+            // SOUTH (Positive Z Face) -> Positive Property (North Shape)
+            if (facing == Direction.NORTH) return NEGATIVE;
+            if (facing == Direction.SOUTH) return POSITIVE;
+        } else {
+            // WEST (Negative X Face) -> Negative Property (East Shape)
+            // EAST (Positive X Face) -> Positive Property (West Shape)
+            if (facing == Direction.WEST) return NEGATIVE;
+            if (facing == Direction.EAST) return POSITIVE;
+        }
+        return null;
+    }
+
     @Override
     public @Nullable BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
         return new VerticalSlabBlockEntity(pos, state);
@@ -67,15 +83,15 @@ public class MixedVerticalSlabBlock extends ReshapedBlock implements BlockEntity
     public boolean canReplace(BlockState state, ItemPlacementContext context) {
         ItemStack itemStack = context.getStack();
         if (itemStack.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof VerticalSlabBlock) {
-             BooleanProperty property = getPropertyFromHit(context.getHitPos().x - context.getBlockPos().getX(), 
-                                                           context.getHitPos().y - context.getBlockPos().getY(), 
-                                                           context.getHitPos().z - context.getBlockPos().getZ(), 
-                                                           context.getSide(),
-                                                           true,
-                                                           state);
-             if (property != null && !state.get(property)) {
-                 return true;
-             }
+            BooleanProperty property = getPropertyFromHit(context.getHitPos().x - context.getBlockPos().getX(),
+                    context.getHitPos().y - context.getBlockPos().getY(),
+                    context.getHitPos().z - context.getBlockPos().getZ(),
+                    context.getSide(),
+                    true,
+                    state);
+            if (property != null && !state.get(property)) {
+                return true;
+            }
         }
         return super.canReplace(state, context);
     }
@@ -85,14 +101,14 @@ public class MixedVerticalSlabBlock extends ReshapedBlock implements BlockEntity
     public BlockState getPlacementState(ItemPlacementContext ctx) {
         BlockPos pos = ctx.getBlockPos();
         BlockState existingState = ctx.getWorld().getBlockState(pos);
-        
-        BooleanProperty property = getPropertyFromHit(ctx.getHitPos().x - pos.getX(), 
-                                                      ctx.getHitPos().y - pos.getY(), 
-                                                      ctx.getHitPos().z - pos.getZ(), 
-                                                      ctx.getSide(),
-                                                      true,
-                                                      existingState);
-        
+
+        BooleanProperty property = getPropertyFromHit(ctx.getHitPos().x - pos.getX(),
+                ctx.getHitPos().y - pos.getY(),
+                ctx.getHitPos().z - pos.getZ(),
+                ctx.getSide(),
+                true,
+                existingState);
+
         if (property != null && existingState.isOf(this)) {
             return existingState.with(property, true);
         }
@@ -105,9 +121,9 @@ public class MixedVerticalSlabBlock extends ReshapedBlock implements BlockEntity
         if (!world.isClient) {
             BlockEntity be = world.getBlockEntity(pos);
             if (be instanceof VerticalSlabBlockEntity verticalSlabBlockEntity) {
-                 if (itemStack.getItem() instanceof BlockItem blockItem) {
+                if (itemStack.getItem() instanceof BlockItem blockItem) {
                     Block block = blockItem.getBlock();
-                    
+
                     BooleanProperty[] allProps = {NEGATIVE, POSITIVE};
                     for (int i = 0; i < 2; i++) {
                         if (state.get(allProps[i]) && verticalSlabBlockEntity.getMaterial(i) == null) {
@@ -121,14 +137,14 @@ public class MixedVerticalSlabBlock extends ReshapedBlock implements BlockEntity
 
     public BooleanProperty getPropertyFromHit(double hitX, double hitY, double hitZ, Direction side, boolean isPlacement, BlockState state) {
         Direction.Axis axis = state.get(AXIS);
-        
+
         // Offset logic:
         // If placement, aim slightly in direction of normal (to find empty space adjacent).
         // If breaking, aim slightly opposite to normal (to find occupied space behind face).
         double offset = isPlacement ? 0.001 : -0.001;
         double x = hitX + side.getOffsetX() * offset;
         double z = hitZ + side.getOffsetZ() * offset;
-        
+
         if (axis == Direction.Axis.Z) {
             // Z-Axis (North-South)
             // High Z (South Half) is NEGATIVE property now
@@ -140,22 +156,6 @@ public class MixedVerticalSlabBlock extends ReshapedBlock implements BlockEntity
             // Low X (West Half) is POSITIVE property now
             return x > 0.5 ? NEGATIVE : POSITIVE;
         }
-    }
-    
-    // Helper to map Direction of VerticalSlab to Property
-    public static BooleanProperty getPropertyForDirection(Direction facing, Direction.Axis axis) {
-        if (axis == Direction.Axis.Z) {
-            // NORTH (Negative Z Face) -> Negative Property (South Shape)
-            // SOUTH (Positive Z Face) -> Positive Property (North Shape)
-            if (facing == Direction.NORTH) return NEGATIVE;
-            if (facing == Direction.SOUTH) return POSITIVE;
-        } else {
-            // WEST (Negative X Face) -> Negative Property (East Shape)
-            // EAST (Positive X Face) -> Positive Property (West Shape)
-            if (facing == Direction.WEST) return NEGATIVE;
-            if (facing == Direction.EAST) return POSITIVE;
-        }
-        return null;
     }
 
     @Override

@@ -1,6 +1,6 @@
-package net.f3rr3.reshaped.block;
+package net.f3rr3.reshaped.block.Step;
 
-import net.f3rr3.reshaped.block.entity.StepBlockEntity;
+import net.f3rr3.reshaped.block.Template.ReshapedBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockEntityProvider;
 import net.minecraft.block.BlockState;
@@ -53,15 +53,15 @@ public class MixedStepBlock extends ReshapedBlock implements BlockEntityProvider
     public boolean canReplace(BlockState state, ItemPlacementContext context) {
         ItemStack itemStack = context.getStack();
         if (itemStack.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof StepBlock) {
-             // Axis check? mixable blocks should probably allow mixing even if axis differs? 
-             // Ideally we shouldn't allow mixing specific axis blocks into a different axis configuration easily
-             // But here we just assume the axis is already locked by the block state.
-             
-             Vec3d localHit = getLocalHit(context);
-             BooleanProperty property = getPropertyFromHit(localHit.x, localHit.y, localHit.z, context.getSide(), true, state);
-             if (property != null && !state.get(property)) {
-                 return true;
-             }
+            // Axis check? mixable blocks should probably allow mixing even if axis differs?
+            // Ideally we shouldn't allow mixing specific axis blocks into a different axis configuration easily
+            // But here we just assume the axis is already locked by the block state.
+
+            Vec3d localHit = getLocalHit(context);
+            BooleanProperty property = getPropertyFromHit(localHit.x, localHit.y, localHit.z, context.getSide(), true, state);
+            if (property != null && !state.get(property)) {
+                return true;
+            }
         }
         return super.canReplace(state, context);
     }

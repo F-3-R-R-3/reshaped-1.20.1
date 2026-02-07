@@ -1,6 +1,6 @@
-package net.f3rr3.reshaped.block;
+package net.f3rr3.reshaped.block.Slab;
 
-import net.f3rr3.reshaped.block.entity.SlabBlockEntity;
+import net.f3rr3.reshaped.block.Template.ReshapedBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockEntityProvider;
 import net.minecraft.block.BlockState;
@@ -51,28 +51,28 @@ public class MixedSlabBlock extends ReshapedBlock implements BlockEntityProvider
     public boolean canReplace(BlockState state, ItemPlacementContext context) {
         ItemStack itemStack = context.getStack();
         if (itemStack.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof SlabBlock) {
-             Vec3d localHit = getLocalHit(context);
-             BooleanProperty property = getPropertyFromHit(localHit.y,
-                     context.getSide(),
-                     true);
-             return property != null && !state.get(property);
+            Vec3d localHit = getLocalHit(context);
+            BooleanProperty property = getPropertyFromHit(localHit.y,
+                    context.getSide(),
+                    true);
+            return property != null && !state.get(property);
         }
         return super.canReplace(state, context);
     }
 
     @Override
     public BlockState getPlacementState(ItemPlacementContext ctx) {
-          // This block usually formed solely by transformation
-          BlockPos pos = ctx.getBlockPos();
-          BlockState existingState = ctx.getWorld().getBlockState(pos);
-          if (existingState.isOf(this)) {
-              Vec3d localHit = getLocalHit(ctx);
-              BooleanProperty property = getPropertyFromHit(localHit.y,
-                      ctx.getSide(),
-                      true);
-               if (property != null && !existingState.get(property)) return existingState.with(property, true);
-          }
-          return null;
+        // This block usually formed solely by transformation
+        BlockPos pos = ctx.getBlockPos();
+        BlockState existingState = ctx.getWorld().getBlockState(pos);
+        if (existingState.isOf(this)) {
+            Vec3d localHit = getLocalHit(ctx);
+            BooleanProperty property = getPropertyFromHit(localHit.y,
+                    ctx.getSide(),
+                    true);
+            if (property != null && !existingState.get(property)) return existingState.with(property, true);
+        }
+        return null;
     }
 
     @Override
@@ -81,10 +81,11 @@ public class MixedSlabBlock extends ReshapedBlock implements BlockEntityProvider
         if (!world.isClient) {
             BlockEntity be = world.getBlockEntity(pos);
             if (be instanceof SlabBlockEntity sbe) {
-                 if (itemStack.getItem() instanceof BlockItem blockItem) {
+                if (itemStack.getItem() instanceof BlockItem blockItem) {
                     Block block = blockItem.getBlock();
-                    
-                    if (state.get(BOTTOM) && sbe.getMaterial(0) == null) sbe.setMaterial(0, Registries.BLOCK.getId(block));
+
+                    if (state.get(BOTTOM) && sbe.getMaterial(0) == null)
+                        sbe.setMaterial(0, Registries.BLOCK.getId(block));
                     if (state.get(TOP) && sbe.getMaterial(1) == null) sbe.setMaterial(1, Registries.BLOCK.getId(block));
                 }
             }
@@ -101,7 +102,7 @@ public class MixedSlabBlock extends ReshapedBlock implements BlockEntityProvider
         super.appendProperties(builder);
         builder.add(BOTTOM, TOP);
     }
-    
+
     public BooleanProperty getPropertyFromHit(double hitY, net.minecraft.util.math.Direction side, boolean isPlacement) {
         double offset = isPlacement ? 0.001 : -0.001;
         double y = hitY + side.getOffsetY() * offset;
