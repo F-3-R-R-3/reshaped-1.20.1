@@ -197,15 +197,7 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
         });
 
         // Wrap corner block models with our custom composite model
-        context.resolveModel().register(resolverContext -> {
-            Identifier id = resolverContext.id();
-            if (id.getNamespace().equals(Reshaped.MOD_ID) && id.getPath().startsWith("block/") && id.getPath().contains("_corner_")) {
-                // This captures the dynamically generated bitmask models
-                // They don't need wrapping, they are used AS segments in the composite.
-                return null;
-            }
-            return null;
-        });
+        context.resolveModel().register(resolverContext -> null);
 
         context.modifyModelAfterBake().register((model, context1) -> {
             Identifier id = context1.id();
