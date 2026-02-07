@@ -1,0 +1,14 @@
+{
+  "block.reshaped.vertical_stairs": "Escaleras Verticales",
+  "block.reshaped.vertical_slab": "Losa Vertical",
+  "block.reshaped.mixed_vertical_slab": "Losa Vertical Mezclada",
+  "block.reshaped.corner": "Esquina",
+  "block.reshaped.mixed_corner": "Esquina Mezclada",
+  "block.reshaped.vertical_step": "Escalón Vertical",
+  "block.reshaped.mixed_vertical_step": "Escalón Vertical Mezclado",
+  "block.reshaped.step": "Escalón",
+  "block.reshaped.mixed_step": "Escalón Mezclado",
+  "block.reshaped.mixed_slab": "Losa Mezclada",
+  "category.reshaped": "Reshaped",
+  "key.reshaped.open_radial_menu": "Abrir Menú Radial"
+}

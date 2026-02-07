@@ -1,0 +1,14 @@
+{
+  "block.reshaped.vertical_stairs": "Verticale Trappen",
+  "block.reshaped.vertical_slab": "Verticale Plaat",
+  "block.reshaped.mixed_vertical_slab": "Gemengde Verticale Plaat",
+  "block.reshaped.corner": "Hoek",
+  "block.reshaped.mixed_corner": "Gemengde Hoek",
+  "block.reshaped.vertical_step": "Verticale Stap",
+  "block.reshaped.mixed_vertical_step": "Gemengde Verticale Stap",
+  "block.reshaped.step": "Stap",
+  "block.reshaped.mixed_step": "Gemengde Stap",
+  "block.reshaped.mixed_slab": "Gemengde Plaat",
+  "category.reshaped": "Reshaped",
+  "key.reshaped.open_radial_menu": "Open Radiaal Menu"
+}

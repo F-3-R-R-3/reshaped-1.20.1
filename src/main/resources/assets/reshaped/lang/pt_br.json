@@ -1,0 +1,14 @@
+{
+  "block.reshaped.vertical_stairs": "Escadas Verticais",
+  "block.reshaped.vertical_slab": "Laje Vertical",
+  "block.reshaped.mixed_vertical_slab": "Laje Vertical Misturada",
+  "block.reshaped.corner": "Canto",
+  "block.reshaped.mixed_corner": "Canto Misturado",
+  "block.reshaped.vertical_step": "Degrau Vertical",
+  "block.reshaped.mixed_vertical_step": "Degrau Vertical Misturado",
+  "block.reshaped.step": "Degrau",
+  "block.reshaped.mixed_step": "Degrau Misturado",
+  "block.reshaped.mixed_slab": "Laje Misturada",
+  "category.reshaped": "Reshaped",
+  "key.reshaped.open_radial_menu": "Abrir Menu Radial"
+}

@@ -1,0 +1,14 @@
+{
+  "block.reshaped.vertical_stairs": "Escaliers Verticaux",
+  "block.reshaped.vertical_slab": "Dalle Verticale",
+  "block.reshaped.mixed_vertical_slab": "Dalle Verticale Mixte",
+  "block.reshaped.corner": "Coin",
+  "block.reshaped.mixed_corner": "Coin Mixte",
+  "block.reshaped.vertical_step": "Marche Verticale",
+  "block.reshaped.mixed_vertical_step": "Marche Verticale Mixte",
+  "block.reshaped.step": "Marche",
+  "block.reshaped.mixed_step": "Marche Mixte",
+  "block.reshaped.mixed_slab": "Dalle Mixte",
+  "category.reshaped": "Reshaped",
+  "key.reshaped.open_radial_menu": "Ouvrir le Menu Radial"
+}
