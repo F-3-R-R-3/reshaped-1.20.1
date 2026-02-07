@@ -3,15 +3,15 @@
   "id": "reshaped",
   "version": "${version}",
   "name": "reshaped",
-  "description": "This is an example description! Tell everyone what your mod is about!",
+  "description": "Adds a radial menu to quickly switch between block shape variants and introduces many new shapes.",
   "authors": [
-    "Me!"
+    "f-3-r-r-3"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
+    "homepage": "https://modrinth.com/project/reshaped",
+    "sources": "https://github.com/F-3-R-R-3/reshaped-1.20.1"
   },
-  "license": "CC0-1.0",
+  "license": "ARR",
   "icon": "assets/reshaped/icon.gif",
   "environment": "*",
   "entrypoints": {
