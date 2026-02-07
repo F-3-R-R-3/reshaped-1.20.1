@@ -28,6 +28,8 @@
     - [ ] fix them
 - [ ] change recipies
 - [ ] fix pick-block for mixed blocks
+- [x] fix particles for corner blocks
+- [x] fix oxidization for step blocks
 - [ ] fix particles for corner blocks
 - [ ] fix oxidization for step blocks
 - [ ] check if dorps work
