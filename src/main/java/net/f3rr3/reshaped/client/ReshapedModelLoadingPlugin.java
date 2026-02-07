@@ -8,6 +8,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.SlabBlock;
 import net.minecraft.block.StairsBlock;
+import net.minecraft.client.render.model.ModelRotation;
 import net.minecraft.client.render.model.json.JsonUnbakedModel;
 import net.minecraft.client.render.model.json.ModelVariant;
 import net.minecraft.client.render.model.json.WeightedUnbakedModel;
@@ -19,6 +20,38 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
+
+    private static void addSegmentModels(Context context, String path) {
+        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path));
+        int max = 1 << 4;
+        for (int i = 0; i < max; i++) {
+            context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_" + toBitMask(i, 4)));
+        }
+        context.addModels(new Identifier(Reshaped.MOD_ID, "item/" + path));
+    }
+
+    private static void addDirectionalModels(Context context, String path) {
+        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_north"));
+        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_south"));
+        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_east"));
+        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_west"));
+    }
+
+    private static Identifier resolveSegmentModelId(Block block, String path, int bitmask) {
+        if (bitmask == (1 << 4) - 1) {
+            Block base = Reshaped.MATRIX != null ? Reshaped.MATRIX.getBaseBlock(block) : null;
+            if (base != null) {
+                Identifier baseId = Registries.BLOCK.getId(base);
+                return new Identifier(baseId.getNamespace(), "block/" + baseId.getPath());
+            }
+            return new Identifier(Reshaped.MOD_ID, "block/" + path);
+        }
+        return new Identifier(Reshaped.MOD_ID, "block/" + path + "_" + toBitMask(bitmask, 4));
+    }
+
+    private static String toBitMask(int value, int length) {
+        return String.format("%" + length + "s", Integer.toBinaryString(value)).replace(' ', '0');
+    }
 
     @Override
     public void onInitializeModelLoader(Context context) {
@@ -41,23 +74,16 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                             if (state.get(net.f3rr3.reshaped.block.StepBlock.UP_FRONT)) bitmask |= 2;
                             if (state.get(net.f3rr3.reshaped.block.StepBlock.UP_BACK)) bitmask |= 1;
 
-                            Identifier modelId = resolveSegmentModelId(block, path, bitmask, 4);
+                            Identifier modelId = resolveSegmentModelId(block, path, bitmask);
 
-                            // Determine rotation based on axis
-                            net.f3rr3.reshaped.block.StepBlock.StepAxis axis = state.get(net.f3rr3.reshaped.block.StepBlock.AXIS);
-                            int yRotation = switch (axis) {
-                                case NORTH_SOUTH -> 270; // North is Front
-                                case EAST_WEST -> 180;   // West is Front
-                            };
 
-                            net.minecraft.client.render.model.ModelRotation rotation = net.minecraft.client.render.model.ModelRotation.get(0, yRotation);
-                            ModelVariant variant = new ModelVariant(modelId, rotation.getRotation(), true, 1);
+                            ModelVariant variant = new ModelVariant(modelId, ModelRotation.X0_Y0.getRotation(), true, 1);
                             resolverContext.setModel(state, new WeightedUnbakedModel(Collections.singletonList(variant)));
                         }
                     });
-                    
+
                     // Pre-register all possible segment combinations
-                    addSegmentModels(context, path, 4);
+                    addSegmentModels(context, path);
                     continue; // Skip generic handling
                 }
 
@@ -72,16 +98,16 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                             if (state.get(net.f3rr3.reshaped.block.VerticalStepBlock.SOUTH_WEST)) bitmask |= 2;
                             if (state.get(net.f3rr3.reshaped.block.VerticalStepBlock.SOUTH_EAST)) bitmask |= 1;
 
-                            Identifier modelId = resolveSegmentModelId(block, path, bitmask, 4);
+                            Identifier modelId = resolveSegmentModelId(block, path, bitmask);
 
                             // No rotation needed for vertical step segments as they are absolute
-                            ModelVariant variant = new ModelVariant(modelId, net.minecraft.client.render.model.ModelRotation.X0_Y0.getRotation(), true, 1);
+                            ModelVariant variant = new ModelVariant(modelId, ModelRotation.X0_Y0.getRotation(), true, 1);
                             resolverContext.setModel(state, new WeightedUnbakedModel(Collections.singletonList(variant)));
                         }
                     });
 
                     // Pre-register all possible segment combinations
-                    addSegmentModels(context, path, 4);
+                    addSegmentModels(context, path);
                     continue; // Skip generic handling
                 }
 
@@ -138,7 +164,7 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                 } else if (block instanceof SlabBlock) {
                     context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_top"));
                 }
-                
+
                 // Add models for Vertical Slabs components
                 if (path.endsWith("_vertical_slab")) {
                     addDirectionalModels(context, path);
@@ -186,13 +212,13 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
             if (id.getNamespace().equals(Reshaped.MOD_ID)) {
                 // Apply Composite Model wrapper to base blocks that support mixing
                 if (id.getPath().endsWith("_corner") && !id.getPath().contains("_corner_")) {
-                     return new CompositeBakedModel(model);
+                    return new CompositeBakedModel(model);
                 }
                 if (id.getPath().endsWith("_vertical_step") && !id.getPath().contains("_vertical_step_")) {
-                     return new CompositeBakedModel(model);
+                    return new CompositeBakedModel(model);
                 }
                 if (id.getPath().endsWith("_step") && !id.getPath().contains("_step_")) {
-                     return new CompositeBakedModel(model);
+                    return new CompositeBakedModel(model);
                 }
                 // Vertical Slabs and Slabs might need explicit wrapping if they are base types?
                 // Or Mixed blocks only?
@@ -204,37 +230,5 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
             }
             return model;
         });
-    }
-
-    private static void addSegmentModels(Context context, String path, int bitCount) {
-        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path));
-        int max = 1 << bitCount;
-        for (int i = 0; i < max; i++) {
-            context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_" + toBitMask(i, bitCount)));
-        }
-        context.addModels(new Identifier(Reshaped.MOD_ID, "item/" + path));
-    }
-
-    private static void addDirectionalModels(Context context, String path) {
-        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_north"));
-        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_south"));
-        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_east"));
-        context.addModels(new Identifier(Reshaped.MOD_ID, "block/" + path + "_west"));
-    }
-
-    private static Identifier resolveSegmentModelId(Block block, String path, int bitmask, int bitCount) {
-        if (bitmask == (1 << bitCount) - 1) {
-            Block base = Reshaped.MATRIX != null ? Reshaped.MATRIX.getBaseBlock(block) : null;
-            if (base != null) {
-                Identifier baseId = Registries.BLOCK.getId(base);
-                return new Identifier(baseId.getNamespace(), "block/" + baseId.getPath());
-            }
-            return new Identifier(Reshaped.MOD_ID, "block/" + path);
-        }
-        return new Identifier(Reshaped.MOD_ID, "block/" + path + "_" + toBitMask(bitmask, bitCount));
-    }
-
-    private static String toBitMask(int value, int length) {
-        return String.format("%" + length + "s", Integer.toBinaryString(value)).replace(' ', '0');
     }
 }
