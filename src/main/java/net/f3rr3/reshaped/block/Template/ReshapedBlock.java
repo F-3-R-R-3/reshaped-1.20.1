@@ -20,6 +20,7 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.WorldAccess;
 import net.f3rr3.reshaped.block.Corner.CornerBlock;
+import net.f3rr3.reshaped.block.Corner.CornerBlockEntity;
 import net.f3rr3.reshaped.block.Corner.MixedCornerBlock;
 import net.f3rr3.reshaped.block.Slab.MixedSlabBlock;
 import net.f3rr3.reshaped.block.Step.StepBlock;
@@ -28,6 +29,7 @@ import net.f3rr3.reshaped.block.VerticalStep.VerticalStepBlock;
 import net.f3rr3.reshaped.block.VerticalStep.MixedVerticalStepBlock;
 import net.f3rr3.reshaped.block.VerticalSlab.MixedVerticalSlabBlock;
 import net.f3rr3.reshaped.util.BlockSegmentUtils;
+import net.minecraft.registry.Registries;
 import java.util.List;
 
 @SuppressWarnings("deprecation")
@@ -71,6 +73,27 @@ public abstract class ReshapedBlock extends Block implements Waterloggable {
         }
         if (state.isToolRequired() && !tool.isEmpty() && !tool.isSuitableFor(state)) {
             return List.of();
+        }
+
+        if (state.getBlock() instanceof MixedCornerBlock) {
+            net.minecraft.block.entity.BlockEntity be = context.getOptional(LootContextParameters.BLOCK_ENTITY);
+            if (be instanceof CornerBlockEntity cornerBlockEntity) {
+                java.util.ArrayList<ItemStack> drops = new java.util.ArrayList<>();
+                BooleanProperty[] props = BlockSegmentUtils.CORNER_PROPERTIES;
+                for (int i = 0; i < props.length; i++) {
+                    if (!state.get(props[i])) {
+                        continue;
+                    }
+                    net.minecraft.util.Identifier materialId = cornerBlockEntity.getCornerMaterial(i);
+                    if (materialId != null) {
+                        net.minecraft.block.Block block = Registries.BLOCK.get(materialId);
+                        if (block != net.minecraft.block.Blocks.AIR) {
+                            drops.add(new ItemStack(block.asItem()));
+                        }
+                    }
+                }
+                return drops;
+            }
         }
 
         int count = 1;
