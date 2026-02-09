@@ -1,9 +1,11 @@
 {
-  "text.autoconfig.reshaped.option.enableDevMode" : "enable developer renders",
-  "text.autoconfig.reshaped.option.enableRadialMenuItemBadges" : "Enable + item badges",
-  "text.autoconfig.reshaped.option.enableWaxedItemBadges" : "Enable waxed item badges",
-  "text.autoconfig.reshaped.option.RadialResolution" : "Radial menu resolution",
+  "text.autoconfig.reshaped.option.enableDevMode" : "Enable developer renders",
+  "text.autoconfig.reshaped.option.ItemBadges.enableRadial" : "Enable + item badges",
+  "text.autoconfig.reshaped.option.ItemBadges.enableWaxed" : "Enable waxed item badges",
+  "text.autoconfig.reshaped.option.radial.ImageResolution" : "Radial menu resolution",
   "text.autoconfig.reshaped.title" : "ReShaped config",
-  "text.autoconfig.reshaped.option.radialColorSelectedSlice" : "Radial menu selected slice color",
-  "text.autoconfig.reshaped.option.radialColorUnselectedSlice" : "Radial menu unselected slice color"
+  "text.autoconfig.reshaped.option.radial.ColorSelectedSlice" : "Radial menu selected slice color",
+  "text.autoconfig.reshaped.option.radial.ColorUnselectedSlice" : "Radial menu unselected slice color",
+  "text.autoconfig.reshaped.option.ItemBadges" : "Item badges",
+  "text.autoconfig.reshaped.option.Radial" : "Radial menu"
 }
