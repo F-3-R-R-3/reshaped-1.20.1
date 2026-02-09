@@ -48,8 +48,8 @@ public abstract class DrawContextMixin {
 
             ModConfig config = AutoConfig.getConfigHolder(ModConfig.class).getConfig();
             boolean isRadialMenu = MinecraftClient.getInstance().currentScreen instanceof RadialMenuScreen;
-            boolean isWaxed = Registries.BLOCK.getId(block).getPath().contains("waxed") && config.enableWaxedItemBadges;
-            boolean inMatrix = Reshaped.MATRIX != null && Reshaped.MATRIX.hasBlock(block) && config.enableRadialItemBadges;
+            boolean isWaxed = Registries.BLOCK.getId(block).getPath().contains("waxed") && config.ItemBadges.enableWaxed;
+            boolean inMatrix = Reshaped.MATRIX != null && Reshaped.MATRIX.hasBlock(block) && config.ItemBadges.enableRadial;
 
             if (isWaxed || (!isRadialMenu && inMatrix)) {
                 context.getMatrices().push();

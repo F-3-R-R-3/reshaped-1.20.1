@@ -33,8 +33,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class RadialMenuScreen extends Screen {
+    // Load the config
+    ModConfig config = AutoConfig.getConfigHolder(ModConfig.class).getConfig();
+
     private static final Identifier HOTBAR_TEXTURE = new Identifier("minecraft", "textures/gui/widgets.png");
-    private static final float BACKGROUND_RESOLUTION_MULTIPLIER = 4.0f; // Increase for smoother circles, decrease for performance
+    private final float BACKGROUND_RESOLUTION_MULTIPLIER = config.radial.ImageResolution; // Increase for smoother circles, decrease for performance
     private static final int RADIAL_RADIUS = 80;
     private static final int RADIAL_RING_THICKNESS = 20;
     private static final int MIN_HOVER_DIST_SQ = 400;   // (radius 20)
@@ -57,16 +60,12 @@ public class RadialMenuScreen extends Screen {
     private Runnable pendingAction;
     private int selectedSlotInSortedHotbar;
 
-    // Load the config
-    ModConfig config = AutoConfig.getConfigHolder(ModConfig.class).getConfig();
-
     public RadialMenuScreen(List<Block> blocks, int slot, Block currentBlock, Block baseBlock) {
         super(Text.literal("Radial Menu"));
         this.blocks = blocks;
         this.slot = slot;
         this.currentBlock = currentBlock;
         this.baseBlock = baseBlock;
-
     }
 
     private static void drawScaledItem(DrawContext context, ItemStack stack, int centerX, int centerY, float scale) {
@@ -137,7 +136,7 @@ public class RadialMenuScreen extends Screen {
         DiffuseLighting.enableGuiDepthLighting();
     }
 
-    private static void drawCircleSlice(DrawContext context, int centerX, int centerY, int outerRadius, int innerRadius, int slice, int NoOfSlices, int color) {
+    private void drawCircleSlice(DrawContext context, int centerX, int centerY, int outerRadius, int innerRadius, int slice, int NoOfSlices, int color) {
         resetRender();
         float sectionWidth = 360f / NoOfSlices;
         float startAngle = sectionWidth * (slice - 0.5f);
@@ -313,10 +312,10 @@ public class RadialMenuScreen extends Screen {
         for (int i = 0; i < blocks.size(); i++) {
             if (i == hoveredIndex) {
                 // Highlight hovered slice
-                drawCircleSlice(context, centerX, centerY, outerDiam + 6, innerDiam - 4, i, blocks.size(), 0x40666666);
+                drawCircleSlice(context, centerX, centerY, outerDiam + 6, innerDiam - 4, i, blocks.size(), config.radial.ColorSelectedSlice);
             } else {
                 // Default slice
-                drawCircleSlice(context, centerX, centerY, outerDiam, innerDiam, i, blocks.size(), 0x7F333333);
+                drawCircleSlice(context, centerX, centerY, outerDiam, innerDiam, i, blocks.size(), config.radial.ColorUnselectedSlice);
             }
         }
     }
