@@ -4,14 +4,17 @@ import net.f3rr3.reshaped.block.Corner.CornerBlock;
 import net.f3rr3.reshaped.block.Corner.CornerBlockEntity;
 import net.f3rr3.reshaped.block.Corner.MixedCornerBlock;
 import net.f3rr3.reshaped.block.Slab.MixedSlabBlock;
-import net.f3rr3.reshaped.block.Step.*;
+import net.f3rr3.reshaped.block.Slab.SlabBlockEntity;
+import net.f3rr3.reshaped.block.Step.MixedStepBlock;
+import net.f3rr3.reshaped.block.Step.StepBlock;
+import net.f3rr3.reshaped.block.Step.StepBlockEntity;
+import net.f3rr3.reshaped.block.VericalStairs.VerticalStairsBlock;
 import net.f3rr3.reshaped.block.VerticalSlab.MixedVerticalSlabBlock;
 import net.f3rr3.reshaped.block.VerticalSlab.VerticalSlabBlock;
 import net.f3rr3.reshaped.block.VerticalSlab.VerticalSlabBlockEntity;
 import net.f3rr3.reshaped.block.VerticalStep.MixedVerticalStepBlock;
 import net.f3rr3.reshaped.block.VerticalStep.VerticalStepBlock;
 import net.f3rr3.reshaped.block.VerticalStep.VerticalStepBlockEntity;
-import net.f3rr3.reshaped.block.Slab.SlabBlockEntity;
 import net.f3rr3.reshaped.command.MatrixCommand;
 import net.f3rr3.reshaped.network.NetworkHandler;
 import net.f3rr3.reshaped.util.BlockMatrix;
@@ -21,8 +24,8 @@ import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.SlabBlock;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.SlabBlock;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.block.enums.SlabType;
@@ -37,6 +40,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.chunk.WorldChunk;
 import org.slf4j.Logger;
@@ -546,6 +550,104 @@ public class Reshaped implements ModInitializer {
 
         // Handle corner block partial mining
         PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, blockEntity) -> {
+            if (state.getBlock() instanceof VerticalSlabBlock) {
+                if (world.isClient) return true;
+
+                ItemStack tool = player.getMainHandStack();
+                if (!player.isCreative() && state.isToolRequired() && !tool.isSuitableFor(state)) {
+                    return true;
+                }
+
+                HitResult hitResult = player.raycast(5.0, 1.0F, false);
+                if (hitResult.getType() == HitResult.Type.BLOCK) {
+                    BlockHitResult blockHitResult = (BlockHitResult) hitResult;
+                    if (blockHitResult.getBlockPos().equals(pos)) {
+                        if (state.get(VerticalSlabBlock.TYPE) == SlabType.DOUBLE) {
+                            Vec3d localHit = getLocalHit(blockHitResult, pos);
+                            Direction.Axis axis = state.get(VerticalSlabBlock.FACING).getAxis();
+
+                            Direction remainingFacing;
+                            if (axis == Direction.Axis.Z) {
+                                remainingFacing = localHit.z > 0.5 ? Direction.SOUTH : Direction.NORTH;
+                            } else {
+                                remainingFacing = localHit.x > 0.5 ? Direction.EAST : Direction.WEST;
+                            }
+
+                            BlockState newState = state
+                                    .with(VerticalSlabBlock.TYPE, SlabType.BOTTOM)
+                                    .with(VerticalSlabBlock.FACING, remainingFacing)
+                                    .with(VerticalSlabBlock.WATERLOGGED, state.get(VerticalSlabBlock.WATERLOGGED));
+
+                            world.setBlockState(pos, newState, 3);
+
+                            if (!player.isCreative()) {
+                                Block.dropStack(world, pos, new ItemStack(state.getBlock().asItem()));
+                            }
+
+                            if (world.getServer() != null) {
+                                WorldChunk chunk = world.getWorldChunk(pos);
+                                if (chunk != null) {
+                                    ((ServerChunkManager) world.getChunkManager()).threadedAnvilChunkStorage
+                                            .getPlayersWatchingChunk(chunk.getPos(), false)
+                                            .forEach(serverPlayer -> serverPlayer.networkHandler.sendPacket(
+                                                    new ChunkDataS2CPacket(chunk, world.getLightingProvider(), null, null)));
+                                }
+                            }
+
+                            return false;
+                        }
+                    }
+                }
+
+                world.setBlockState(pos, Blocks.AIR.getDefaultState(), 3);
+
+                if (!player.isCreative()) {
+                    int count = state.get(VerticalSlabBlock.TYPE) == SlabType.DOUBLE ? 2 : 1;
+                    for (int i = 0; i < count; i++) {
+                        Block.dropStack(world, pos, new ItemStack(state.getBlock().asItem()));
+                    }
+                }
+
+                if (world.getServer() != null) {
+                    WorldChunk chunk = world.getWorldChunk(pos);
+                    if (chunk != null) {
+                        ((ServerChunkManager) world.getChunkManager()).threadedAnvilChunkStorage
+                                .getPlayersWatchingChunk(chunk.getPos(), false)
+                                .forEach(serverPlayer -> serverPlayer.networkHandler.sendPacket(
+                                        new ChunkDataS2CPacket(chunk, world.getLightingProvider(), null, null)));
+                    }
+                }
+
+                return false;
+            }
+
+            if (state.getBlock() instanceof VerticalStairsBlock) {
+                if (world.isClient) return true;
+
+                ItemStack tool = player.getMainHandStack();
+                if (!player.isCreative() && state.isToolRequired() && !tool.isSuitableFor(state)) {
+                    return true;
+                }
+
+                world.setBlockState(pos, Blocks.AIR.getDefaultState(), 3);
+
+                if (!player.isCreative()) {
+                    Block.dropStack(world, pos, new ItemStack(state.getBlock().asItem()));
+                }
+
+                if (world.getServer() != null) {
+                    WorldChunk chunk = world.getWorldChunk(pos);
+                    if (chunk != null) {
+                        ((ServerChunkManager) world.getChunkManager()).threadedAnvilChunkStorage
+                                .getPlayersWatchingChunk(chunk.getPos(), false)
+                                .forEach(serverPlayer -> serverPlayer.networkHandler.sendPacket(
+                                        new ChunkDataS2CPacket(chunk, world.getLightingProvider(), null, null)));
+                    }
+                }
+
+                return false;
+            }
+
             if (state.getBlock() instanceof CornerBlock || state.getBlock() instanceof MixedCornerBlock
                     || state.getBlock() instanceof StepBlock || state.getBlock() instanceof MixedStepBlock
                     || state.getBlock() instanceof VerticalStepBlock || state.getBlock() instanceof MixedVerticalStepBlock
@@ -864,7 +966,8 @@ public class Reshaped implements ModInitializer {
                                     BlockEntity be = world.getBlockEntity(pos);
                                     if (be instanceof VerticalStepBlockEntity verticalStepBlockEntity) {
                                         Identifier[] capturedMaterials = new Identifier[4];
-                                        for (int i = 0; i < 4; i++) capturedMaterials[i] = verticalStepBlockEntity.getMaterial(i);
+                                        for (int i = 0; i < 4; i++)
+                                            capturedMaterials[i] = verticalStepBlockEntity.getMaterial(i);
                                         materialId = materialForProperty(property, allProps, capturedMaterials);
                                     }
                                 } else if (state.getBlock() instanceof MixedSlabBlock) {
@@ -878,7 +981,8 @@ public class Reshaped implements ModInitializer {
                                     BlockEntity be = world.getBlockEntity(pos);
                                     if (be instanceof VerticalSlabBlockEntity verticalSlabBlockEntity) {
                                         Identifier[] capturedMaterials = new Identifier[2];
-                                        for (int i = 0; i < 2; i++) capturedMaterials[i] = verticalSlabBlockEntity.getMaterial(i);
+                                        for (int i = 0; i < 2; i++)
+                                            capturedMaterials[i] = verticalSlabBlockEntity.getMaterial(i);
                                         materialId = materialForProperty(property, allProps, capturedMaterials);
                                     }
                                 } else {

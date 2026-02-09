@@ -6,7 +6,8 @@
 		"AbstractBlockSettingsMixin",
 		"BlockMixin",
 		"AxeItemAccessor",
-		"HoneycombItemAccessor"
+		"HoneycombItemAccessor",
+		"ItemStackMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

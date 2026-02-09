@@ -9,6 +9,9 @@ import net.minecraft.fluid.FluidState;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.item.ItemStack;
+import net.minecraft.loot.context.LootContextParameters;
+import net.minecraft.loot.context.LootContextParameterSet;
+import net.minecraft.loot.context.LootContextTypes;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.DirectionProperty;
 import net.minecraft.state.property.EnumProperty;
@@ -19,6 +22,9 @@ import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.BlockView;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @SuppressWarnings("deprecation")
 public class VerticalSlabBlock extends ReshapedBlock {
@@ -90,6 +96,26 @@ public class VerticalSlabBlock extends ReshapedBlock {
     @Override
     public String getTranslationKey() {
         return "block.reshaped.vertical_slab";
+    }
+
+    @Override
+    public List<ItemStack> getDroppedStacks(BlockState state, LootContextParameterSet.Builder builder) {
+        builder.add(LootContextParameters.BLOCK_STATE, state);
+        LootContextParameterSet context = builder.build(LootContextTypes.BLOCK);
+        ItemStack tool = context.getOptional(LootContextParameters.TOOL);
+        if (tool == null) {
+            tool = ItemStack.EMPTY;
+        }
+        if (state.isToolRequired() && !tool.isEmpty() && !tool.isSuitableFor(state)) {
+            return List.of();
+        }
+
+        int count = state.get(TYPE) == SlabType.DOUBLE ? 2 : 1;
+        List<ItemStack> drops = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            drops.add(new ItemStack(this));
+        }
+        return drops;
     }
 
     @Override

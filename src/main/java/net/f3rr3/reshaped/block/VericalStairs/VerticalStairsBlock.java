@@ -1,10 +1,16 @@
 package net.f3rr3.reshaped.block.VericalStairs;
 
 import net.f3rr3.reshaped.block.Template.ReshapedBlock;
-import net.minecraft.block.*;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.ShapeContext;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.item.ItemPlacementContext;
+import net.minecraft.item.ItemStack;
+import net.minecraft.loot.context.LootContextParameters;
+import net.minecraft.loot.context.LootContextParameterSet;
+import net.minecraft.loot.context.LootContextTypes;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.EnumProperty;
 import net.minecraft.util.StringIdentifiable;
@@ -12,6 +18,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.BlockView;
+
+import java.util.List;
 
 @SuppressWarnings("deprecation")
 public class VerticalStairsBlock extends ReshapedBlock {
@@ -22,6 +30,20 @@ public class VerticalStairsBlock extends ReshapedBlock {
         this.setDefaultState(this.getDefaultState()
                 .with(ORIENTATION, VerticalStairOrientation.MINUS_X_MINUS_Z)
                 .with(WATERLOGGED, false));
+    }
+
+    @Override
+    public List<ItemStack> getDroppedStacks(BlockState state, LootContextParameterSet.Builder builder) {
+        builder.add(LootContextParameters.BLOCK_STATE, state);
+        LootContextParameterSet context = builder.build(LootContextTypes.BLOCK);
+        ItemStack tool = context.getOptional(LootContextParameters.TOOL);
+        if (tool == null) {
+            tool = ItemStack.EMPTY;
+        }
+        if (state.isToolRequired() && !tool.isEmpty() && !tool.isSuitableFor(state)) {
+            return List.of();
+        }
+        return List.of(new ItemStack(this));
     }
 
     @Override

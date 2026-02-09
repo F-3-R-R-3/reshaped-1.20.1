@@ -7,6 +7,10 @@ import net.minecraft.entity.ai.pathing.NavigationType;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.item.ItemPlacementContext;
+import net.minecraft.item.ItemStack;
+import net.minecraft.loot.context.LootContextParameterSet;
+import net.minecraft.loot.context.LootContextParameters;
+import net.minecraft.loot.context.LootContextTypes;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.Properties;
@@ -15,6 +19,16 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.WorldAccess;
+import net.f3rr3.reshaped.block.Corner.CornerBlock;
+import net.f3rr3.reshaped.block.Corner.MixedCornerBlock;
+import net.f3rr3.reshaped.block.Slab.MixedSlabBlock;
+import net.f3rr3.reshaped.block.Step.StepBlock;
+import net.f3rr3.reshaped.block.Step.MixedStepBlock;
+import net.f3rr3.reshaped.block.VerticalStep.VerticalStepBlock;
+import net.f3rr3.reshaped.block.VerticalStep.MixedVerticalStepBlock;
+import net.f3rr3.reshaped.block.VerticalSlab.MixedVerticalSlabBlock;
+import net.f3rr3.reshaped.util.BlockSegmentUtils;
+import java.util.List;
 
 @SuppressWarnings("deprecation")
 public abstract class ReshapedBlock extends Block implements Waterloggable {
@@ -45,6 +59,53 @@ public abstract class ReshapedBlock extends Block implements Waterloggable {
     @Override
     public boolean canPathfindThrough(BlockState state, BlockView world, BlockPos pos, NavigationType type) {
         return false;
+    }
+
+    @Override
+    public List<ItemStack> getDroppedStacks(BlockState state, LootContextParameterSet.Builder builder) {
+        builder.add(LootContextParameters.BLOCK_STATE, state);
+        LootContextParameterSet context = builder.build(LootContextTypes.BLOCK);
+        ItemStack tool = context.getOptional(LootContextParameters.TOOL);
+        if (tool == null) {
+            tool = ItemStack.EMPTY;
+        }
+        if (state.isToolRequired() && !tool.isEmpty() && !tool.isSuitableFor(state)) {
+            return List.of();
+        }
+
+        int count = 1;
+        if (state.getBlock() instanceof CornerBlock || state.getBlock() instanceof MixedCornerBlock) {
+            count = countSegments(state, BlockSegmentUtils.CORNER_PROPERTIES);
+        } else if (state.getBlock() instanceof StepBlock || state.getBlock() instanceof MixedStepBlock) {
+            count = countSegments(state, BlockSegmentUtils.STEP_PROPERTIES);
+        } else if (state.getBlock() instanceof VerticalStepBlock || state.getBlock() instanceof MixedVerticalStepBlock) {
+            count = countSegments(state, BlockSegmentUtils.VERTICAL_STEP_PROPERTIES);
+        } else if (state.getBlock() instanceof MixedSlabBlock) {
+            count = countSegments(state, new BooleanProperty[]{MixedSlabBlock.BOTTOM, MixedSlabBlock.TOP});
+        } else if (state.getBlock() instanceof MixedVerticalSlabBlock) {
+            count = countSegments(state, new BooleanProperty[]{MixedVerticalSlabBlock.NEGATIVE, MixedVerticalSlabBlock.POSITIVE});
+        }
+
+        ItemStack drop = new ItemStack(this);
+        if (count <= 1) {
+            return List.of(drop);
+        }
+
+        java.util.ArrayList<ItemStack> drops = new java.util.ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            drops.add(drop.copy());
+        }
+        return drops;
+    }
+
+    private static int countSegments(BlockState state, BooleanProperty[] properties) {
+        int count = 0;
+        for (BooleanProperty property : properties) {
+            if (state.get(property)) {
+                count++;
+            }
+        }
+        return Math.max(count, 1);
     }
 
     @Override
