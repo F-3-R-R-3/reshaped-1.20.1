@@ -1,6 +1,9 @@
 package net.f3rr3.reshaped.client;
 
+import me.shedaniel.autoconfig.AutoConfig;
+import me.shedaniel.autoconfig.serializer.GsonConfigSerializer;
 import net.f3rr3.reshaped.Reshaped;
+import net.f3rr3.reshaped.client.gui.ConfigScreen.ModConfig;
 import net.f3rr3.reshaped.network.NetworkHandler;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
@@ -19,9 +22,10 @@ public class ReshapedClient implements ClientModInitializer {
         ModKeybindings.register();
         NetworkHandler.registerClientSenders();
         ClientTickHandler.register();
-
+        AutoConfig.register(ModConfig.class, GsonConfigSerializer::new);
         ItemTooltipCallback.EVENT.register((stack, context, lines) -> {
-            if (stack.getItem() instanceof BlockItem blockItem) {
+            ModConfig config = AutoConfig.getConfigHolder(ModConfig.class).getConfig();
+            if (stack.getItem() instanceof BlockItem blockItem && config.enableDevMode) {
                 Block block = blockItem.getBlock();
                 if (Reshaped.MATRIX != null) {
                     List<Block> column = Reshaped.MATRIX.getColumn(block);

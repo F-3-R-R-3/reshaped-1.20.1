@@ -20,6 +20,9 @@
 		],
 		"client": [
 			"net.f3rr3.reshaped.client.ReshapedClient"
+		],
+		"modmenu": [
+			"net.f3rr3.reshaped.client.gui.ConfigScreen.ModMenuIntegration"
 		]
 	},
 	"mixins": [
