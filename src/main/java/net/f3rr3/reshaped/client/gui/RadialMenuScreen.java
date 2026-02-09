@@ -1,8 +1,10 @@
 package net.f3rr3.reshaped.client.gui;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import me.shedaniel.autoconfig.AutoConfig;
 import net.f3rr3.reshaped.Reshaped;
 import net.f3rr3.reshaped.client.ModKeybindings;
+import net.f3rr3.reshaped.client.gui.ConfigScreen.ModConfig;
 import net.f3rr3.reshaped.network.NetworkHandler;
 import net.minecraft.block.Block;
 import net.minecraft.client.MinecraftClient;
@@ -55,12 +57,16 @@ public class RadialMenuScreen extends Screen {
     private Runnable pendingAction;
     private int selectedSlotInSortedHotbar;
 
+    // Load the config
+    ModConfig config = AutoConfig.getConfigHolder(ModConfig.class).getConfig();
+
     public RadialMenuScreen(List<Block> blocks, int slot, Block currentBlock, Block baseBlock) {
         super(Text.literal("Radial Menu"));
         this.blocks = blocks;
         this.slot = slot;
         this.currentBlock = currentBlock;
         this.baseBlock = baseBlock;
+
     }
 
     private static void drawScaledItem(DrawContext context, ItemStack stack, int centerX, int centerY, float scale) {
@@ -271,7 +277,7 @@ public class RadialMenuScreen extends Screen {
         renderItems(context, centerX, centerY, angleStep);
         renderTooltips(context, centerX, centerY);
 
-        if (isCtrlPressed()) {
+        if (config.enableDevMode) {
             renderDebugInfo(context, centerX, centerY, relativeAngle);
         }
 
@@ -331,7 +337,7 @@ public class RadialMenuScreen extends Screen {
             int y = centerY + (int) (RadialMenuScreen.RADIAL_RADIUS * Math.sin(angle));
 
             // Highlight the base block with a larger scale if the control button is pressed
-            float scale = (baseBlock == block && isCtrlPressed()) ? 1.5f : 1.0f;
+            float scale = (baseBlock == block && config.enableDevMode) ? 1.5f : 1.0f;
 
             drawScaledItem(context, stack, x, y, scale);
         }
@@ -346,7 +352,7 @@ public class RadialMenuScreen extends Screen {
             drawCenteredTooltip(context, tooltip, centerX, centerY / 6);
 
             // Debug tooltip (Block Class and Relationship source)
-            if (isCtrlPressed()) {
+            if (config.enableDevMode) {
                 String reason = Reshaped.MATRIX != null ? Reshaped.MATRIX.getReason(block) : "Unknown reason";
                 String blockInstance = block.getClass().getSimpleName();
                 List<Text> debugTooltip = new ArrayList<>(List.of(
@@ -356,13 +362,6 @@ public class RadialMenuScreen extends Screen {
                 context.drawTooltip(this.textRenderer, debugTooltip, -8, 16);
             }
         }
-    }
-
-    private boolean isCtrlPressed() {
-        if (this.client == null) return false;
-        long handle = this.client.getWindow().getHandle();
-        return GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS ||
-                GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS;
     }
 
     private void renderDebugInfo(DrawContext context, int centerX, int centerY, float relativeAngle) {

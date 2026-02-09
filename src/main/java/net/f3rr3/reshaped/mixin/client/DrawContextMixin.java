@@ -1,6 +1,8 @@
 package net.f3rr3.reshaped.mixin.client;
 
+import me.shedaniel.autoconfig.AutoConfig;
 import net.f3rr3.reshaped.Reshaped;
+import net.f3rr3.reshaped.client.gui.ConfigScreen.ModConfig;
 import net.f3rr3.reshaped.client.gui.RadialMenuScreen;
 import net.minecraft.block.Block;
 import net.minecraft.client.MinecraftClient;
@@ -43,10 +45,11 @@ public abstract class DrawContextMixin {
         if (stack != null && !stack.isEmpty() && stack.getItem() instanceof BlockItem blockItem) {
             Block block = blockItem.getBlock();
             DrawContext context = (DrawContext) (Object) this;
-            
+
+            ModConfig config = AutoConfig.getConfigHolder(ModConfig.class).getConfig();
             boolean isRadialMenu = MinecraftClient.getInstance().currentScreen instanceof RadialMenuScreen;
-            boolean isWaxed = Registries.BLOCK.getId(block).getPath().contains("waxed");
-            boolean inMatrix = Reshaped.MATRIX != null && Reshaped.MATRIX.hasBlock(block);
+            boolean isWaxed = Registries.BLOCK.getId(block).getPath().contains("waxed") && config.enableWaxedItemBadges;
+            boolean inMatrix = Reshaped.MATRIX != null && Reshaped.MATRIX.hasBlock(block) && config.enableRadialItemBadges;
 
             if (isWaxed || (!isRadialMenu && inMatrix)) {
                 context.getMatrices().push();

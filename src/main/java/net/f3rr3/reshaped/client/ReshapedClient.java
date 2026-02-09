@@ -24,7 +24,8 @@ public class ReshapedClient implements ClientModInitializer {
         ClientTickHandler.register();
         AutoConfig.register(ModConfig.class, GsonConfigSerializer::new);
         ItemTooltipCallback.EVENT.register((stack, context, lines) -> {
-            if (stack.getItem() instanceof BlockItem blockItem) {
+            ModConfig config = AutoConfig.getConfigHolder(ModConfig.class).getConfig();
+            if (stack.getItem() instanceof BlockItem blockItem && config.enableDevMode) {
                 Block block = blockItem.getBlock();
                 if (Reshaped.MATRIX != null) {
                     List<Block> column = Reshaped.MATRIX.getColumn(block);
