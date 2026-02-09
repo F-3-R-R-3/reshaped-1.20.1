@@ -1,7 +1,17 @@
 package net.f3rr3.reshaped.block.Template;
 
+import net.f3rr3.reshaped.block.Corner.CornerBlock;
+import net.f3rr3.reshaped.block.Corner.MixedCornerBlock;
+import net.f3rr3.reshaped.block.Slab.MixedSlabBlock;
+import net.f3rr3.reshaped.block.Step.MixedStepBlock;
+import net.f3rr3.reshaped.block.Step.StepBlock;
+import net.f3rr3.reshaped.block.VerticalSlab.MixedVerticalSlabBlock;
+import net.f3rr3.reshaped.block.VerticalStep.MixedVerticalStepBlock;
+import net.f3rr3.reshaped.block.VerticalStep.VerticalStepBlock;
+import net.f3rr3.reshaped.util.BlockSegmentUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.block.Waterloggable;
 import net.minecraft.entity.ai.pathing.NavigationType;
 import net.minecraft.fluid.FluidState;
@@ -11,6 +21,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.loot.context.LootContextParameterSet;
 import net.minecraft.loot.context.LootContextParameters;
 import net.minecraft.loot.context.LootContextTypes;
+import net.minecraft.registry.Registries;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.Properties;
@@ -19,17 +30,7 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.WorldAccess;
-import net.f3rr3.reshaped.block.Corner.CornerBlock;
-import net.f3rr3.reshaped.block.Corner.CornerBlockEntity;
-import net.f3rr3.reshaped.block.Corner.MixedCornerBlock;
-import net.f3rr3.reshaped.block.Slab.MixedSlabBlock;
-import net.f3rr3.reshaped.block.Step.StepBlock;
-import net.f3rr3.reshaped.block.Step.MixedStepBlock;
-import net.f3rr3.reshaped.block.VerticalStep.VerticalStepBlock;
-import net.f3rr3.reshaped.block.VerticalStep.MixedVerticalStepBlock;
-import net.f3rr3.reshaped.block.VerticalSlab.MixedVerticalSlabBlock;
-import net.f3rr3.reshaped.util.BlockSegmentUtils;
-import net.minecraft.registry.Registries;
+
 import java.util.List;
 
 @SuppressWarnings("deprecation")
@@ -43,6 +44,34 @@ public abstract class ReshapedBlock extends Block implements Waterloggable {
     protected static Vec3d getLocalHit(ItemPlacementContext context) {
         BlockPos pos = context.getBlockPos();
         return context.getHitPos().subtract(pos.getX(), pos.getY(), pos.getZ());
+    }
+
+    private static int countSegments(BlockState state, BooleanProperty[] properties) {
+        int count = 0;
+        for (BooleanProperty property : properties) {
+            if (state.get(property)) {
+                count++;
+            }
+        }
+        return Math.max(count, 1);
+    }
+
+    private static List<ItemStack> buildMixedDrops(BlockState state, BooleanProperty[] properties, MixedBlockEntity blockEntity) {
+        java.util.ArrayList<ItemStack> drops = new java.util.ArrayList<>();
+        for (int i = 0; i < properties.length; i++) {
+            if (!state.get(properties[i])) {
+                continue;
+            }
+            net.minecraft.util.Identifier materialId = blockEntity.getMaterial(i);
+            if (materialId == null) {
+                continue;
+            }
+            Block block = Registries.BLOCK.get(materialId);
+            if (block != Blocks.AIR) {
+                drops.add(new ItemStack(block.asItem()));
+            }
+        }
+        return drops;
     }
 
     @Override
@@ -75,24 +104,26 @@ public abstract class ReshapedBlock extends Block implements Waterloggable {
             return List.of();
         }
 
-        if (state.getBlock() instanceof MixedCornerBlock) {
-            net.minecraft.block.entity.BlockEntity be = context.getOptional(LootContextParameters.BLOCK_ENTITY);
-            if (be instanceof CornerBlockEntity cornerBlockEntity) {
-                java.util.ArrayList<ItemStack> drops = new java.util.ArrayList<>();
-                BooleanProperty[] props = BlockSegmentUtils.CORNER_PROPERTIES;
-                for (int i = 0; i < props.length; i++) {
-                    if (!state.get(props[i])) {
-                        continue;
-                    }
-                    net.minecraft.util.Identifier materialId = cornerBlockEntity.getCornerMaterial(i);
-                    if (materialId != null) {
-                        net.minecraft.block.Block block = Registries.BLOCK.get(materialId);
-                        if (block != net.minecraft.block.Blocks.AIR) {
-                            drops.add(new ItemStack(block.asItem()));
-                        }
-                    }
+        net.minecraft.block.entity.BlockEntity be = context.getOptional(LootContextParameters.BLOCK_ENTITY);
+        if (be instanceof MixedBlockEntity mixedBlockEntity) {
+            BooleanProperty[] props = null;
+            if (state.getBlock() instanceof MixedCornerBlock) {
+                props = BlockSegmentUtils.CORNER_PROPERTIES;
+            } else if (state.getBlock() instanceof MixedStepBlock) {
+                props = BlockSegmentUtils.STEP_PROPERTIES;
+            } else if (state.getBlock() instanceof MixedVerticalStepBlock) {
+                props = BlockSegmentUtils.VERTICAL_STEP_PROPERTIES;
+            } else if (state.getBlock() instanceof MixedSlabBlock) {
+                props = new BooleanProperty[]{MixedSlabBlock.BOTTOM, MixedSlabBlock.TOP};
+            } else if (state.getBlock() instanceof MixedVerticalSlabBlock) {
+                props = new BooleanProperty[]{MixedVerticalSlabBlock.NEGATIVE, MixedVerticalSlabBlock.POSITIVE};
+            }
+
+            if (props != null) {
+                List<ItemStack> drops = buildMixedDrops(state, props, mixedBlockEntity);
+                if (!drops.isEmpty()) {
+                    return drops;
                 }
-                return drops;
             }
         }
 
@@ -119,16 +150,6 @@ public abstract class ReshapedBlock extends Block implements Waterloggable {
             drops.add(drop.copy());
         }
         return drops;
-    }
-
-    private static int countSegments(BlockState state, BooleanProperty[] properties) {
-        int count = 0;
-        for (BooleanProperty property : properties) {
-            if (state.get(property)) {
-                count++;
-            }
-        }
-        return Math.max(count, 1);
     }
 
     @Override
