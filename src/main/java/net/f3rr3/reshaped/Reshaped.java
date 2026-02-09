@@ -22,6 +22,7 @@ import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityT
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.SlabBlock;
+import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.block.enums.SlabType;
@@ -840,6 +841,64 @@ public class Reshaped implements ModInitializer {
                                     Block.dropStack(world, pos, new ItemStack(dropBlock.asItem()));
                                 }
                                 return false; // Cancel the full block break
+                            } else {
+                                Identifier materialId = null;
+
+                                if (state.getBlock() instanceof MixedCornerBlock) {
+                                    BlockEntity be = world.getBlockEntity(pos);
+                                    if (be instanceof CornerBlockEntity cbe) {
+                                        Identifier[] capturedMaterials = new Identifier[8];
+                                        for (int i = 0; i < 8; i++) {
+                                            capturedMaterials[i] = cbe.getCornerMaterial(i);
+                                        }
+                                        materialId = materialForProperty(property, allProps, capturedMaterials);
+                                    }
+                                } else if (state.getBlock() instanceof MixedStepBlock) {
+                                    BlockEntity be = world.getBlockEntity(pos);
+                                    if (be instanceof StepBlockEntity sbe) {
+                                        Identifier[] capturedMaterials = new Identifier[4];
+                                        for (int i = 0; i < 4; i++) capturedMaterials[i] = sbe.getMaterial(i);
+                                        materialId = materialForProperty(property, allProps, capturedMaterials);
+                                    }
+                                } else if (state.getBlock() instanceof MixedVerticalStepBlock) {
+                                    BlockEntity be = world.getBlockEntity(pos);
+                                    if (be instanceof VerticalStepBlockEntity verticalStepBlockEntity) {
+                                        Identifier[] capturedMaterials = new Identifier[4];
+                                        for (int i = 0; i < 4; i++) capturedMaterials[i] = verticalStepBlockEntity.getMaterial(i);
+                                        materialId = materialForProperty(property, allProps, capturedMaterials);
+                                    }
+                                } else if (state.getBlock() instanceof MixedSlabBlock) {
+                                    BlockEntity be = world.getBlockEntity(pos);
+                                    if (be instanceof SlabBlockEntity sbe) {
+                                        Identifier[] capturedMaterials = new Identifier[2];
+                                        for (int i = 0; i < 2; i++) capturedMaterials[i] = sbe.getMaterial(i);
+                                        materialId = materialForProperty(property, allProps, capturedMaterials);
+                                    }
+                                } else if (state.getBlock() instanceof MixedVerticalSlabBlock) {
+                                    BlockEntity be = world.getBlockEntity(pos);
+                                    if (be instanceof VerticalSlabBlockEntity verticalSlabBlockEntity) {
+                                        Identifier[] capturedMaterials = new Identifier[2];
+                                        for (int i = 0; i < 2; i++) capturedMaterials[i] = verticalSlabBlockEntity.getMaterial(i);
+                                        materialId = materialForProperty(property, allProps, capturedMaterials);
+                                    }
+                                } else {
+                                    materialId = Registries.BLOCK.getId(state.getBlock());
+                                }
+
+                                world.setBlockState(pos, Blocks.AIR.getDefaultState(), 3);
+
+                                if (world.getServer() != null) {
+                                    WorldChunk chunk = world.getWorldChunk(pos);
+                                    if (chunk != null) {
+                                        ((ServerChunkManager) world.getChunkManager()).threadedAnvilChunkStorage.getPlayersWatchingChunk(chunk.getPos(), false).forEach(serverPlayer -> serverPlayer.networkHandler.sendPacket(new ChunkDataS2CPacket(chunk, world.getLightingProvider(), null, null)));
+                                    }
+                                }
+
+                                if (!player.isCreative()) {
+                                    Block dropBlock = materialId != null ? Registries.BLOCK.get(materialId) : state.getBlock();
+                                    Block.dropStack(world, pos, new ItemStack(dropBlock.asItem()));
+                                }
+                                return false;
                             }
                         }
                     }
