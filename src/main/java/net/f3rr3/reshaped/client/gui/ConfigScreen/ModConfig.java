@@ -1,12 +1,13 @@
 package net.f3rr3.reshaped.client.gui.ConfigScreen;
 
-public class ModConfig {
-    public static boolean enableDevMode = false;
-    public static boolean enableRadialItemBadges = true;
-    public static boolean enableWaxedItemBadges = true;
-    public static int RadialResolution = 5;
+import me.shedaniel.autoconfig.ConfigData;
+import me.shedaniel.autoconfig.annotation.Config;
 
-    public static void save() {
-    }
+@Config(name = "reshaped")
+public class ModConfig implements ConfigData {
+
+    public boolean enableDevMode = false;
+    public boolean enableRadialItemBadges = true;
+    public boolean enableWaxedItemBadges = true;
+    public int radialResolution = 5;
 }
-
