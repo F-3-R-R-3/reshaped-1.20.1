@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "type=bottom": { "model": "reshaped:block/{{path}}" },
+    "type=top":    { "model": "reshaped:block/{{path}}_top" },
+    "type=double": { "model": "{{base_model}}" }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "facing=south,type=bottom": { "model": "reshaped:block/{{path}}", "y": 0 },
+    "facing=west,type=bottom":  { "model": "reshaped:block/{{path}}", "uvlock": true, "y": 90 },
+    "facing=north,type=bottom": { "model": "reshaped:block/{{path}}", "uvlock": true, "y": 180 },
+    "facing=east,type=bottom":  { "model": "reshaped:block/{{path}}", "uvlock": true, "y": 270 },
+    "facing=south,type=top":    { "model": "reshaped:block/{{path}}", "y": 0 },
+    "facing=west,type=top":     { "model": "reshaped:block/{{path}}", "uvlock": true, "y": 90 },
+    "facing=north,type=top":    { "model": "reshaped:block/{{path}}", "y": 180 },
+    "facing=east,type=top":     { "model": "reshaped:block/{{path}}", "uvlock": true, "y": 270 },
+    "type=double":              { "model": "{{base_model}}" }
+  }
+}

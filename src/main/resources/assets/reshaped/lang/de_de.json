@@ -1,0 +1,14 @@
+{
+  "block.reshaped.vertical_stairs": "Vertikale Treppen",
+  "block.reshaped.vertical_slab": "Vertikale Stufe",
+  "block.reshaped.mixed_vertical_slab": "Gemischte Vertikale Stufe",
+  "block.reshaped.corner": "Ecke",
+  "block.reshaped.mixed_corner": "Gemischte Ecke",
+  "block.reshaped.vertical_step": "Vertikaler Absatz",
+  "block.reshaped.mixed_vertical_step": "Gemischter Vertikaler Absatz",
+  "block.reshaped.step": "Absatz",
+  "block.reshaped.mixed_step": "Gemischter Absatz",
+  "block.reshaped.mixed_slab": "Gemischte Stufe",
+  "category.reshaped": "Reshaped",
+  "key.reshaped.open_radial_menu": "Radialmenü öffnen"
+}

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "reshaped",
+  "version": "${version}",
+  "name": "reshaped",
+  "description": "Adds a radial menu to quickly switch between block shape variants and introduces many new shapes.",
+  "authors": [
+    "f-3-r-r-3"
+  ],
+  "contact": {
+    "homepage": "https://modrinth.com/project/reshaped"
+  },
+  "license": "ARR",
+  "icon": "assets/reshaped/icon.gif",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "net.f3rr3.reshaped.Reshaped"
+    ],
+    "client": [
+      "net.f3rr3.reshaped.client.ReshapedClient"
+    ],
+    "modmenu": [
+      "net.f3rr3.reshaped.config.client.ModMenuIntegration"
+    ]
+  },
+  "mixins": [
+    "reshaped.mixins.json",
+    {
+      "config": "reshaped.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.18.4",
+    "minecraft": "~1.20.1",
+    "java": ">=17",
+    "fabric-api": "*",
+    "cloth-config": "*"
+  }
+}

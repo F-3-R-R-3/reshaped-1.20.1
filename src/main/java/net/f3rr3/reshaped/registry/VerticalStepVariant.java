@@ -1,0 +1,160 @@
+package net.f3rr3.reshaped.registry;
+
+import net.f3rr3.reshaped.Reshaped;
+import net.f3rr3.reshaped.block.VerticalStep.OxidizableVerticalStepBlock;
+import net.f3rr3.reshaped.block.VerticalStep.VerticalStepBlock;
+import net.f3rr3.reshaped.util.BlockMatrix;
+import net.f3rr3.reshaped.util.RuntimeResourceGenerator;
+import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;
+import net.fabricmc.fabric.api.registry.OxidizableBlocksRegistry;
+import net.fabricmc.fabric.api.registry.StrippableBlockRegistry;
+import net.minecraft.block.AbstractBlock;
+import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.Oxidizable;
+import net.minecraft.item.BlockItem;
+import net.minecraft.item.Item;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.Registry;
+import net.minecraft.util.Identifier;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+public class VerticalStepVariant implements BlockVariantType {
+    private static final Map<Block, VerticalStepBlock> BASE_TO_STEP = new HashMap<>();
+
+    @Override
+    public String getName() {
+        return "vertical_step";
+    }
+
+    @Override
+    public void register(Block baseBlock, BlockMatrix matrix) {
+        Identifier baseId = Registries.BLOCK.getId(baseBlock);
+        String baseName = baseId.getPath().replace("_planks", "").replace("_block", "");
+        String path = baseName + "_vertical_step";
+        Identifier id = new Identifier(Reshaped.MOD_ID, path);
+
+        Block existingAtId = Registries.BLOCK.get(id);
+        if (existingAtId != Blocks.AIR) {
+            Block existingBase = matrix.getBaseBlock(existingAtId);
+            if (existingBase != null && existingBase != baseBlock) {
+                path = baseId.getNamespace() + "_" + baseId.getPath() + "_vertical_step";
+                id = new Identifier(Reshaped.MOD_ID, path);
+            }
+        }
+
+        if (Registries.BLOCK.get(id) != Blocks.AIR) {
+            Block existing = Registries.BLOCK.get(id);
+            if (existing instanceof VerticalStepBlock step) {
+                BASE_TO_STEP.putIfAbsent(baseBlock, step);
+                List<Block> variants = matrix.getMatrix().get(baseBlock);
+                if (variants != null && !variants.contains(step)) {
+                    variants.add(step);
+                }
+            }
+            return;
+        }
+
+        VerticalStepBlock step;
+        AbstractBlock.Settings settings = AbstractBlock.Settings.copy(baseBlock);
+
+        if (baseBlock instanceof Oxidizable oxidizable) {
+            step = new OxidizableVerticalStepBlock(oxidizable.getDegradationLevel(), settings);
+        } else {
+            step = new VerticalStepBlock(settings);
+        }
+
+        Registry.register(Registries.BLOCK, id, step);
+        Registry.register(Registries.ITEM, id, new BlockItem(step, new Item.Settings()));
+
+        matrix.addVariant(baseBlock, step, true);
+        matrix.setReason(step, "Dynamically registered Vertical Step Block for " + baseBlock.getName().getString());
+        BASE_TO_STEP.put(baseBlock, step);
+        Reshaped.LOGGER.info("Registered vertical step for: {}", baseId);
+
+        FlammableBlockRegistry flammableRegistry = FlammableBlockRegistry.getDefaultInstance();
+        FlammableBlockRegistry.Entry flammableEntry = flammableRegistry.get(baseBlock);
+        if (flammableEntry != null) {
+            flammableRegistry.add(step, flammableEntry.getBurnChance(), flammableEntry.getSpreadChance());
+        }
+
+        linkRelations(baseBlock, step);
+        for (Map.Entry<Block, VerticalStepBlock> entry : BASE_TO_STEP.entrySet()) {
+            if (entry.getKey() != baseBlock) {
+                linkRelations(entry.getKey(), entry.getValue());
+            }
+        }
+    }
+
+    private void linkRelations(Block base, VerticalStepBlock step) {
+        Optional<Block> nextOxidation = Oxidizable.getIncreasedOxidationBlock(base);
+        if (nextOxidation.isPresent() && BASE_TO_STEP.containsKey(nextOxidation.get())) {
+            VerticalStepBlock nextStep = BASE_TO_STEP.get(nextOxidation.get());
+            OxidizableBlocksRegistry.registerOxidizableBlockPair(step, nextStep);
+        }
+
+        try {
+            Map<Block, Block> unwaxedToWaxed = net.f3rr3.reshaped.mixin.HoneycombItemAccessor.getUnwaxedToWaxedSupplier().get();
+            Block waxedBase = unwaxedToWaxed.get(base);
+            if (waxedBase != null && BASE_TO_STEP.containsKey(waxedBase)) {
+                VerticalStepBlock waxedStep = BASE_TO_STEP.get(waxedBase);
+                OxidizableBlocksRegistry.registerWaxableBlockPair(step, waxedStep);
+            }
+
+            for (Map.Entry<Block, Block> entry : unwaxedToWaxed.entrySet()) {
+                if (entry.getValue() == base && BASE_TO_STEP.containsKey(entry.getKey())) {
+                    VerticalStepBlock unwaxedStep = BASE_TO_STEP.get(entry.getKey());
+                    OxidizableBlocksRegistry.registerWaxableBlockPair(unwaxedStep, step);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        try {
+            Map<Block, Block> strippedBlocks = net.f3rr3.reshaped.mixin.AxeItemAccessor.getStrippedBlocks();
+            Block strippedBase = strippedBlocks.get(base);
+            if (strippedBase != null && BASE_TO_STEP.containsKey(strippedBase)) {
+                VerticalStepBlock strippedStep = BASE_TO_STEP.get(strippedBase);
+                StrippableBlockRegistry.register(step, strippedStep);
+            }
+
+            for (Map.Entry<Block, Block> entry : strippedBlocks.entrySet()) {
+                if (entry.getValue() == base && BASE_TO_STEP.containsKey(entry.getKey())) {
+                    VerticalStepBlock unstrippedStep = BASE_TO_STEP.get(entry.getKey());
+                    StrippableBlockRegistry.register(unstrippedStep, step);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    @Override
+    public String generateModelJson(String path, Block block) {
+        String cleanPath = RuntimeResourceGenerator.stripRandomVariantSuffix(path);
+        int randomIndex = RuntimeResourceGenerator.extractRandomVariantIndex(path);
+        if (cleanPath.contains("_vertical_step")) {
+            // Check for segment mask (e.g. "_1010")
+            // Default to single segment (1000 - North West) if no mask found
+            String maskString = RuntimeResourceGenerator.extractMaskSuffix(cleanPath);
+            boolean[] segments = RuntimeResourceGenerator.parseMaskOrDefault(maskString, true, false, false, false);
+
+            Block targetBlock = RuntimeResourceGenerator.resolveBlockForPath(cleanPath, block);
+            Block baseBlock = Reshaped.MATRIX.getBaseBlock(targetBlock);
+            if (baseBlock != null) {
+                Map<String, String> textures = RuntimeResourceGenerator.getModelTextures(baseBlock, randomIndex);
+                return RuntimeResourceGenerator.generateVerticalStepModelForSegments(
+                        segments[0],
+                        segments[1],
+                        segments[2],
+                        segments[3],
+                        textures
+                );
+            }
+        }
+        return null;
+    }
+}

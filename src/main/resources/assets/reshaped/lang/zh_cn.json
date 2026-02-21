@@ -1,0 +1,14 @@
+{
+  "block.reshaped.vertical_stairs": "垂直楼梯",
+  "block.reshaped.vertical_slab": "垂直台阶",
+  "block.reshaped.mixed_vertical_slab": "混合垂直台阶",
+  "block.reshaped.corner": "墙角",
+  "block.reshaped.mixed_corner": "混合墙角",
+  "block.reshaped.vertical_step": "垂直阶梯",
+  "block.reshaped.mixed_vertical_step": "混合垂直阶梯",
+  "block.reshaped.step": "阶梯",
+  "block.reshaped.mixed_step": "混合阶梯",
+  "block.reshaped.mixed_slab": "混合台阶",
+  "category.reshaped": "Reshaped",
+  "key.reshaped.open_radial_menu": "打开轮盘菜单"
+}
