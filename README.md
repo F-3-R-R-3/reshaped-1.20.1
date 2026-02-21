@@ -41,8 +41,8 @@ Almost all block shapes are mixable, allowing the use of multiple materials with
 - Additional block types  
 - Connected textures compatibility  
 - Auto generated recepies
-- Public github repo
 - other minecraft versions, inluding forge
+- ~~Public github repo~~ (public since 21 feb)
 - ~~Transparent block support~~ (added in V0.2)
 - ~~Improved tooltips for the radial menu~~ (added in V0.2)
 - ~~A Config screen~~ (added in V0.1)
