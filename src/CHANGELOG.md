@@ -44,3 +44,17 @@
 
 - carpet also now initializes block groups, meaning moss and wool block groups.
 - added server config
+
+# V0.4
+
+## Fixes
+
+-
+
+## Improvements
+
+- updated fabric.mod.json with links to the GitHub page
+
+## New
+
+- 
