@@ -8,7 +8,9 @@
     "f-3-r-r-3"
   ],
   "contact": {
-    "homepage": "https://modrinth.com/project/reshaped"
+    "homepage": "https://modrinth.com/project/reshaped",
+    "sources": "https://github.com/F-3-R-R-3/reshaped-1.20.1",
+    "issues": "https://github.com/F-3-R-R-3/reshaped-1.20.1/issues"
   },
   "license": "ARR",
   "icon": "assets/reshaped/icon.gif",
