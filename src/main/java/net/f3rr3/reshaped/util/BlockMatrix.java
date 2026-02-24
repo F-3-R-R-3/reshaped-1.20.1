@@ -61,6 +61,14 @@ public class BlockMatrix {
         }
     }
 
+    public void clear() {
+        matrix.clear();
+        reasons.clear();
+        allBlocks.clear();
+        variantToBase.clear();
+        columnByBlock.clear();
+    }
+
     public Block getBaseBlock(Block variant) {
         return variantToBase.get(variant);
     }
