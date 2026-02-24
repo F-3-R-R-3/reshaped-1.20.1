@@ -17,6 +17,41 @@ public final class MatrixRebuilder {
     private MatrixRebuilder() {
     }
 
+    public static void bootstrap(BlockMatrix matrix) {
+        if (matrix == null) return;
+        if (!REBUILDING.compareAndSet(false, true)) return;
+
+        try {
+            matrix.clear();
+
+            Set<Block> baseCandidates = BaseBlockFilter.collectBaseCandidates();
+            for (Block base : baseCandidates) {
+                matrix.addColumn(base, List.of(), false);
+                matrix.setReason(base, "Base block selected by state-based filter");
+            }
+
+            List<Block> bases = new ArrayList<>(matrix.getMatrix().keySet());
+            for (Block base : bases) {
+                try {
+                    VariantRegistry.registerAll(base, matrix);
+                } catch (Exception e) {
+                    Reshaped.LOGGER.warn("Variant registration failed for base {}", base, e);
+                }
+            }
+
+            matrix.refresh();
+            Reshaped.LOGGER.info(
+                    "Bootstrapped block matrix: {} bases, {} columns",
+                    baseCandidates.size(),
+                    matrix.getMatrix().size()
+            );
+        } catch (Exception e) {
+            Reshaped.LOGGER.error("Failed to bootstrap matrix", e);
+        } finally {
+            REBUILDING.set(false);
+        }
+    }
+
     public static void rebuild(BlockMatrix matrix, MinecraftServer server) {
         if (matrix == null || server == null) return;
         if (!REBUILDING.compareAndSet(false, true)) return;
@@ -50,7 +85,11 @@ public final class MatrixRebuilder {
 
             List<Block> bases = new ArrayList<>(matrix.getMatrix().keySet());
             for (Block base : bases) {
-                VariantRegistry.registerAll(base, matrix);
+                try {
+                    VariantRegistry.registerAll(base, matrix);
+                } catch (Exception e) {
+                    Reshaped.LOGGER.warn("Variant registration failed for base {}", base, e);
+                }
             }
 
             matrix.refresh();

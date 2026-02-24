@@ -9,6 +9,9 @@ public class BlockRegistryScanner {
     private static volatile MinecraftServer currentServer;
 
     public static void init(BlockMatrix matrix) {
+        // Bootstrap immediately while registries are still writable.
+        MatrixRebuilder.bootstrap(matrix);
+
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             currentServer = server;
             MatrixRebuilder.rebuild(matrix, server);
