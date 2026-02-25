@@ -29,6 +29,7 @@ public final class BaseBlockFilter {
         if (block.asItem() == Items.AIR) return false;
         if (isIgnoredForMatrix(block)) return false;
         if (block instanceof BlockEntityProvider) return false;
+        if (isFunctionalOrReactiveBlock(block)) return false;
         if (isLikelyVariantType(block)) return false;
 
         BlockState state = block.getDefaultState();
@@ -59,6 +60,36 @@ public final class BaseBlockFilter {
         return namespace.contains("copycat")
                 || path.contains("copycat")
                 || className.contains("copycat");
+    }
+
+    private static boolean isFunctionalOrReactiveBlock(Block block) {
+        if (block instanceof FallingBlock
+                || block instanceof LeavesBlock
+                || block instanceof PistonBlock
+                || block instanceof RespawnAnchorBlock
+                || block instanceof ObserverBlock
+                || block instanceof RedstoneOreBlock
+                || block instanceof RedstoneLampBlock
+                || block instanceof TargetBlock
+                || block instanceof TntBlock
+                || block instanceof SlimeBlock) {
+            return true;
+        }
+
+        // Conservative fallback for modded blocks that are function/reactive but do not extend known classes.
+        Identifier id = Registries.BLOCK.getId(block);
+        String path = id.getPath();
+        return path.contains("piston")
+                || path.contains("observer")
+                || path.contains("redstone")
+                || path.contains("respawn_anchor")
+                || path.contains("target")
+                || path.contains("tnt")
+                || path.contains("slime")
+                || path.contains("concrete_powder")
+                || path.endsWith("_powder")
+                || path.contains("leaves")
+                || path.contains("falling");
     }
 }
 
