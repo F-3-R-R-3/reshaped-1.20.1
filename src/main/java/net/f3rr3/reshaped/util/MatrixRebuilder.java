@@ -59,7 +59,7 @@ public final class MatrixRebuilder {
         try {
             matrix.clear();
 
-            Set<Block> baseCandidates = BaseBlockFilter.collectBaseCandidates();
+            Set<Block> baseCandidates = BaseBlockFilter.collectBaseCandidates(server);
             for (Block base : baseCandidates) {
                 matrix.addColumn(base, List.of(), false);
                 matrix.setReason(base, "Base block selected by state-based filter");

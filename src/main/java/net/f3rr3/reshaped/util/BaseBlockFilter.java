@@ -3,28 +3,41 @@ package net.f3rr3.reshaped.util;
 import net.minecraft.block.*;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.EmptyBlockView;
+import net.minecraft.server.world.ServerWorld;
 
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 public final class BaseBlockFilter {
+    private static final int PLACEMENT_PROBE_Y_OFFSET = 80;
+
     private BaseBlockFilter() {
     }
 
-    public static Set<Block> collectBaseCandidates() {
+    public static Set<Block> collectBaseCandidates(MinecraftServer server) {
+        if (server == null) {
+            return Set.of();
+        }
+
+        ServerWorld world = server.getOverworld();
+        if (world == null) {
+            return Set.of();
+        }
+
         Set<Block> sorted = new LinkedHashSet<>();
         Registries.BLOCK.stream()
-                .filter(BaseBlockFilter::isBaseCandidate)
+                .filter(block -> isBaseCandidate(block, world))
                 .sorted(Comparator.comparing(block -> Registries.BLOCK.getId(block).toString()))
                 .forEach(sorted::add);
         return sorted;
     }
 
-    public static boolean isBaseCandidate(Block block) {
+    public static boolean isBaseCandidate(Block block, ServerWorld world) {
         if (block == null || block == Blocks.AIR) return false;
         if (block.asItem() == Items.AIR) return false;
         if (isIgnoredForMatrix(block)) return false;
@@ -34,7 +47,8 @@ public final class BaseBlockFilter {
 
         BlockState state = block.getDefaultState();
         if (state.getRenderType() != BlockRenderType.MODEL) return false;
-        return state.isFullCube(EmptyBlockView.INSTANCE, BlockPos.ORIGIN);
+        if (!state.isFullCube(EmptyBlockView.INSTANCE, BlockPos.ORIGIN)) return false;
+        return canBePlacedNormally(block, world);
     }
 
     private static boolean isLikelyVariantType(Block block) {
@@ -86,10 +100,17 @@ public final class BaseBlockFilter {
                 || path.contains("target")
                 || path.contains("tnt")
                 || path.contains("slime")
+                || path.contains("bracket")
                 || path.contains("concrete_powder")
                 || path.endsWith("_powder")
                 || path.contains("leaves")
                 || path.contains("falling");
+    }
+
+    private static boolean canBePlacedNormally(Block block, ServerWorld world) {
+        BlockState state = block.getDefaultState();
+        BlockPos probePos = world.getSpawnPos().up(PLACEMENT_PROBE_Y_OFFSET);
+        return state.canPlaceAt(world, probePos);
     }
 }
 
