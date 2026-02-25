@@ -204,10 +204,16 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                                             if (randomCount > 0) {
                                                 List<ModelVariant> expanded = new ArrayList<>();
                                                 for (ModelVariant templateVariant : templateVariants) {
-                                                    for (int i = 0; i < randomCount; i++) {
-                                                        Identifier randomizedModelId = withRandomSuffix(templateVariant.getLocation(), i);
-                                                        int weight = Math.max(1, templateVariant.getWeight() * baseCandidates.get(i).weight());
-                                                        expanded.add(new ModelVariant(randomizedModelId, templateVariant.getRotation(), templateVariant.isUvLocked(), weight));
+                                                    Identifier modelLocation = templateVariant.getLocation();
+                                                    if (Reshaped.MOD_ID.equals(modelLocation.getNamespace())) {
+                                                        for (int i = 0; i < randomCount; i++) {
+                                                            Identifier randomizedModelId = withRandomSuffix(modelLocation, i);
+                                                            int weight = Math.max(1, templateVariant.getWeight() * baseCandidates.get(i).weight());
+                                                            expanded.add(new ModelVariant(randomizedModelId, templateVariant.getRotation(), templateVariant.isUvLocked(), weight));
+                                                        }
+                                                    } else {
+                                                        // External models (e.g. create:block/...) are not generated with _rnd suffixes.
+                                                        expanded.add(templateVariant);
                                                     }
                                                 }
                                                 resolverContext.setModel(state, new WeightedUnbakedModel(expanded));

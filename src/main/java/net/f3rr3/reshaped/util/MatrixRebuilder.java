@@ -108,4 +108,30 @@ public final class MatrixRebuilder {
             REBUILDING.set(false);
         }
     }
+
+    public static void bootstrapAddedBlock(BlockMatrix matrix, Block candidate) {
+        if (matrix == null || candidate == null) return;
+        if (!REBUILDING.compareAndSet(false, true)) return;
+
+        try {
+            if (!BaseBlockFilter.isBaseCandidate(candidate, null)) {
+                return;
+            }
+            if (matrix.getMatrix().containsKey(candidate) || matrix.hasBlock(candidate)) {
+                return;
+            }
+
+            matrix.addColumn(candidate, List.of(), false);
+            matrix.setReason(candidate, "Base block selected by state-based filter");
+
+            VariantCompleter.completeVariant(candidate, matrix);
+            VariantRegistry.registerAll(candidate, matrix);
+
+            matrix.refresh();
+        } catch (Exception e) {
+            Reshaped.LOGGER.warn("Failed to add bootstrap candidate {}", candidate, e);
+        } finally {
+            REBUILDING.set(false);
+        }
+    }
 }

@@ -74,7 +74,7 @@ public class VerticalStepVariant implements BlockVariantType {
         matrix.addVariant(baseBlock, step, true);
         matrix.setReason(step, "Dynamically registered Vertical Step Block for " + baseBlock.getName().getString());
         BASE_TO_STEP.put(baseBlock, step);
-        Reshaped.LOGGER.info("Registered vertical step for: {}", baseId);
+        Reshaped.LOGGER.debug("Registered vertical step for: {}", baseId);
 
         FlammableBlockRegistry flammableRegistry = FlammableBlockRegistry.getDefaultInstance();
         FlammableBlockRegistry.Entry flammableEntry = flammableRegistry.get(baseBlock);

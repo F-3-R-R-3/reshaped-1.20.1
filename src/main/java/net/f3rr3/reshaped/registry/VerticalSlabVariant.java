@@ -79,7 +79,7 @@ public class VerticalSlabVariant implements BlockVariantType {
         matrix.addVariant(baseBlock, verticalSlab, true);
         matrix.setReason(verticalSlab, "Dynamically registered Vertical Slab for " + baseBlock.getName().getString());
         BASE_TO_SLAB.put(baseBlock, verticalSlab);
-        Reshaped.LOGGER.info("Registered vertical slab for: {}", baseId);
+        Reshaped.LOGGER.debug("Registered vertical slab for: {}", baseId);
 
         // Inherit Flammability
         FlammableBlockRegistry flammableRegistry = FlammableBlockRegistry.getDefaultInstance();

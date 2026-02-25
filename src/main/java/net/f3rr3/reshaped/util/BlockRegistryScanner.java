@@ -32,8 +32,8 @@ public class BlockRegistryScanner {
                 MatrixRebuilder.rebuild(matrix, server);
             } else {
                 // During startup many mod blocks are registered after our initial bootstrap.
-                // Re-bootstrap while registries are still writable so those bases get variants too.
-                MatrixRebuilder.bootstrap(matrix);
+                // Add new base candidates incrementally to avoid repeated full-matrix bootstraps.
+                MatrixRebuilder.bootstrapAddedBlock(matrix, block);
             }
         });
     }
