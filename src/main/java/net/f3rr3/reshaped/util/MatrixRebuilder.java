@@ -2,8 +2,13 @@ package net.f3rr3.reshaped.util;
 
 import net.f3rr3.reshaped.Reshaped;
 import net.f3rr3.reshaped.registry.VariantRegistry;
+import net.minecraft.block.BlockRenderType;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.PillarBlock;
 import net.minecraft.block.Block;
+import net.minecraft.item.Items;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.state.property.Properties;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,12 +31,16 @@ public final class MatrixRebuilder {
 
             Set<Block> baseCandidates = BaseBlockFilter.collectBaseCandidates();
             for (Block base : baseCandidates) {
+                if (!isRenderablePlaceableBlock(base)) continue;
                 matrix.addColumn(base, List.of(), false);
                 matrix.setReason(base, "Base block selected by state-based filter");
             }
 
             List<Block> bases = new ArrayList<>(matrix.getMatrix().keySet());
             for (Block base : bases) {
+                if (!canGenerateVariantsForBase(base)) {
+                    continue;
+                }
                 try {
                     VariantRegistry.registerAll(base, matrix);
                 } catch (Exception e) {
@@ -61,6 +70,7 @@ public final class MatrixRebuilder {
 
             Set<Block> baseCandidates = BaseBlockFilter.collectBaseCandidates();
             for (Block base : baseCandidates) {
+                if (!isRenderablePlaceableBlock(base)) continue;
                 matrix.addColumn(base, List.of(), false);
                 matrix.setReason(base, "Base block selected by state-based filter");
             }
@@ -77,6 +87,9 @@ public final class MatrixRebuilder {
                 if (!baseCandidates.contains(base) || variant == base) {
                     continue;
                 }
+                if (!isRenderablePlaceableBlock(base) || !isRenderablePlaceableBlock(variant)) {
+                    continue;
+                }
 
                 matrix.addVariant(base, variant, false);
                 matrix.setReason(variant, association.reason());
@@ -85,6 +98,9 @@ public final class MatrixRebuilder {
 
             List<Block> bases = new ArrayList<>(matrix.getMatrix().keySet());
             for (Block base : bases) {
+                if (!canGenerateVariantsForBase(base)) {
+                    continue;
+                }
                 try {
                     VariantRegistry.registerAll(base, matrix);
                 } catch (Exception e) {
@@ -103,6 +119,28 @@ public final class MatrixRebuilder {
             Reshaped.LOGGER.error("Failed to rebuild matrix", e);
         } finally {
             REBUILDING.set(false);
+        }
+    }
+
+    private static boolean isRenderablePlaceableBlock(Block block) {
+        if (block == null) return false;
+        if (block.asItem() == Items.AIR) return false;
+        try {
+            BlockState state = block.getDefaultState();
+            return state.getRenderType() == BlockRenderType.MODEL;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    private static boolean canGenerateVariantsForBase(Block base) {
+        if (!isRenderablePlaceableBlock(base)) return false;
+        if (base instanceof PillarBlock) return false;
+        try {
+            BlockState state = base.getDefaultState();
+            return !state.contains(Properties.AXIS) && !state.contains(Properties.HORIZONTAL_AXIS);
+        } catch (Throwable t) {
+            return false;
         }
     }
 }

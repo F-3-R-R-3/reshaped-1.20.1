@@ -1,14 +1,18 @@
 package net.f3rr3.reshaped.util;
 
+import net.f3rr3.reshaped.Reshaped;
 import net.minecraft.block.*;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
+import net.minecraft.state.property.Properties;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.EmptyBlockView;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 public final class BaseBlockFilter {
@@ -16,12 +20,20 @@ public final class BaseBlockFilter {
     }
 
     public static Set<Block> collectBaseCandidates() {
-        Set<Block> sorted = new LinkedHashSet<>();
-        Registries.BLOCK.stream()
-                .filter(BaseBlockFilter::isBaseCandidate)
-                .sorted(Comparator.comparing(block -> Registries.BLOCK.getId(block).toString()))
-                .forEach(sorted::add);
-        return sorted;
+        List<Block> candidates = new ArrayList<>();
+
+        for (Block block : Registries.BLOCK) {
+            try {
+                if (isBaseCandidate(block)) {
+                    candidates.add(block);
+                }
+            } catch (Throwable t) {
+                Reshaped.LOGGER.debug("Skipping block {} during base candidate scan", Registries.BLOCK.getId(block), t);
+            }
+        }
+
+        candidates.sort(Comparator.comparing(block -> Registries.BLOCK.getId(block).toString()));
+        return new LinkedHashSet<>(candidates);
     }
 
     public static boolean isBaseCandidate(Block block) {
@@ -30,10 +42,16 @@ public final class BaseBlockFilter {
         if (isIgnoredForMatrix(block)) return false;
         if (block instanceof BlockEntityProvider) return false;
         if (isLikelyVariantType(block)) return false;
+        if (block instanceof PillarBlock) return false;
 
-        BlockState state = block.getDefaultState();
-        if (state.getRenderType() != BlockRenderType.MODEL) return false;
-        return state.isFullCube(EmptyBlockView.INSTANCE, BlockPos.ORIGIN);
+        try {
+            BlockState state = block.getDefaultState();
+            if (state.getRenderType() != BlockRenderType.MODEL) return false;
+            if (state.contains(Properties.AXIS) || state.contains(Properties.HORIZONTAL_AXIS)) return false;
+            return state.isFullCube(EmptyBlockView.INSTANCE, BlockPos.ORIGIN);
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
     private static boolean isLikelyVariantType(Block block) {
@@ -61,4 +79,3 @@ public final class BaseBlockFilter {
                 || className.contains("copycat");
     }
 }
-

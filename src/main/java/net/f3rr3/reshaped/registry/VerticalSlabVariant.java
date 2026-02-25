@@ -5,6 +5,7 @@ import net.f3rr3.reshaped.block.VerticalSlab.OxidizableVerticalSlabBlock;
 import net.f3rr3.reshaped.block.VerticalSlab.VerticalSlabBlock;
 import net.f3rr3.reshaped.util.BlockMatrix;
 import net.f3rr3.reshaped.util.RuntimeResourceGenerator;
+import net.f3rr3.reshaped.util.VariantSettingsFactory;
 import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;
 import net.fabricmc.fabric.api.registry.OxidizableBlocksRegistry;
 import net.fabricmc.fabric.api.registry.StrippableBlockRegistry;
@@ -65,7 +66,7 @@ public class VerticalSlabVariant implements BlockVariantType {
         }
 
         VerticalSlabBlock verticalSlab;
-        AbstractBlock.Settings settings = AbstractBlock.Settings.copy(baseBlock);
+        AbstractBlock.Settings settings = VariantSettingsFactory.forBase(baseBlock);
 
         if (baseBlock instanceof Oxidizable oxidizable) {
             verticalSlab = new OxidizableVerticalSlabBlock(oxidizable.getDegradationLevel(), settings);
