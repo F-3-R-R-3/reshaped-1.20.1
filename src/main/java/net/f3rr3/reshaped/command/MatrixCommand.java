@@ -24,6 +24,7 @@ import net.minecraft.util.math.BlockPos;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class MatrixCommand {
     public static void register() {
@@ -42,9 +43,21 @@ public class MatrixCommand {
                             Map<Block, List<Block>> matrixMap = Reshaped.MATRIX.getMatrix();
                             int columnIdx = 0;
 
+                            Reshaped.LOGGER.info("Executing /reshaped place_all with {} matrix columns.", matrixMap.size());
                             for (Map.Entry<Block, List<Block>> entry : matrixMap.entrySet()) {
                                 Block base = entry.getKey();
                                 List<Block> variants = entry.getValue();
+                                String baseId = Registries.BLOCK.getId(base).toString();
+                                String variantIds = variants.stream()
+                                        .map(variant -> Registries.BLOCK.getId(variant).toString())
+                                        .collect(Collectors.joining(", "));
+                                Reshaped.LOGGER.info(
+                                        "place_all column {} -> base: {}, variants({}): [{}]",
+                                        columnIdx,
+                                        baseId,
+                                        variants.size(),
+                                        variantIds
+                                );
 
                                 // X offset for each column, Z offset is 0
                                 BlockPos colRoot = startPos.add(columnIdx * 2, 0, 0);
