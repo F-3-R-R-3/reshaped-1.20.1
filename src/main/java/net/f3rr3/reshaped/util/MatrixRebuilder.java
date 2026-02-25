@@ -1,6 +1,7 @@
 package net.f3rr3.reshaped.util;
 
 import net.f3rr3.reshaped.Reshaped;
+import net.f3rr3.reshaped.registry.VariantCompleter;
 import net.f3rr3.reshaped.registry.VariantRegistry;
 import net.minecraft.block.Block;
 import net.minecraft.server.MinecraftServer;
@@ -33,6 +34,7 @@ public final class MatrixRebuilder {
             List<Block> bases = new ArrayList<>(matrix.getMatrix().keySet());
             for (Block base : bases) {
                 try {
+                    VariantCompleter.completeVariant(base, matrix);
                     VariantRegistry.registerAll(base, matrix);
                 } catch (Exception e) {
                     Reshaped.LOGGER.warn("Variant registration failed for base {}", base, e);
@@ -86,6 +88,7 @@ public final class MatrixRebuilder {
             List<Block> bases = new ArrayList<>(matrix.getMatrix().keySet());
             for (Block base : bases) {
                 try {
+                    VariantCompleter.completeVariant(base, matrix);
                     VariantRegistry.registerAll(base, matrix);
                 } catch (Exception e) {
                     Reshaped.LOGGER.warn("Variant registration failed for base {}", base, e);

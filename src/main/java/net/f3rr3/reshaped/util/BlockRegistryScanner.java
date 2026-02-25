@@ -30,6 +30,10 @@ public class BlockRegistryScanner {
             MinecraftServer server = currentServer;
             if (server != null) {
                 MatrixRebuilder.rebuild(matrix, server);
+            } else {
+                // During startup many mod blocks are registered after our initial bootstrap.
+                // Re-bootstrap while registries are still writable so those bases get variants too.
+                MatrixRebuilder.bootstrap(matrix);
             }
         });
     }
