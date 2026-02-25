@@ -82,6 +82,22 @@ jar {
 	}
 }
 
+def reshapedProfileClient = providers.gradleProperty("reshapedProfileClient")
+	.map { it.toBoolean() }
+	.getOrElse(false)
+
+tasks.named("runClient", JavaExec).configure {
+	if (reshapedProfileClient) {
+		def jfrDir = file("$rootDir/run/jfr")
+		doFirst {
+			jfrDir.mkdirs()
+		}
+
+		def jfrPath = "${jfrDir.absolutePath.replace('\\', '/')}/startup-%p.jfr"
+		jvmArgs "-XX:StartFlightRecording=filename=${jfrPath},duration=300s,settings=profile"
+	}
+}
+
 // configure the maven publication
 publishing {
 	publications {
