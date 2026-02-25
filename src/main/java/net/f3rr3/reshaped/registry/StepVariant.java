@@ -60,7 +60,7 @@ public class StepVariant implements BlockVariantType {
         }
 
         StepBlock step;
-        AbstractBlock.Settings settings = AbstractBlock.Settings.copy(baseBlock);
+        AbstractBlock.Settings settings = VariantSettingsFactory.create(baseBlock);
 
         if (baseBlock instanceof Oxidizable oxidizable) {
             step = new OxidizableStepBlock(oxidizable.getDegradationLevel(), settings);

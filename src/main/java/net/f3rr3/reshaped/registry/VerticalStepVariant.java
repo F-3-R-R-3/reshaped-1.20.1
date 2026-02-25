@@ -60,7 +60,7 @@ public class VerticalStepVariant implements BlockVariantType {
         }
 
         VerticalStepBlock step;
-        AbstractBlock.Settings settings = AbstractBlock.Settings.copy(baseBlock);
+        AbstractBlock.Settings settings = VariantSettingsFactory.create(baseBlock);
 
         if (baseBlock instanceof Oxidizable oxidizable) {
             step = new OxidizableVerticalStepBlock(oxidizable.getDegradationLevel(), settings);

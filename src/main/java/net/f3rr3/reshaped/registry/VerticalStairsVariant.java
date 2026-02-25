@@ -61,7 +61,7 @@ public class VerticalStairsVariant implements BlockVariantType {
         }
 
         VerticalStairsBlock verticalStairs;
-        AbstractBlock.Settings settings = AbstractBlock.Settings.copy(baseBlock);
+        AbstractBlock.Settings settings = VariantSettingsFactory.create(baseBlock);
 
         if (baseBlock instanceof Oxidizable oxidizable) {
             verticalStairs = new OxidizableVerticalStairsBlock(oxidizable.getDegradationLevel(), settings);

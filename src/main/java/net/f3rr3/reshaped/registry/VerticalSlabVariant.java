@@ -65,7 +65,7 @@ public class VerticalSlabVariant implements BlockVariantType {
         }
 
         VerticalSlabBlock verticalSlab;
-        AbstractBlock.Settings settings = AbstractBlock.Settings.copy(baseBlock);
+        AbstractBlock.Settings settings = VariantSettingsFactory.create(baseBlock);
 
         if (baseBlock instanceof Oxidizable oxidizable) {
             verticalSlab = new OxidizableVerticalSlabBlock(oxidizable.getDegradationLevel(), settings);

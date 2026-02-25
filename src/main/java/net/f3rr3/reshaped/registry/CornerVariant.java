@@ -3,7 +3,6 @@ package net.f3rr3.reshaped.registry;
 import net.f3rr3.reshaped.Reshaped;
 import net.f3rr3.reshaped.block.Corner.CornerBlock;
 import net.f3rr3.reshaped.util.BlockMatrix;
-import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.BlockItem;
@@ -29,7 +28,7 @@ public class CornerVariant implements BlockVariantType {
 
         if (Registries.BLOCK.get(id) != Blocks.AIR) return;
 
-        CornerBlock corner = new CornerBlock(AbstractBlock.Settings.copy(baseBlock));
+        CornerBlock corner = new CornerBlock(VariantSettingsFactory.create(baseBlock));
 
         Registry.register(Registries.BLOCK, id, corner);
         Registry.register(Registries.ITEM, id, new BlockItem(corner, new Item.Settings()));

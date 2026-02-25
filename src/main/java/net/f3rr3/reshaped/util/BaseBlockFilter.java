@@ -4,6 +4,7 @@ import net.minecraft.block.*;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.state.property.Properties;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.EmptyBlockView;
@@ -20,14 +21,7 @@ public final class BaseBlockFilter {
     }
 
     public static Set<Block> collectBaseCandidates(MinecraftServer server) {
-        if (server == null) {
-            return Set.of();
-        }
-
-        ServerWorld world = server.getOverworld();
-        if (world == null) {
-            return Set.of();
-        }
+        ServerWorld world = server != null ? server.getOverworld() : null;
 
         Set<Block> sorted = new LinkedHashSet<>();
         Registries.BLOCK.stream()
@@ -42,12 +36,16 @@ public final class BaseBlockFilter {
         if (block.asItem() == Items.AIR) return false;
         if (isIgnoredForMatrix(block)) return false;
         if (block instanceof BlockEntityProvider) return false;
+        if (block instanceof PillarBlock) return false;
         if (isFunctionalOrReactiveBlock(block)) return false;
         if (isLikelyVariantType(block)) return false;
 
         BlockState state = block.getDefaultState();
+        if (state.contains(Properties.AXIS)) return false;
         if (state.getRenderType() != BlockRenderType.MODEL) return false;
         if (!state.isFullCube(EmptyBlockView.INSTANCE, BlockPos.ORIGIN)) return false;
+        // During bootstrap there is no running server/world yet.
+        if (world == null) return true;
         return canBePlacedNormally(block, world);
     }
 
