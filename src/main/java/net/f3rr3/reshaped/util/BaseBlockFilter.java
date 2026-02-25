@@ -69,6 +69,12 @@ public final class BaseBlockFilter {
         String path = id.getPath();
         String className = block.getClass().getName().toLowerCase();
 
+        if ("reshaped".equals(namespace)) {
+            // Generated reshaped variants must never become new base candidates,
+            // otherwise they split into their own columns on rebuild.
+            return true;
+        }
+
         return namespace.contains("copycat")
                 || path.contains("copycat")
                 || className.contains("copycat");
