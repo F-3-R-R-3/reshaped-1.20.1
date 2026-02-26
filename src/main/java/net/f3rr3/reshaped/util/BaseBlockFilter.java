@@ -3,35 +3,29 @@ package net.f3rr3.reshaped.util;
 import net.minecraft.block.*;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.state.property.Properties;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.EmptyBlockView;
-import net.minecraft.server.world.ServerWorld;
 
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 public final class BaseBlockFilter {
-    private static final int PLACEMENT_PROBE_Y_OFFSET = 80;
-
     private BaseBlockFilter() {
     }
 
-    public static Set<Block> collectBaseCandidates(MinecraftServer server) {
-        ServerWorld world = server != null ? server.getOverworld() : null;
-
+    public static Set<Block> collectBaseCandidates() {
         Set<Block> sorted = new LinkedHashSet<>();
         Registries.BLOCK.stream()
-                .filter(block -> isBaseCandidate(block, world))
+                .filter(BaseBlockFilter::isBaseCandidate)
                 .sorted(Comparator.comparing(block -> Registries.BLOCK.getId(block).toString()))
                 .forEach(sorted::add);
         return sorted;
     }
 
-    public static boolean isBaseCandidate(Block block, ServerWorld world) {
+    public static boolean isBaseCandidate(Block block) {
         if (block == null || block == Blocks.AIR) return false;
         if (block.asItem() == Items.AIR) return false;
         if (isIgnoredForMatrix(block)) return false;
@@ -43,10 +37,7 @@ public final class BaseBlockFilter {
         BlockState state = block.getDefaultState();
         if (state.contains(Properties.AXIS)) return false;
         if (state.getRenderType() != BlockRenderType.MODEL) return false;
-        if (!state.isFullCube(EmptyBlockView.INSTANCE, BlockPos.ORIGIN)) return false;
-        // During bootstrap there is no running server/world yet.
-        if (world == null) return true;
-        return canBePlacedNormally(block, world);
+        return state.isFullCube(EmptyBlockView.INSTANCE, BlockPos.ORIGIN);
     }
 
     private static boolean isLikelyVariantType(Block block) {
@@ -111,10 +102,5 @@ public final class BaseBlockFilter {
                 || path.contains("falling");
     }
 
-    private static boolean canBePlacedNormally(Block block, ServerWorld world) {
-        BlockState state = block.getDefaultState();
-        BlockPos probePos = world.getSpawnPos().up(PLACEMENT_PROBE_Y_OFFSET);
-        return state.canPlaceAt(world, probePos);
-    }
 }
 
