@@ -2,18 +2,17 @@ package net.f3rr3.reshaped.util;
 
 import net.minecraft.block.*;
 import net.minecraft.item.BlockItem;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.recipe.*;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.Identifier;
 
 import java.util.*;
 
 public final class RecipeAssociationService {
     private RecipeAssociationService() {
-    }
-
-    public record Association(Block base, String reason, int score) {
     }
 
     public static Map<Block, Association> buildAssociations(MinecraftServer server, Set<Block> baseCandidates) {
@@ -27,6 +26,9 @@ public final class RecipeAssociationService {
             }
 
             Block outputBlock = outputItem.getBlock();
+            if (isIgnoredForMatrix(outputBlock)) {
+                continue;
+            }
             if (baseCandidates.contains(outputBlock)) {
                 continue;
             }
@@ -54,6 +56,10 @@ public final class RecipeAssociationService {
             return analyzeShapedRecipe(shapedRecipe, outputBlock, baseCandidates);
         }
 
+        if (recipe instanceof ShapelessRecipe shapelessRecipe) {
+            return analyzeShapelessRecipe(shapelessRecipe, outputBlock, baseCandidates);
+        }
+
         return null;
     }
 
@@ -62,6 +68,7 @@ public final class RecipeAssociationService {
         int height = recipe.getHeight();
         List<Ingredient> ingredients = recipe.getIngredients();
         if (ingredients.isEmpty()) return null;
+        String outputPath = Registries.BLOCK.getId(outputBlock).getPath();
 
         Map<Block, Integer> baseCounts = new HashMap<>();
         for (Ingredient ingredient : ingredients) {
@@ -99,10 +106,17 @@ public final class RecipeAssociationService {
             }
         }
 
-        if (outputBlock instanceof TrapdoorBlock && width == 3 && height == 2) {
-            Block base = dominantBase(baseCounts, 6);
-            if (base != null) {
-                return new Association(base, "Associated via trapdoor recipe", 105);
+        if (outputBlock instanceof TrapdoorBlock || outputPath.endsWith("_trapdoor")) {
+            int minCount = switch (width + "x" + height) {
+                case "3x2", "2x3" -> 6; // plank-style trapdoors
+                case "2x2" -> 4;        // metal-style trapdoors (e.g. iron)
+                default -> -1;
+            };
+            if (minCount > 0) {
+                Block base = dominantBase(baseCounts, minCount);
+                if (base != null) {
+                    return new Association(base, "Associated via trapdoor recipe", 105);
+                }
             }
         }
 
@@ -113,10 +127,19 @@ public final class RecipeAssociationService {
             }
         }
 
-        if (outputBlock instanceof PressurePlateBlock && width == 2 && height == 1) {
+        if ((outputBlock instanceof AbstractPressurePlateBlock || outputPath.endsWith("_pressure_plate"))
+                && ((width == 2 && height == 1) || (width == 1 && height == 2))) {
             Block base = dominantBase(baseCounts, 2);
             if (base != null) {
                 return new Association(base, "Associated via pressure plate recipe", 100);
+            }
+        }
+
+        if ((outputBlock instanceof CarpetBlock || outputPath.endsWith("_carpet"))
+                && ((width == 2 && height == 1) || (width == 1 && height == 2))) {
+            Block base = dominantBase(baseCounts, 2);
+            if (base != null) {
+                return new Association(base, "Associated via carpet recipe", 100);
             }
         }
 
@@ -138,6 +161,29 @@ public final class RecipeAssociationService {
             Block base = dominantBase(baseCounts, 2);
             if (base != null) {
                 return new Association(base, "Associated via fence gate recipe", 95);
+            }
+        }
+
+        return null;
+    }
+
+    private static Association analyzeShapelessRecipe(ShapelessRecipe recipe, Block outputBlock, Set<Block> baseCandidates) {
+        List<Ingredient> ingredients = recipe.getIngredients();
+        if (ingredients.isEmpty()) return null;
+
+        String outputPath = Registries.BLOCK.getId(outputBlock).getPath();
+        Map<Block, Integer> baseCounts = new HashMap<>();
+        for (Ingredient ingredient : ingredients) {
+            Block base = resolveSingleBase(ingredient, baseCandidates);
+            if (base != null) {
+                baseCounts.merge(base, 1, Integer::sum);
+            }
+        }
+
+        if (outputBlock instanceof ButtonBlock || outputPath.endsWith("_button")) {
+            Block base = dominantBase(baseCounts, 1);
+            if (base != null) {
+                return new Association(base, "Associated via button recipe", 100);
             }
         }
 
@@ -205,11 +251,8 @@ public final class RecipeAssociationService {
 
         Block resolved = null;
         for (ItemStack stack : ingredient.getMatchingStacks()) {
-            if (!(stack.getItem() instanceof BlockItem blockItem)) {
-                continue;
-            }
-            Block block = blockItem.getBlock();
-            if (!baseCandidates.contains(block)) {
+            Block block = resolveCandidateBlock(stack.getItem(), baseCandidates);
+            if (block == null) {
                 continue;
             }
             if (resolved == null) {
@@ -219,5 +262,44 @@ public final class RecipeAssociationService {
             }
         }
         return resolved;
+    }
+
+    private static Block resolveCandidateBlock(Item item, Set<Block> baseCandidates) {
+        if (item instanceof BlockItem blockItem) {
+            Block block = blockItem.getBlock();
+            return baseCandidates.contains(block) ? block : null;
+        }
+
+        // Map compressed crafting materials (e.g. iron_ingot) to their storage block (iron_block).
+        Identifier itemId = Registries.ITEM.getId(item);
+        String path = itemId.getPath();
+        if (!path.endsWith("_ingot")) {
+            return null;
+        }
+
+        String blockPath = path.substring(0, path.length() - "_ingot".length()) + "_block";
+        Identifier blockId = new Identifier(itemId.getNamespace(), blockPath);
+        if (!Registries.BLOCK.containsId(blockId)) {
+            return null;
+        }
+
+        Block block = Registries.BLOCK.get(blockId);
+        return baseCandidates.contains(block) ? block : null;
+    }
+
+    private static boolean isIgnoredForMatrix(Block block) {
+        if (block == null) return true;
+
+        Identifier id = Registries.BLOCK.getId(block);
+        String namespace = id.getNamespace();
+        String path = id.getPath();
+        String className = block.getClass().getName().toLowerCase(Locale.ROOT);
+
+        return namespace.contains("copycat")
+                || path.contains("copycat")
+                || className.contains("copycat");
+    }
+
+    public record Association(Block base, String reason, int score) {
     }
 }
