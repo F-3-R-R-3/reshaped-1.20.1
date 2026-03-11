@@ -1,9 +1,12 @@
-# ReShaped
+# ReShaped      [![Downloads](https://img.shields.io/badge/dynamic/json?color=158000&label=downloads&prefix=+%20&query=downloads&url=https://api.modrinth.com/v2/project/reshaped&logo=modrinth)](https://modrinth.com/mod/reshaped)      [![Downloads](https://img.shields.io/badge/dynamic/json?color=f16436&label=downloads&prefix=+%20&query=downloads.total&url=https://api.cfwidget.com/1463309&logo=curseforge)](https://www.curseforge.com/minecraft/mc-mods/reshaped)     [![Open Source License](https://img.shields.io/github/license/F-3-R-R-3/reshaped-1.20.1?label=Open%20Source&logo=github)](https://github.com/F-3-R-R-3/reshaped-1.20.1)      ![Fabric 1.20.1](https://img.shields.io/badge/Fabric-1.20.1-DBD0B4?logo=fabricmc&logoColor=black)
 
-[![Downloads](https://img.shields.io/badge/dynamic/json?color=158000&label=downloads&prefix=+%20&query=downloads&url=https://api.modrinth.com/v2/project/reshaped&logo=modrinth)](https://modrinth.com/mod/reshaped) [![CurseForge Downloads](https://cf.way2muchnoise.eu/full_1463309_downloads.svg)](https://www.curseforge.com/minecraft/mc-mods/reshaped)
 
 ReShaped adds a radial menu that allows you to quickly and intuitively switch between different block shape variants, avoiding unnecessary inventory hassle.  
 It also introduces a large collection of additional shape variants, giving builders more flexibility and control when designing structures.
+
+
+| ![DISCLAIMER: WIP banner](https://cdn.modrinth.com/data/cached_images/cf8583a7afdfd038de37bb93eccbc207f7a1540f.png) This mod is still a heavy **work in progress**. Features and content may change at any time and may break existing worlds. **do no use this mod is survival yet (recepies aren't implemented yet and there still exist some game breaking bugs).** Everything is subject to change. Feature suggestions and bug reports are welcome and can be submitted on the [github page](https://github.com/F-3-R-R-3/reshaped-1.20.1/issues). ![DISCLAIMER: WIP bottom banner](https://cdn.modrinth.com/data/cached_images/37d44adca1a883f2098a08444bcf541d07855363.png)|
+| - |
 
 ## Features
 
@@ -23,12 +26,7 @@ Below is an example showing all generated blocks when another mod is installed (
 
 ![All blocks when the Create mod is installed](https://cdn.modrinth.com/data/cached_images/7ccbb67a0f9955fd4716b1807fcc48f9cb7ca58b.png)
 
-Quickly preview all available blocks in creative mode using:
-
-
-```
-/place_matrix
-```
+Quickly preview all available blocks in creative mode using: ``/reshaped place_all``
 
 
 ### Mixable blocks
@@ -36,26 +34,33 @@ Almost all block shapes are mixable, allowing the use of multiple materials with
 
 ![Mixed blocks](https://cdn.modrinth.com/data/cached_images/b33aa78aa40521cda29b0e3c71d80cb59700b1c8.png)
 
-## Planned features
-- Many bug fixes  
-- Additional block types  
-- Connected textures compatibility  
-- Auto generated recepies
-- other minecraft versions, inluding forge
-- ~~Public github repo~~ (public since 21 feb)
-- ~~Transparent block support~~ (added in V0.2)
-- ~~Improved tooltips for the radial menu~~ (added in V0.2)
-- ~~A Config screen~~ (added in V0.1)
-- ~~Fix missing block drops~~ (added in V0.1)
-- ~~Fix missing tool requirements~~ (added in V0.1)
 
-## Disclaimer
-This mod is still a heavy **work in progress**. Features and content may change at any time and may break existing worlds. Everything is subject to change.
+<details>
+  <summary>Planned features</summary>
+  
+  - Many bug fixes  
+  - Additional block types  
+  - Connected textures compatibility  
+  - Auto generated recepies
+  - other minecraft versions, inluding forge
+  - ~~Public github repo~~ (public since 21 feb)
+  - ~~Transparent block support~~ (added in V0.2)
+  - ~~Improved tooltips for the radial menu~~ (added in V0.2)
+  - ~~A Config screen~~ (added in V0.1)
+  - ~~Fix missing block drops~~ (added in V0.1)
+  - ~~Fix missing tool requirements~~ (added in V0.1)
+</details>
 
-Feature suggestions are welcome and can be submitted [here](https://docs.google.com/forms/d/e/1FAIpQLSdAgGxJxYxIPmf8WsoLtdrhEedS0bYMGyiOHGEKrXtZrksv0Q/viewform?usp=publish-editor) or with a comment on this mod's curseforge page.
+<details>
+  <summary>Requirements</summary>
+  
+  - Fabric API (required)
+  - Cloth config API (required)
+  - Modmenu (optional, currently the only way to acces the config screen)
+</details>
 
-## Requirements
-Requires:
-- Fabric API (required)
-- Cloth config API (required)
-- Modmenu (optional, currently the only way to acces the config screen)
+<details>
+  <summary>Mod compatebillity</summary>
+  
+  The mod automatically generates it's block variants and should be compatible with almost any mod. If you find any incompatebillities, please report them at the [github page](https://github.com/F-3-R-R-3/reshaped-1.20.1/issues) so I can fix them.
+</details>
