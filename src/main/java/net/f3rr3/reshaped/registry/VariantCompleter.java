@@ -25,7 +25,7 @@ public final class VariantCompleter {
     public static void completeVariant(Block base, BlockMatrix matrix) {
         if (base == null || base == Blocks.AIR) return;
 
-        List<Block> variants = matrix.getMatrix().get(base);
+        List<Block> variants = matrix.getMutableMatrix().get(base);
         if (variants == null) return;
 
         boolean hasSlab = false;
@@ -49,11 +49,19 @@ public final class VariantCompleter {
                 String cleanBase = baseId.getPath().replace("_planks", "").replace("_block", "");
                 String path = cleanBase + "_slab";
                 Identifier id = new Identifier(Reshaped.MOD_ID, path);
-                if (Registries.BLOCK.get(id) != Blocks.AIR) {
+                Block reshapedSlab = Registries.BLOCK.get(id);
+                if (reshapedSlab == Blocks.AIR) {
                     path = baseNamespace + "_" + baseId.getPath() + "_slab";
                     id = new Identifier(Reshaped.MOD_ID, path);
+                    reshapedSlab = Registries.BLOCK.get(id);
                 }
-                if (Registries.BLOCK.get(id) == Blocks.AIR) {
+
+                if (reshapedSlab != Blocks.AIR && reshapedSlab instanceof SlabBlock) {
+                    if (!variants.contains(reshapedSlab)) {
+                        variants.add(reshapedSlab);
+                        matrix.setReason(reshapedSlab, "Found existing Reshaped slab variant");
+                    }
+                } else if (reshapedSlab == Blocks.AIR) {
                     SlabBlock slab = new ReshapedSlabBlock(VariantSettingsFactory.create(base));
                     Registry.register(Registries.BLOCK, id, slab);
                     Registry.register(Registries.ITEM, id, new BlockItem(slab, new Item.Settings()));
@@ -74,11 +82,19 @@ public final class VariantCompleter {
                 String cleanBase = baseId.getPath().replace("_planks", "").replace("_block", "");
                 String path = cleanBase + "_stairs";
                 Identifier id = new Identifier(Reshaped.MOD_ID, path);
-                if (Registries.BLOCK.get(id) != Blocks.AIR) {
+                Block reshapedStairs = Registries.BLOCK.get(id);
+                if (reshapedStairs == Blocks.AIR) {
                     path = baseNamespace + "_" + baseId.getPath() + "_stairs";
                     id = new Identifier(Reshaped.MOD_ID, path);
+                    reshapedStairs = Registries.BLOCK.get(id);
                 }
-                if (Registries.BLOCK.get(id) == Blocks.AIR) {
+
+                if (reshapedStairs != Blocks.AIR && reshapedStairs instanceof StairsBlock) {
+                    if (!variants.contains(reshapedStairs)) {
+                        variants.add(reshapedStairs);
+                        matrix.setReason(reshapedStairs, "Found existing Reshaped stairs variant");
+                    }
+                } else if (reshapedStairs == Blocks.AIR) {
                     // Use a neutral base state to avoid inheriting state-specific random tick logic
                     // from incompatible source blocks (e.g., chorus flower AGE property).
                     StairsBlock stairs = new StairsBlock(Blocks.STONE.getDefaultState(), VariantSettingsFactory.create(base));

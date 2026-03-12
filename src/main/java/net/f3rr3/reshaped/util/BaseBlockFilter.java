@@ -27,17 +27,51 @@ public final class BaseBlockFilter {
 
     public static boolean isBaseCandidate(Block block) {
         if (block == null || block == Blocks.AIR) return false;
-        if (block.asItem() == Items.AIR) return false;
-        if (isIgnoredForMatrix(block)) return false;
-        if (block instanceof BlockEntityProvider) return false;
-        if (block instanceof PillarBlock) return false;
-        if (isFunctionalOrReactiveBlock(block)) return false;
-        if (isLikelyVariantType(block)) return false;
+        Identifier id = Registries.BLOCK.getId(block);
+        boolean isModded = !id.getNamespace().equals("minecraft") && !id.getNamespace().equals("reshaped");
+
+        if (Registries.ITEM.get(id) == Items.AIR) {
+            if (isModded) net.f3rr3.reshaped.Reshaped.LOGGER.info("BaseBlockFilter: Rejected {} - No Item in registry", id);
+            return false;
+        }
+        if (isIgnoredForMatrix(block)) {
+            // if (isModded) net.f3rr3.reshaped.Reshaped.LOGGER.info("BaseBlockFilter: Rejected {} - Ignored Namespace/Path", id);
+            return false;
+        }
+        if (block instanceof BlockEntityProvider) {
+            if (isModded) net.f3rr3.reshaped.Reshaped.LOGGER.info("BaseBlockFilter: Rejected {} - Has BlockEntity", id);
+            return false;
+        }
+        if (block instanceof PillarBlock) {
+            if (isModded) net.f3rr3.reshaped.Reshaped.LOGGER.info("BaseBlockFilter: Rejected {} - Is PillarBlock", id);
+            return false;
+        }
+        if (isFunctionalOrReactiveBlock(block)) {
+            if (isModded) net.f3rr3.reshaped.Reshaped.LOGGER.info("BaseBlockFilter: Rejected {} - Functional/Reactive", id);
+            return false;
+        }
+        if (isLikelyVariantType(block)) {
+            if (isModded) net.f3rr3.reshaped.Reshaped.LOGGER.info("BaseBlockFilter: Rejected {} - Likely Variant Type", id);
+            return false;
+        }
 
         BlockState state = block.getDefaultState();
-        if (state.contains(Properties.AXIS)) return false;
-        if (state.getRenderType() != BlockRenderType.MODEL) return false;
-        return state.isFullCube(EmptyBlockView.INSTANCE, BlockPos.ORIGIN);
+        if (state.contains(Properties.AXIS)) {
+            if (isModded) net.f3rr3.reshaped.Reshaped.LOGGER.info("BaseBlockFilter: Rejected {} - Has AXIS property", id);
+            return false;
+        }
+        if (state.getRenderType() != BlockRenderType.MODEL) {
+            if (isModded) net.f3rr3.reshaped.Reshaped.LOGGER.info("BaseBlockFilter: Rejected {} - Not MODEL render type", id);
+            return false;
+        }
+        
+        boolean isFullCube = state.isFullCube(EmptyBlockView.INSTANCE, BlockPos.ORIGIN);
+        if (!isFullCube) {
+            if (isModded) net.f3rr3.reshaped.Reshaped.LOGGER.info("BaseBlockFilter: Rejected {} - Not a Full Cube", id);
+            return false;
+        }
+
+        return true;
     }
 
     private static boolean isLikelyVariantType(Block block) {

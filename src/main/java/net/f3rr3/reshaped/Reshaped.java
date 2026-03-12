@@ -121,6 +121,11 @@ public class Reshaped implements ModInitializer {
 
         BlockInteractionService.register();
 
+        // Primary bootstrap: Catch all blocks already in the registry.
+        // If some modded blocks haven't registered yet, they will be caught by 
+        // the late-sync triggers in ReshapedModelLoadingPlugin or SERVER_STARTING.
+        net.f3rr3.reshaped.util.MatrixRebuilder.bootstrap(MATRIX, false);
+
         LOGGER.info("Reshaping complete - Block matrix is now reactive.");
     }
 }

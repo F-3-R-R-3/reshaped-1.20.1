@@ -51,7 +51,7 @@ public class StepVariant implements BlockVariantType {
             Block existing = Registries.BLOCK.get(id);
             if (existing instanceof StepBlock step) {
                 BASE_TO_STEP.putIfAbsent(baseBlock, step);
-                List<Block> variants = matrix.getMatrix().get(baseBlock);
+                List<Block> variants = matrix.getMutableMatrix().get(baseBlock);
                 if (variants != null && !variants.contains(step)) {
                     variants.add(step);
                 }
@@ -66,6 +66,10 @@ public class StepVariant implements BlockVariantType {
             step = new OxidizableStepBlock(oxidizable.getDegradationLevel(), settings);
         } else {
             step = new StepBlock(settings);
+        }
+
+        if (net.f3rr3.reshaped.util.MatrixRebuilder.isRegistryFrozen()) {
+            return;
         }
 
         Registry.register(Registries.BLOCK, id, step);

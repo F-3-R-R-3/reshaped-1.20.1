@@ -11,6 +11,7 @@ import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
 
+import java.util.List;
 import java.util.Map;
 
 public class CornerVariant implements BlockVariantType {
@@ -26,7 +27,20 @@ public class CornerVariant implements BlockVariantType {
         String path = baseName + "_corner";
         Identifier id = new Identifier(Reshaped.MOD_ID, path);
 
-        if (Registries.BLOCK.get(id) != Blocks.AIR) return;
+        if (Registries.BLOCK.get(id) != Blocks.AIR) {
+            Block existing = Registries.BLOCK.get(id);
+            if (existing instanceof CornerBlock corner) {
+                List<Block> variants = matrix.getMutableMatrix().get(baseBlock);
+                if (variants != null && !variants.contains(corner)) {
+                    variants.add(corner);
+                }
+            }
+            return;
+        }
+
+        if (net.f3rr3.reshaped.util.MatrixRebuilder.isRegistryFrozen()) {
+            return;
+        }
 
         CornerBlock corner = new CornerBlock(VariantSettingsFactory.create(baseBlock));
 
