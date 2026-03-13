@@ -56,7 +56,7 @@ public class VerticalSlabVariant implements BlockVariantType {
             Block existing = Registries.BLOCK.get(id);
             if (existing instanceof VerticalSlabBlock verticalSlab) {
                 BASE_TO_SLAB.putIfAbsent(baseBlock, verticalSlab);
-                List<Block> variants = matrix.getMatrix().get(baseBlock);
+                List<Block> variants = matrix.getMutableMatrix().get(baseBlock);
                 if (variants != null && !variants.contains(verticalSlab)) {
                     variants.add(verticalSlab);
                 }
@@ -65,12 +65,16 @@ public class VerticalSlabVariant implements BlockVariantType {
         }
 
         VerticalSlabBlock verticalSlab;
-        AbstractBlock.Settings settings = AbstractBlock.Settings.copy(baseBlock);
+        AbstractBlock.Settings settings = VariantSettingsFactory.create(baseBlock);
 
         if (baseBlock instanceof Oxidizable oxidizable) {
             verticalSlab = new OxidizableVerticalSlabBlock(oxidizable.getDegradationLevel(), settings);
         } else {
             verticalSlab = new VerticalSlabBlock(settings);
+        }
+
+        if (net.f3rr3.reshaped.util.MatrixRebuilder.isRegistryFrozen()) {
+            return;
         }
 
         Registry.register(Registries.BLOCK, id, verticalSlab);
@@ -79,7 +83,7 @@ public class VerticalSlabVariant implements BlockVariantType {
         matrix.addVariant(baseBlock, verticalSlab, true);
         matrix.setReason(verticalSlab, "Dynamically registered Vertical Slab for " + baseBlock.getName().getString());
         BASE_TO_SLAB.put(baseBlock, verticalSlab);
-        Reshaped.LOGGER.info("Registered vertical slab for: {}", baseId);
+        Reshaped.LOGGER.debug("Registered vertical slab for: {}", baseId);
 
         // Inherit Flammability
         FlammableBlockRegistry flammableRegistry = FlammableBlockRegistry.getDefaultInstance();

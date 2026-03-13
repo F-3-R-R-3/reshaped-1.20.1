@@ -3,7 +3,6 @@ package net.f3rr3.reshaped.registry;
 import net.f3rr3.reshaped.Reshaped;
 import net.f3rr3.reshaped.block.Corner.CornerBlock;
 import net.f3rr3.reshaped.util.BlockMatrix;
-import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.BlockItem;
@@ -12,6 +11,7 @@ import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
 
+import java.util.List;
 import java.util.Map;
 
 public class CornerVariant implements BlockVariantType {
@@ -27,9 +27,22 @@ public class CornerVariant implements BlockVariantType {
         String path = baseName + "_corner";
         Identifier id = new Identifier(Reshaped.MOD_ID, path);
 
-        if (Registries.BLOCK.get(id) != Blocks.AIR) return;
+        if (Registries.BLOCK.get(id) != Blocks.AIR) {
+            Block existing = Registries.BLOCK.get(id);
+            if (existing instanceof CornerBlock corner) {
+                List<Block> variants = matrix.getMutableMatrix().get(baseBlock);
+                if (variants != null && !variants.contains(corner)) {
+                    variants.add(corner);
+                }
+            }
+            return;
+        }
 
-        CornerBlock corner = new CornerBlock(AbstractBlock.Settings.copy(baseBlock));
+        if (net.f3rr3.reshaped.util.MatrixRebuilder.isRegistryFrozen()) {
+            return;
+        }
+
+        CornerBlock corner = new CornerBlock(VariantSettingsFactory.create(baseBlock));
 
         Registry.register(Registries.BLOCK, id, corner);
         Registry.register(Registries.ITEM, id, new BlockItem(corner, new Item.Settings()));

@@ -3,30 +3,33 @@ package net.f3rr3.reshaped.registry;
 import net.f3rr3.reshaped.Reshaped;
 import net.f3rr3.reshaped.block.Slab.ReshapedSlabBlock;
 import net.f3rr3.reshaped.util.BlockMatrix;
-import net.minecraft.block.*;
+import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.SlabBlock;
+import net.minecraft.block.StairsBlock;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class VariantCompleter {
+public final class VariantCompleter {
+    private VariantCompleter() {
+    }
 
     public static void completeVariant(Block base, BlockMatrix matrix) {
-        if (base == Blocks.AIR) return;
+        if (base == null || base == Blocks.AIR) return;
 
-        List<Block> variants = matrix.getMatrix().get(base);
+        List<Block> variants = matrix.getMutableMatrix().get(base);
         if (variants == null) return;
 
         boolean hasSlab = false;
         boolean hasStair = false;
-
         for (Block v : variants) {
             if (v instanceof SlabBlock) hasSlab = true;
             if (v instanceof StairsBlock) hasStair = true;
@@ -41,26 +44,29 @@ public class VariantCompleter {
                 if (!variants.contains(existingSlab)) {
                     variants.add(existingSlab);
                     matrix.setReason(existingSlab, "Adopted existing slab variant: " + Registries.BLOCK.getId(existingSlab));
-                    Reshaped.LOGGER.info("Adopted existing slab: {} for {}", Registries.BLOCK.getId(existingSlab), baseId);
                 }
             } else {
                 String cleanBase = baseId.getPath().replace("_planks", "").replace("_block", "");
                 String path = cleanBase + "_slab";
                 Identifier id = new Identifier(Reshaped.MOD_ID, path);
-
-                // Collision Check
-                if (Registries.BLOCK.get(id) != Blocks.AIR) {
+                Block reshapedSlab = Registries.BLOCK.get(id);
+                if (reshapedSlab == Blocks.AIR) {
                     path = baseNamespace + "_" + baseId.getPath() + "_slab";
                     id = new Identifier(Reshaped.MOD_ID, path);
+                    reshapedSlab = Registries.BLOCK.get(id);
                 }
 
-                if (Registries.BLOCK.get(id) == Blocks.AIR) {
-                    SlabBlock slab = new ReshapedSlabBlock(AbstractBlock.Settings.copy(base));
+                if (reshapedSlab != Blocks.AIR && reshapedSlab instanceof SlabBlock) {
+                    if (!variants.contains(reshapedSlab)) {
+                        variants.add(reshapedSlab);
+                        matrix.setReason(reshapedSlab, "Found existing Reshaped slab variant");
+                    }
+                } else if (reshapedSlab == Blocks.AIR) {
+                    SlabBlock slab = new ReshapedSlabBlock(VariantSettingsFactory.create(base));
                     Registry.register(Registries.BLOCK, id, slab);
                     Registry.register(Registries.ITEM, id, new BlockItem(slab, new Item.Settings()));
                     variants.add(slab);
                     matrix.setReason(slab, "Dynamically registered slab variant for " + base.getName().getString());
-                    Reshaped.LOGGER.info("Registered new slab: {}", id);
                 }
             }
         }
@@ -71,86 +77,83 @@ public class VariantCompleter {
                 if (!variants.contains(existingStairs)) {
                     variants.add(existingStairs);
                     matrix.setReason(existingStairs, "Adopted existing stairs variant: " + Registries.BLOCK.getId(existingStairs));
-                    Reshaped.LOGGER.info("Adopted existing stairs: {} for {}", Registries.BLOCK.getId(existingStairs), baseId);
                 }
             } else {
                 String cleanBase = baseId.getPath().replace("_planks", "").replace("_block", "");
                 String path = cleanBase + "_stairs";
                 Identifier id = new Identifier(Reshaped.MOD_ID, path);
-
-                // Collision Check
-                if (Registries.BLOCK.get(id) != Blocks.AIR) {
+                Block reshapedStairs = Registries.BLOCK.get(id);
+                if (reshapedStairs == Blocks.AIR) {
                     path = baseNamespace + "_" + baseId.getPath() + "_stairs";
                     id = new Identifier(Reshaped.MOD_ID, path);
+                    reshapedStairs = Registries.BLOCK.get(id);
                 }
 
-                if (Registries.BLOCK.get(id) == Blocks.AIR) {
-                    StairsBlock stairs = new StairsBlock(base.getDefaultState(), AbstractBlock.Settings.copy(base));
+                if (reshapedStairs != Blocks.AIR && reshapedStairs instanceof StairsBlock) {
+                    if (!variants.contains(reshapedStairs)) {
+                        variants.add(reshapedStairs);
+                        matrix.setReason(reshapedStairs, "Found existing Reshaped stairs variant");
+                    }
+                } else if (reshapedStairs == Blocks.AIR) {
+                    // Use a neutral base state to avoid inheriting state-specific random tick logic
+                    // from incompatible source blocks (e.g., chorus flower AGE property).
+                    StairsBlock stairs = new StairsBlock(Blocks.STONE.getDefaultState(), VariantSettingsFactory.create(base));
                     Registry.register(Registries.BLOCK, id, stairs);
                     Registry.register(Registries.ITEM, id, new BlockItem(stairs, new Item.Settings()));
                     variants.add(stairs);
                     matrix.setReason(stairs, "Dynamically registered stairs variant for " + base.getName().getString());
-                    Reshaped.LOGGER.info("Registered new stairs: {}", id);
                 }
             }
         }
     }
 
     private static Block findExistingVariant(String baseName, String suffix, String baseNamespace) {
-        // Try various common naming patterns to find existing variants
         List<String> variantsToTry = getVariantsToTry(baseName, suffix);
 
-        // Search Phase 1: Try the same namespace as the base block (Fastest & most likely)
         for (String candidatePath : variantsToTry) {
             Identifier id = new Identifier(baseNamespace, candidatePath);
             Block block = Registries.BLOCK.get(id);
-            if (block != Blocks.AIR) {
-                if (isValidVariant(block, suffix)) return block;
+            if (block != Blocks.AIR && isValidVariant(block, suffix)) {
+                return block;
             }
         }
 
-        // Search Phase 2: Try Minecraft namespace (Very likely for vanilla materials)
         if (!baseNamespace.equals("minecraft")) {
             for (String candidatePath : variantsToTry) {
                 Identifier id = new Identifier("minecraft", candidatePath);
                 Block block = Registries.BLOCK.get(id);
-                if (block != Blocks.AIR) {
-                    if (isValidVariant(block, suffix)) return block;
+                if (block != Blocks.AIR && isValidVariant(block, suffix)) {
+                    return block;
                 }
             }
         }
 
-        // Search Phase 3: Global search (Slower but catches other mods with different namespaces)
         Set<String> targetPaths = new HashSet<>(variantsToTry);
         for (Identifier id : Registries.BLOCK.getIds()) {
-            if (targetPaths.contains(id.getPath())) {
-                Block block = Registries.BLOCK.get(id);
-                if (isValidVariant(block, suffix)) return block;
+            if (!targetPaths.contains(id.getPath())) continue;
+            Block block = Registries.BLOCK.get(id);
+            if (block != Blocks.AIR && isValidVariant(block, suffix)) {
+                return block;
             }
         }
 
         return null;
     }
 
-    private static @NotNull List<String> getVariantsToTry(String baseName, String suffix) {
+    private static List<String> getVariantsToTry(String baseName, String suffix) {
         List<String> variantsToTry = new ArrayList<>();
-
-        // 1. Direct patterns
         variantsToTry.add(baseName + "_" + suffix);
         variantsToTry.add(baseName.replace("_block", "") + "_" + suffix);
         variantsToTry.add(baseName.replace("_planks", "") + "_" + suffix);
 
-        // 2. Copper patterns (cut_copper)
         if (baseName.contains("copper") && !baseName.contains("cut_")) {
             variantsToTry.add(baseName.replace("copper", "cut_copper") + "_" + suffix);
         }
 
-        // 3. Material patterns
         variantsToTry.add(baseName.replace("bricks", "brick") + "_" + suffix);
         variantsToTry.add(baseName.replace("tiles", "tile") + "_" + suffix);
         variantsToTry.add(baseName.replace("shingles", "shingle") + "_" + suffix);
 
-        // 4. Plurality
         if (baseName.endsWith("s")) {
             variantsToTry.add(baseName.substring(0, baseName.length() - 1) + "_" + suffix);
         }
@@ -158,7 +161,8 @@ public class VariantCompleter {
     }
 
     private static boolean isValidVariant(Block block, String suffix) {
-        if (suffix.equals("slab") && block instanceof SlabBlock) return true;
-        return suffix.equals("stairs") && block instanceof StairsBlock;
+        if ("slab".equals(suffix)) return block instanceof SlabBlock;
+        if ("stairs".equals(suffix)) return block instanceof StairsBlock;
+        return false;
     }
 }

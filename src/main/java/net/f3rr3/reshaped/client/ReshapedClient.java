@@ -6,6 +6,7 @@ import net.f3rr3.reshaped.Reshaped;
 import net.f3rr3.reshaped.config.client.ModConfig;
 import net.f3rr3.reshaped.client.gui.CircleTexture;
 import net.f3rr3.reshaped.network.NetworkHandler;
+import net.f3rr3.reshaped.util.RuntimeResourceGenerator;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
@@ -109,6 +110,7 @@ public class ReshapedClient implements ClientModInitializer {
             @Override
             public void reload(ResourceManager manager) {
                 CircleTexture.clearCache();
+                RuntimeResourceGenerator.clearCaches();
 
                 ModConfig config = AutoConfig.getConfigHolder(ModConfig.class).getConfig();
                 CircleTexture.prewarmRadialSlices(

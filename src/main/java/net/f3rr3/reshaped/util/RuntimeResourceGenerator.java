@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class RuntimeResourceGenerator {
 
@@ -41,7 +42,21 @@ public class RuntimeResourceGenerator {
      * Key: Base block
      * Value: Map of texture keys (e.g., "top", "bottom", "side") to texture resource paths
      */
-    private static final Map<String, Map<String, String>> TEXTURE_CACHE = new HashMap<>();
+    private static final Map<String, Map<String, String>> TEXTURE_CACHE = new ConcurrentHashMap<>();
+    private static final Map<String, String> TEMPLATE_TEXT_CACHE = new ConcurrentHashMap<>();
+    private static final Map<String, JsonObject> TEMPLATE_JSON_CACHE = new ConcurrentHashMap<>();
+    private static final Map<String, String> GENERATED_MODEL_JSON_CACHE = new ConcurrentHashMap<>();
+    private static final Map<Identifier, List<ModelCandidate>> MODEL_CANDIDATE_CACHE = new ConcurrentHashMap<>();
+    private static final Map<Identifier, Optional<Identifier>> RESOLVED_MODEL_ID_CACHE = new ConcurrentHashMap<>();
+
+    public static void clearCaches() {
+        TEXTURE_CACHE.clear();
+        TEMPLATE_TEXT_CACHE.clear();
+        TEMPLATE_JSON_CACHE.clear();
+        GENERATED_MODEL_JSON_CACHE.clear();
+        MODEL_CANDIDATE_CACHE.clear();
+        RESOLVED_MODEL_ID_CACHE.clear();
+    }
 
     public record ModelCandidate(Identifier modelId, int x, int y, boolean uvlock, int weight) {
     }
@@ -117,9 +132,21 @@ public class RuntimeResourceGenerator {
 
     public static String generateModelJson(String cleanPath) {
         if (Reshaped.MATRIX == null) return null;
-
-        // Normalize path
         String path = normalizePath(cleanPath);
+
+        String cached = GENERATED_MODEL_JSON_CACHE.get(path);
+        if (cached != null) {
+            return cached;
+        }
+
+        String generated = generateModelJsonUncached(path);
+        if (generated != null) {
+            GENERATED_MODEL_JSON_CACHE.put(path, generated);
+        }
+        return generated;
+    }
+
+    private static String generateModelJsonUncached(String path) {
 
         // Handle Item Models
         if (path.startsWith("item/")) {
@@ -572,6 +599,11 @@ public class RuntimeResourceGenerator {
     }
 
     public static String loadTemplate(String path) {
+        String cached = TEMPLATE_TEXT_CACHE.get(path);
+        if (cached != null) {
+            return cached;
+        }
+
         Identifier id = new Identifier(Reshaped.MOD_ID, "templates/" + path);
         Optional<Resource> resource = MinecraftClient.getInstance().getResourceManager().getResource(id);
         if (resource.isPresent()) {
@@ -582,7 +614,9 @@ public class RuntimeResourceGenerator {
                 while ((read = reader.read(buffer)) != -1) {
                     builder.append(buffer, 0, read);
                 }
-                return builder.toString();
+                String template = builder.toString();
+                TEMPLATE_TEXT_CACHE.put(path, template);
+                return template;
             } catch (Exception e) {
                 Reshaped.LOGGER.error("Failed to load template: {}", id, e);
             }
@@ -591,10 +625,17 @@ public class RuntimeResourceGenerator {
     }
 
     public static JsonObject loadTemplateJson(String path) {
+        JsonObject cached = TEMPLATE_JSON_CACHE.get(path);
+        if (cached != null) {
+            return cached.deepCopy();
+        }
+
         String template = loadTemplate(path);
         if (template != null) {
             try {
-                return JsonParser.parseString(template).getAsJsonObject();
+                JsonObject parsed = JsonParser.parseString(template).getAsJsonObject();
+                TEMPLATE_JSON_CACHE.put(path, parsed);
+                return parsed.deepCopy();
             } catch (Exception e) {
                 Reshaped.LOGGER.error("Failed to parse template JSON: {}", path, e);
             }
@@ -779,16 +820,24 @@ public class RuntimeResourceGenerator {
         }
 
         Identifier blockId = Registries.BLOCK.getId(block);
+        Optional<Identifier> cached = RESOLVED_MODEL_ID_CACHE.get(blockId);
+        if (cached != null) {
+            return cached.orElse(null);
+        }
 
-        // First check if direct model exists
+        Identifier resolved = resolveBlockModelIdUncached(blockId);
+        RESOLVED_MODEL_ID_CACHE.put(blockId, Optional.ofNullable(resolved));
+        return resolved;
+    }
+
+    private static Identifier resolveBlockModelIdUncached(Identifier blockId) {
+
         Identifier directModelId = new Identifier(blockId.getNamespace(), "models/block/" + blockId.getPath() + ".json");
         Optional<Resource> directResource = MinecraftClient.getInstance().getResourceManager().getResource(directModelId);
         if (directResource.isPresent()) {
-            // Direct model exists, return standard path
             return new Identifier(blockId.getNamespace(), "block/" + blockId.getPath());
         }
 
-        // Check block state for model redirection
         Identifier blockStateId = new Identifier(blockId.getNamespace(), "blockstates/" + blockId.getPath() + ".json");
         Optional<Resource> bsResource = MinecraftClient.getInstance().getResourceManager().getResource(blockStateId);
 
@@ -831,15 +880,24 @@ public class RuntimeResourceGenerator {
 
     public static List<ModelCandidate> resolveBlockModelCandidates(Block block) {
         Identifier blockId = Registries.BLOCK.getId(block);
+        List<ModelCandidate> cached = MODEL_CANDIDATE_CACHE.get(blockId);
+        if (cached != null) {
+            return cached;
+        }
 
-        // First check if direct model exists
+        List<ModelCandidate> resolved = resolveBlockModelCandidatesUncached(blockId);
+        List<ModelCandidate> immutable = resolved.isEmpty() ? Collections.emptyList() : List.copyOf(resolved);
+        MODEL_CANDIDATE_CACHE.put(blockId, immutable);
+        return immutable;
+    }
+
+    private static List<ModelCandidate> resolveBlockModelCandidatesUncached(Identifier blockId) {
         Identifier directModelId = new Identifier(blockId.getNamespace(), "models/block/" + blockId.getPath() + ".json");
         Optional<Resource> directResource = MinecraftClient.getInstance().getResourceManager().getResource(directModelId);
         if (directResource.isPresent()) {
             return List.of(new ModelCandidate(new Identifier(blockId.getNamespace(), "block/" + blockId.getPath()), 0, 0, false, 1));
         }
 
-        // Check blockstate for variant/multipart redirection
         Identifier blockStateId = new Identifier(blockId.getNamespace(), "blockstates/" + blockId.getPath() + ".json");
         Optional<Resource> bsResource = MinecraftClient.getInstance().getResourceManager().getResource(blockStateId);
         if (bsResource.isPresent()) {

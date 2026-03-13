@@ -51,7 +51,7 @@ public class StepVariant implements BlockVariantType {
             Block existing = Registries.BLOCK.get(id);
             if (existing instanceof StepBlock step) {
                 BASE_TO_STEP.putIfAbsent(baseBlock, step);
-                List<Block> variants = matrix.getMatrix().get(baseBlock);
+                List<Block> variants = matrix.getMutableMatrix().get(baseBlock);
                 if (variants != null && !variants.contains(step)) {
                     variants.add(step);
                 }
@@ -60,12 +60,16 @@ public class StepVariant implements BlockVariantType {
         }
 
         StepBlock step;
-        AbstractBlock.Settings settings = AbstractBlock.Settings.copy(baseBlock);
+        AbstractBlock.Settings settings = VariantSettingsFactory.create(baseBlock);
 
         if (baseBlock instanceof Oxidizable oxidizable) {
             step = new OxidizableStepBlock(oxidizable.getDegradationLevel(), settings);
         } else {
             step = new StepBlock(settings);
+        }
+
+        if (net.f3rr3.reshaped.util.MatrixRebuilder.isRegistryFrozen()) {
+            return;
         }
 
         Registry.register(Registries.BLOCK, id, step);
@@ -74,7 +78,7 @@ public class StepVariant implements BlockVariantType {
         matrix.addVariant(baseBlock, step, true);
         matrix.setReason(step, "Dynamically registered Step Block for " + baseBlock.getName().getString());
         BASE_TO_STEP.put(baseBlock, step);
-        Reshaped.LOGGER.info("Registered step for: {}", baseId);
+        Reshaped.LOGGER.debug("Registered step for: {}", baseId);
 
         FlammableBlockRegistry flammableRegistry = FlammableBlockRegistry.getDefaultInstance();
         FlammableBlockRegistry.Entry flammableEntry = flammableRegistry.get(baseBlock);

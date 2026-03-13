@@ -78,6 +78,8 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
 
     @Override
     public void onInitializeModelLoader(Context context) {
+        // Late-sync: Ensure the matrix is bootstrapped before we start resolving models.
+        net.f3rr3.reshaped.util.MatrixRebuilder.bootstrap(net.f3rr3.reshaped.Reshaped.MATRIX, true);
         context.addModels(new Identifier(Reshaped.MOD_ID, "block/mixed_placeholder"));
 
         // Register block state resolvers for all reshaped blocks currently in registry
@@ -204,10 +206,16 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                                             if (randomCount > 0) {
                                                 List<ModelVariant> expanded = new ArrayList<>();
                                                 for (ModelVariant templateVariant : templateVariants) {
-                                                    for (int i = 0; i < randomCount; i++) {
-                                                        Identifier randomizedModelId = withRandomSuffix(templateVariant.getLocation(), i);
-                                                        int weight = Math.max(1, templateVariant.getWeight() * baseCandidates.get(i).weight());
-                                                        expanded.add(new ModelVariant(randomizedModelId, templateVariant.getRotation(), templateVariant.isUvLocked(), weight));
+                                                    Identifier modelLocation = templateVariant.getLocation();
+                                                    if (Reshaped.MOD_ID.equals(modelLocation.getNamespace())) {
+                                                        for (int i = 0; i < randomCount; i++) {
+                                                            Identifier randomizedModelId = withRandomSuffix(modelLocation, i);
+                                                            int weight = Math.max(1, templateVariant.getWeight() * baseCandidates.get(i).weight());
+                                                            expanded.add(new ModelVariant(randomizedModelId, templateVariant.getRotation(), templateVariant.isUvLocked(), weight));
+                                                        }
+                                                    } else {
+                                                        // External models (e.g. create:block/...) are not generated with _rnd suffixes.
+                                                        expanded.add(templateVariant);
                                                     }
                                                 }
                                                 resolverContext.setModel(state, new WeightedUnbakedModel(expanded));

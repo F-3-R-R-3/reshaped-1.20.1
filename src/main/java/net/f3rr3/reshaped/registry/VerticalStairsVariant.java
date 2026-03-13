@@ -52,7 +52,7 @@ public class VerticalStairsVariant implements BlockVariantType {
             Block existing = Registries.BLOCK.get(id);
             if (existing instanceof VerticalStairsBlock verticalStairs) {
                 BASE_TO_STAIRS.putIfAbsent(baseBlock, verticalStairs);
-                List<Block> variants = matrix.getMatrix().get(baseBlock);
+                List<Block> variants = matrix.getMutableMatrix().get(baseBlock);
                 if (variants != null && !variants.contains(verticalStairs)) {
                     variants.add(verticalStairs);
                 }
@@ -61,12 +61,16 @@ public class VerticalStairsVariant implements BlockVariantType {
         }
 
         VerticalStairsBlock verticalStairs;
-        AbstractBlock.Settings settings = AbstractBlock.Settings.copy(baseBlock);
+        AbstractBlock.Settings settings = VariantSettingsFactory.create(baseBlock);
 
         if (baseBlock instanceof Oxidizable oxidizable) {
             verticalStairs = new OxidizableVerticalStairsBlock(oxidizable.getDegradationLevel(), settings);
         } else {
             verticalStairs = new VerticalStairsBlock(settings);
+        }
+
+        if (net.f3rr3.reshaped.util.MatrixRebuilder.isRegistryFrozen()) {
+            return;
         }
 
         Registry.register(Registries.BLOCK, id, verticalStairs);
