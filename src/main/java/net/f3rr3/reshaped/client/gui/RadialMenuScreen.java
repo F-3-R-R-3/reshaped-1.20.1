@@ -3,7 +3,6 @@ package net.f3rr3.reshaped.client.gui;
 import com.mojang.blaze3d.systems.RenderSystem;
 import me.shedaniel.autoconfig.AutoConfig;
 import net.f3rr3.reshaped.Reshaped;
-import net.f3rr3.reshaped.client.ModKeybindings;
 import net.f3rr3.reshaped.config.client.ModConfig;
 import net.f3rr3.reshaped.network.NetworkHandler;
 import net.minecraft.block.Block;
@@ -32,24 +31,23 @@ import org.lwjgl.glfw.GLFW;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RadialMenuScreen extends Screen {
-    // Load the config
-    ModConfig config = AutoConfig.getConfigHolder(ModConfig.class).getConfig();
+import static net.f3rr3.reshaped.client.ModKeybindings.OPEN_RADIAL_MENU;
 
+public class RadialMenuScreen extends Screen {
     private static final Identifier HOTBAR_TEXTURE = new Identifier("minecraft", "textures/gui/widgets.png");
-    private final float BACKGROUND_RESOLUTION_MULTIPLIER = config.radial.ImageResolution; // Increase for smoother circles, decrease for performance
     private static final int RADIAL_RADIUS = 80;
     private static final int RADIAL_RING_THICKNESS = 20;
     private static final int MIN_HOVER_DIST_SQ = 400;   // (radius 20)
     private static final int MAX_HOVER_DIST_SQ = 15000; // (radius ~122.5)
-
     // Data
     private final List<Block> blocks;
     private final List<ItemStack> blockStacks;
     private final int slot;
     private final Block currentBlock;
     private final Block baseBlock;
-
+    // Load the config
+    ModConfig config = AutoConfig.getConfigHolder(ModConfig.class).getConfig();
+    private final float BACKGROUND_RESOLUTION_MULTIPLIER = config.radial.ImageResolution; // Increase for smoother circles, decrease for performance
     // Animation & Selection State
     private int hoveredIndex = -1;
     private float centerBlockAngle = 0f; // in radians
@@ -141,35 +139,6 @@ public class RadialMenuScreen extends Screen {
         DiffuseLighting.enableGuiDepthLighting();
     }
 
-    private void drawCircleSlice(DrawContext context, int centerX, int centerY, int outerRadius, int innerRadius, int slice, int NoOfSlices, int color) {
-        resetRender();
-        float sectionWidth = 360f / NoOfSlices;
-        float startAngle = sectionWidth * (slice - 0.5f);
-        float endAngle = sectionWidth * (slice + 0.5f);
-
-        // Scale radii for higher resolution texture generation
-        int resOuter = Math.round(outerRadius * BACKGROUND_RESOLUTION_MULTIPLIER);
-        int resInner = Math.round(innerRadius * BACKGROUND_RESOLUTION_MULTIPLIER);
-
-        CircleTexture.CachedCircle circle = CircleTexture.getOrCreateCircle(resOuter, resInner, color, 0.7f, BACKGROUND_RESOLUTION_MULTIPLIER, startAngle, endAngle);
-
-        // Determine display size by scaling back down
-        int displaySize = Math.round((float) circle.size / BACKGROUND_RESOLUTION_MULTIPLIER);
-        int x0 = centerX - displaySize / 2;
-        int y0 = centerY - displaySize / 2;
-
-        // Draw the high-res texture scaled down to the original UI dimensions.
-        // Parameters: texture, x, y, width, height, u, v, regionWidth, regionHeight, textureWidth, textureHeight
-        context.drawTexture(
-                circle.textureId,
-                x0, y0,
-                displaySize, displaySize,
-                0, 0,
-                circle.size, circle.size,
-                circle.size, circle.size
-        );
-    }
-
     private static float getRelativeAngleToMouse(int xOrigin, int yOrigin, int xTarget, int yTarget) {
         float yDiff = yTarget - yOrigin;
         float xDiff = xTarget - xOrigin;
@@ -210,6 +179,35 @@ public class RadialMenuScreen extends Screen {
         RenderSystem.setShader(GameRenderer::getPositionTexProgram); // GUI shader
     }
 
+    private void drawCircleSlice(DrawContext context, int centerX, int centerY, int outerRadius, int innerRadius, int slice, int NoOfSlices, int color) {
+        resetRender();
+        float sectionWidth = 360f / NoOfSlices;
+        float startAngle = sectionWidth * (slice - 0.5f);
+        float endAngle = sectionWidth * (slice + 0.5f);
+
+        // Scale radii for higher resolution texture generation
+        int resOuter = Math.round(outerRadius * BACKGROUND_RESOLUTION_MULTIPLIER);
+        int resInner = Math.round(innerRadius * BACKGROUND_RESOLUTION_MULTIPLIER);
+
+        CircleTexture.CachedCircle circle = CircleTexture.getOrCreateCircle(resOuter, resInner, color, 0.7f, BACKGROUND_RESOLUTION_MULTIPLIER, startAngle, endAngle);
+
+        // Determine display size by scaling back down
+        int displaySize = Math.round((float) circle.size / BACKGROUND_RESOLUTION_MULTIPLIER);
+        int x0 = centerX - displaySize / 2;
+        int y0 = centerY - displaySize / 2;
+
+        // Draw the high-res texture scaled down to the original UI dimensions.
+        // Parameters: texture, x, y, width, height, u, v, regionWidth, regionHeight, textureWidth, textureHeight
+        context.drawTexture(
+                circle.textureId,
+                x0, y0,
+                displaySize, displaySize,
+                0, 0,
+                circle.size, circle.size,
+                circle.size, circle.size
+        );
+    }
+
     @Override
     public void tick() {
         super.tick();
@@ -243,7 +241,7 @@ public class RadialMenuScreen extends Screen {
         boolean isHeld = false;
         if (this.client != null) {
             long handle = this.client.getWindow().getHandle();
-            InputUtil.Key boundKey = ModKeybindings.OPEN_RADIAL_MENU.getDefaultKey();
+            InputUtil.Key boundKey = net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.getBoundKeyOf(OPEN_RADIAL_MENU);
 
             if (boundKey.getCategory() == InputUtil.Type.KEYSYM) {
                 isHeld = InputUtil.isKeyPressed(handle, boundKey.getCode());
