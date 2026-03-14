@@ -38,7 +38,7 @@ It also introduces a large collection of additional shape variants, giving build
 - Additional block types  
 - Connected textures compatibility  
 - Auto-generated recipes  
-- Other Minecraft versions (including Forge)  
+- Other Minecraft versions (including Forge and 1,21)  
 - ~~Public GitHub repo~~ (since Feb 21)  
 - ~~Transparent block support~~ (added in V0.2)  
 - ~~Improved tooltips for the radial menu~~ (added in V0.2)  
