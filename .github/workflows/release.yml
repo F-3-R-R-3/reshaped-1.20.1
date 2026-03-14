@@ -33,7 +33,14 @@ jobs:
           name: ReShaped ${{ github.ref_name }}
           version: ${{ github.ref_name }}
           loaders: fabric
-          game-versions: 1.20.1
+          game-versions: |
+            - 1.20
+            - 1.20.1
+            - 1.20.2
+            - 1.20.3
+            - 1.20.4
+            - 1.20.5
+            - 1.20.6
           version-type: alpha
           dependencies: |
             fabric-api(required){modrinth:fabric-api;side:client,server}
@@ -51,7 +58,14 @@ jobs:
           name: ReShaped ${{ github.ref_name }}
           version: ${{ github.ref_name }}
           loaders: fabric
-          versions: 1.20,1.20.1,1.20.2,1.20.3,1.20.4,1.20.5,1.20.6
+          game-versions: |
+            - 1.20
+            - 1.20.1
+            - 1.20.2
+            - 1.20.3
+            - 1.20.4
+            - 1.20.5
+            - 1.20.6
           version-type: alpha
           side: client,server
           dependencies: |
