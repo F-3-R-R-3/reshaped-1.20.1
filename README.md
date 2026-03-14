@@ -55,7 +55,7 @@ It also introduces a large collection of additional shape variants, giving build
 | --------------------------------------------------------- | ------------------------------------------------------------ |
 | [Fabric API](https://modrinth.com/mod/fabric-api)         | required                                                     |
 | [Cloth Config API](https://modrinth.com/mod/cloth-config) | required                                                     |
-| [ModMenu](https://modrinth.com/mod/modmenu)               | optional, needed to acces the config screen                  |
+| [ModMenu](https://modrinth.com/mod/modmenu)               | optional, needed to acces the mmod's config screen           |
 
 </details>
 
