@@ -35,6 +35,7 @@ jobs:
 
           loaders: fabric
           game-versions: 1.20.1
+          version-type: alpha
 
           dependencies: |
             fabric-api(required){modrinth:fabric-api}
@@ -58,6 +59,7 @@ jobs:
 
           loaders: fabric
           game-versions: 1.20.1
+          release-type: alpha
 
           dependencies: |
             fabric-api(required){curseforge:306612}
