@@ -21,9 +21,9 @@ final class VariantSettingsFactory {
         // We delegate these to the base block's default state.
         settings.luminance(state -> baseState.getLuminance())
                 .allowsSpawning((state, world, pos, type) -> baseState.allowsSpawning(world, pos, type))
-                .solidBlock((state, world, pos) -> baseState.isSolidBlock(world, pos))
-                .suffocates((state, world, pos) -> baseState.shouldSuffocate(world, pos))
-                .blockVision((state, world, pos) -> baseState.shouldBlockVision(world, pos));
+                .solidBlock((state, world, pos) -> false)
+                .suffocates((state, world, pos) -> false)
+                .blockVision((state, world, pos) -> false);
 
         // For mapColor, we try to use the value from the default state.
         try {
