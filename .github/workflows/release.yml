@@ -28,9 +28,7 @@ jobs:
           modrinth-id: reshaped
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
 
-          files: |
-            build/libs/*.jar
-            !build/libs/*-sources.jar
+          files: build/libs/reshaped-${{ github.ref_name }}.jar
             
           name: ReShaped ${{ github.ref_name }}
           version: ${{ github.ref_name }}
@@ -52,9 +50,7 @@ jobs:
           curseforge-id: 1463309
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
 
-          files: |
-            build/libs/*.jar
-            !build/libs/*-sources.jar
+          files: build/libs/reshaped-${{ github.ref_name }}.jar
   
           name: ReShaped ${{ github.ref_name }}
           version: ${{ github.ref_name }}
