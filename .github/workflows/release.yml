@@ -7,9 +7,6 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        platform: [modrinth, curseforge]
 
     steps:
       - uses: actions/checkout@v4
@@ -26,25 +23,40 @@ jobs:
       - name: Build mod
         run: ./gradlew build
 
-      - name: Upload to Platform
+      # --- Modrinth upload ---
+      - name: Upload to Modrinth
         uses: Kir-Antipov/mc-publish@v3.3
         with:
-          # ID & Token afhankelijk van platform
-          modrinth-id: ${{ matrix.platform == 'modrinth' && 'reshaped' || '' }}
-          modrinth-token: ${{ matrix.platform == 'modrinth' && secrets.MODRINTH_TOKEN || '' }}
-          curseforge-id: ${{ matrix.platform == 'curseforge' && 1463309 || '' }}
-          curseforge-token: ${{ matrix.platform == 'curseforge' && secrets.CURSEFORGE_TOKEN || '' }}
-
+          modrinth-id: reshaped
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
           files: build/libs/reshaped-${{ github.ref_name }}.jar
-
           name: ReShaped ${{ github.ref_name }}
           version: ${{ github.ref_name }}
-
           loaders: fabric
           game-versions: 1.20,1.20.1,1.20.2,1.20.3,1.20.4,1.20.5,1.20.6
           version-type: alpha
-
+          modrinth-side: client,server
           dependencies: |
-            ${{ matrix.platform == 'modrinth' && 'fabric-api(required){modrinth:fabric-api}\ncloth-config(required){modrinth:cloth-config}\nmodmenu(optional){modrinth:modmenu}' || 'fabric-api(required){curseforge:306612}\ncloth-config(required){curseforge:348521}\nmodmenu(optional){curseforge:308702}' }}
+            fabric-api(required){modrinth:fabric-api;side:client,server}
+            cloth-config(required){modrinth:cloth-config;side:client,server}
+            modmenu(optional){modrinth:modmenu;side:client,server}
+          changelog: ${{ github.event.release.body }}
 
+      # --- CurseForge upload ---
+      - name: Upload to CurseForge
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          curseforge-id: 1463309
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+          files: build/libs/reshaped-${{ github.ref_name }}.jar
+          name: ReShaped ${{ github.ref_name }}
+          version: ${{ github.ref_name }}
+          loaders: fabric
+          game-versions: 1.20,1.20.1,1.20.2,1.20.3,1.20.4,1.20.5,1.20.6
+          version-type: alpha
+          curseforge-side: client,server
+          dependencies: |
+            fabric-api(required){curseforge:306612}
+            cloth-config(required){curseforge:348521}
+            modmenu(optional){curseforge:308702}
           changelog: ${{ github.event.release.body }}
