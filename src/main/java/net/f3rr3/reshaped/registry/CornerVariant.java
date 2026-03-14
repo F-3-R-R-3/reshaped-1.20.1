@@ -1,5 +1,7 @@
 package net.f3rr3.reshaped.registry;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import net.f3rr3.reshaped.Reshaped;
 import net.f3rr3.reshaped.block.Corner.CornerBlock;
 import net.f3rr3.reshaped.util.BlockMatrix;
@@ -73,21 +75,58 @@ public class CornerVariant implements BlockVariantType {
                     root.add("textures", texturesObj);
 
                     com.google.gson.JsonArray elements = new com.google.gson.JsonArray();
+                    com.google.gson.JsonArray overlayElements = new com.google.gson.JsonArray();
                     String[] segmentTemplates = {
                             "corner_down_nw", "corner_down_ne", "corner_down_sw", "corner_down_se",
                             "corner_up_nw", "corner_up_ne", "corner_up_sw", "corner_up_se"
                     };
+
+                    boolean hasOverlay = textures.containsKey("side_overlay") || textures.containsKey("top_overlay") || textures.containsKey("bottom_overlay");
 
                     for (int i = 0; i < 8; i++) {
                         if (bits.charAt(i) == '1') {
                             com.google.gson.JsonObject segment = net.f3rr3.reshaped.util.RuntimeResourceGenerator.loadTemplateJson("models/block/" + segmentTemplates[i] + ".json");
                             if (segment != null && segment.has("elements")) {
                                 elements.addAll(segment.getAsJsonArray("elements"));
+                                if (hasOverlay) {
+                                    for (JsonElement elElem : segment.getAsJsonArray("elements")) {
+                                        JsonObject el = elElem.getAsJsonObject();
+                                        if (el.has("faces")) {
+                                            JsonObject faces = el.getAsJsonObject("faces");
+                                            JsonObject overlayFaces = new JsonObject();
+                                            boolean elementHasOverlay = false;
+                                            for (String faceName : faces.keySet()) {
+                                                JsonObject face = faces.getAsJsonObject(faceName);
+                                                String texRef = face.get("texture").getAsString();
+                                                String overlayKey = switch (texRef) {
+                                                    case "#side", "#wall" -> "#side_overlay";
+                                                    case "#top", "#end" -> "#top_overlay";
+                                                    case "#bottom" -> "#bottom_overlay";
+                                                    default -> null;
+                                                };
+
+                                                if (overlayKey != null && (textures.containsKey(overlayKey.substring(1)) || (overlayKey.equals("#side_overlay") && textures.containsKey("overlay")))) {
+                                                    JsonObject overlayFace = face.deepCopy();
+                                                    overlayFace.addProperty("texture", overlayKey);
+                                                    overlayFaces.add(faceName, overlayFace);
+                                                    elementHasOverlay = true;
+                                                }
+                                            }
+                                            if (elementHasOverlay) {
+                                                JsonObject overlayEl = el.deepCopy();
+                                                overlayEl.add("faces", overlayFaces);
+                                                overlayElements.add(overlayEl);
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
+                    elements.addAll(overlayElements);
                     root.add("elements", elements);
 
+                    net.f3rr3.reshaped.util.RuntimeResourceGenerator.applyTints(root, textures);
                     return root.toString();
                 } else if (cleanPath.endsWith("_corner")) {
                     // Item model default (just NW corner bitmask: 10000000)

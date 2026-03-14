@@ -245,21 +245,22 @@ public class RuntimeResourceGenerator {
         return null;
     }
 
-    /**
-     * Generates a simple block model JSON by delegating to a parent model and applying textures.
-     * Used for dynamically created slabs and stairs that follow vanilla model structures.
-     *
-     * @param parent   The parent model identifier (e.g., "minecraft:block/stairs")
-     * @param textures The texture mappings to apply
-     * @return JSON string representing the complete model
-     */
     public static String generateSimpleModel(String parent, Map<String, String> textures) {
-        com.google.gson.JsonObject root = new com.google.gson.JsonObject();
-        root.addProperty("parent", parent);
+        Identifier parentId = resolveModelIdentifier(parent);
+        JsonObject root = loadModelHierarchy(parentId);
+        if (root == null) {
+            root = new JsonObject();
+            root.addProperty("parent", parent);
+        } else {
+            root.remove("parent"); // We've flattened it
+        }
 
-        com.google.gson.JsonObject texturesObj = new com.google.gson.JsonObject();
+        JsonObject texturesObj = root.has("textures") ? root.getAsJsonObject("textures") : new JsonObject();
         applyTextures(texturesObj, textures);
         root.add("textures", texturesObj);
+
+        injectOverlays(root, textures);
+        applyTints(root, textures);
 
         return root.toString();
     }
@@ -272,7 +273,101 @@ public class RuntimeResourceGenerator {
             applyTextures(template.getAsJsonObject("textures"), textures);
         }
 
+        injectOverlays(template, textures);
+        applyTints(template, textures);
+
         return template.toString();
+    }
+
+    private static void injectOverlays(JsonObject model, Map<String, String> textures) {
+        if (!textures.containsKey("side_overlay") && !textures.containsKey("top_overlay") && !textures.containsKey("bottom_overlay")) {
+            return;
+        }
+
+        if (!model.has("elements")) return;
+        com.google.gson.JsonArray elements = model.getAsJsonArray("elements");
+        com.google.gson.JsonArray overlayElements = new com.google.gson.JsonArray();
+
+        for (com.google.gson.JsonElement elementElem : elements) {
+            JsonObject element = elementElem.getAsJsonObject();
+            if (!element.has("faces")) continue;
+
+            JsonObject faces = element.getAsJsonObject("faces");
+            JsonObject overlayFaces = new JsonObject();
+            boolean hasOverlay = false;
+
+            for (String faceName : faces.keySet()) {
+                JsonObject face = faces.getAsJsonObject(faceName);
+                if (!face.has("texture")) continue;
+                String texRef = face.get("texture").getAsString();
+
+                String overlayKey = switch (texRef) {
+                    case "#side", "#wall" -> "#side_overlay";
+                    case "#top", "#end" -> "#top_overlay";
+                    case "#bottom" -> "#bottom_overlay";
+                    default -> null;
+                };
+
+                if (overlayKey != null && textures.containsKey(overlayKey.substring(1))) {
+                    JsonObject overlayFace = face.deepCopy();
+                    overlayFace.addProperty("texture", overlayKey);
+                    overlayFaces.add(faceName, overlayFace);
+                    hasOverlay = true;
+                }
+            }
+
+            if (hasOverlay) {
+                JsonObject overlayElement = element.deepCopy();
+                overlayElement.add("faces", overlayFaces);
+                overlayElements.add(overlayElement);
+            }
+        }
+
+        elements.addAll(overlayElements);
+    }
+
+    public static Identifier resolveModelIdentifier(String path) {
+        if (path.contains(":")) {
+            String[] parts = path.split(":");
+            return new Identifier(parts[0], "models/" + parts[1] + ".json");
+        }
+        return new Identifier("minecraft", "models/" + path + ".json");
+    }
+
+    public static void applyTints(JsonObject model, Map<String, String> textures) {
+        if (!model.has("elements")) return;
+        com.google.gson.JsonArray elements = model.getAsJsonArray("elements");
+        for (com.google.gson.JsonElement elementElem : elements) {
+            JsonObject element = elementElem.getAsJsonObject();
+            if (!element.has("faces")) continue;
+            JsonObject faces = element.getAsJsonObject("faces");
+            for (String faceName : faces.keySet()) {
+                JsonObject face = faces.getAsJsonObject(faceName);
+                if (!face.has("texture")) continue;
+                String texRef = face.get("texture").getAsString();
+                if (texRef.startsWith("#")) {
+                    String key = texRef.substring(1);
+                    String tintKey = switch (key) {
+                        case "top", "end" -> "_tint_top";
+                        case "bottom" -> "_tint_bottom";
+                        case "side", "wall" -> "_tint_side";
+                        case "top_overlay" -> "_tint_top_overlay";
+                        case "bottom_overlay" -> "_tint_bottom_overlay";
+                        case "side_overlay", "overlay" -> "_tint_side_overlay";
+                        default -> null;
+                    };
+
+                    if (tintKey != null && textures.containsKey(tintKey)) {
+                        try {
+                            face.addProperty("tintindex", Integer.parseInt(textures.get(tintKey)));
+                        } catch (NumberFormatException ignored) {
+                        }
+                    } else {
+                        face.remove("tintindex");
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -310,45 +405,57 @@ public class RuntimeResourceGenerator {
                 return;
             }
 
-            JsonObject faces = firstElement.getAsJsonObject("faces");
-            Map<String, String> faceToTexture = new HashMap<>();
+            // Extract mappings from all elements to detect overlays
+            Map<String, List<String>> faceToTextures = new HashMap<>();
+            Map<String, List<Integer>> faceToTints = new HashMap<>();
 
-            // Extract face -> texture key mappings (e.g., "up" -> "#end")
-            for (String face : new String[]{"up", "down", "north", "south", "east", "west"}) {
-                if (faces.has(face)) {
-                    JsonObject faceObj = faces.getAsJsonObject(face);
-                    if (faceObj.has("texture")) {
-                        String textureRef = faceObj.get("texture").getAsString();
-                        faceToTexture.put(face, textureRef);
+            for (com.google.gson.JsonElement elementElem : elements) {
+                JsonObject element = elementElem.getAsJsonObject();
+                if (!element.has("faces")) continue;
+                JsonObject faceObjs = element.getAsJsonObject("faces");
+
+                for (String face : new String[]{"up", "down", "north", "south", "east", "west"}) {
+                    if (faceObjs.has(face)) {
+                        JsonObject faceObj = faceObjs.getAsJsonObject(face);
+                        if (faceObj.has("texture")) {
+                            faceToTextures.computeIfAbsent(face, k -> new ArrayList<>()).add(faceObj.get("texture").getAsString());
+                        }
+                        if (faceObj.has("tintindex")) {
+                            faceToTints.computeIfAbsent(face, k -> new ArrayList<>()).add(faceObj.get("tintindex").getAsInt());
+                        } else {
+                            faceToTints.computeIfAbsent(face, k -> new ArrayList<>()).add(null);
+                        }
                     }
                 }
             }
 
-            // Resolve texture references (e.g., #end -> minecraft:block/quartz_block_top)
-            Map<String, String> resolvedTextures = new HashMap<>();
-            for (Map.Entry<String, String> entry : faceToTexture.entrySet()) {
-                String textureRef = entry.getValue();
-                if (textureRef.startsWith("#")) {
-                    String key = textureRef.substring(1);
-                    if (textures.containsKey(key)) {
-                        resolvedTextures.put(entry.getKey(), textures.get(key));
+            // Resolve and map to standard keys
+            for (String face : faceToTextures.keySet()) {
+                List<String> texRefs = faceToTextures.get(face);
+                List<Integer> tints = faceToTints.get(face);
+
+                for (int i = 0; i < texRefs.size(); i++) {
+                    String textureRef = texRefs.get(i);
+                    Integer tint = tints.size() > i ? tints.get(i) : null;
+
+                    if (textureRef.startsWith("#")) {
+                        String key = textureRef.substring(1);
+                        if (textures.containsKey(key)) {
+                            String texturePath = textures.get(key);
+                            String suffix = (i == 0) ? "" : "_overlay";
+
+                            if (face.equals("up")) {
+                                textures.putIfAbsent("top" + suffix, texturePath);
+                                if (tint != null) textures.put("_tint_top" + suffix, tint.toString());
+                            } else if (face.equals("down")) {
+                                textures.putIfAbsent("bottom" + suffix, texturePath);
+                                if (tint != null) textures.put("_tint_bottom" + suffix, tint.toString());
+                            } else {
+                                textures.putIfAbsent("side" + suffix, texturePath);
+                                if (tint != null) textures.put("_tint_side" + suffix, tint.toString());
+                            }
+                        }
                     }
-                }
-            }
-
-            // Map to standard keys for our templates
-            if (resolvedTextures.containsKey("up")) {
-                textures.putIfAbsent("top", resolvedTextures.get("up"));
-            }
-            if (resolvedTextures.containsKey("down")) {
-                textures.putIfAbsent("bottom", resolvedTextures.get("down"));
-            }
-
-            // Use any horizontal face as 'side' if not already set
-            for (String face : new String[]{"north", "south", "east", "west"}) {
-                if (resolvedTextures.containsKey(face)) {
-                    textures.putIfAbsent("side", resolvedTextures.get(face));
-                    break;
                 }
             }
 
@@ -388,18 +495,11 @@ public class RuntimeResourceGenerator {
         // Recursively load parent models
         if (current.has("parent")) {
             String parentPath = current.get("parent").getAsString();
-            Identifier parentId;
-
-            if (parentPath.contains(":")) {
-                String[] parts = parentPath.split(":");
-                parentId = new Identifier(parts[0], "models/" + parts[1] + ".json");
-            } else {
-                parentId = new Identifier("minecraft", "models/" + parentPath + ".json");
-            }
+            Identifier parentId = resolveModelIdentifier(parentPath);
 
             JsonObject parentModel = loadModelHierarchy(parentId);
             if (parentModel != null) {
-                // Merge parent into current (parent properties first, then override with current)
+                // Merge parent into current (parent properties first)
                 for (Map.Entry<String, com.google.gson.JsonElement> entry : parentModel.entrySet()) {
                     merged.add(entry.getKey(), entry.getValue());
                 }
@@ -408,7 +508,15 @@ public class RuntimeResourceGenerator {
 
         // Override/add current model properties
         for (Map.Entry<String, com.google.gson.JsonElement> entry : current.entrySet()) {
-            merged.add(entry.getKey(), entry.getValue());
+            if (entry.getKey().equals("textures") && merged.has("textures")) {
+                JsonObject mergedTex = merged.getAsJsonObject("textures");
+                JsonObject currentTex = entry.getValue().getAsJsonObject();
+                for (Map.Entry<String, com.google.gson.JsonElement> texEntry : currentTex.entrySet()) {
+                    mergedTex.add(texEntry.getKey(), texEntry.getValue());
+                }
+            } else {
+                merged.add(entry.getKey(), entry.getValue());
+            }
         }
 
         return merged;
@@ -489,31 +597,44 @@ public class RuntimeResourceGenerator {
         }
     }
 
-    /**
-     * Internal helper to create a cuboid element for a model with appropriate UVs and cullfaces.
-     */
     private static JsonObject createSegmentElement(double x1, double y1, double z1, double x2, double y2, double z2,
-                                                   Map<String, String> cullfaces) {
+                                                   Map<String, String> cullfaces, Map<String, String> textures) {
         JsonObject element = new JsonObject();
         setFromTo(element, x1, y1, z1, x2, y2, z2);
 
         JsonObject faces = new JsonObject();
         element.add("faces", faces);
 
-        // standard UV formulas:
-        // North: [16-x2, 16-y2, 16-x1, 16-y1]
-        // South: [x1, 16-y2, x2, 16-y1]
-        // Up: [x1, z1, x2, z2]
-        // Down: [x1, 16-z2, x2, 16-z1]
-        // East: [16-z2, 16-y2, 16-z1, 16-y1]
-        // West: [z1, 16-y2, z2, 16-y1]
+        addFace(faces, "north", "#side", cullfaces.get("north"), new double[]{16 - x2, 16 - y2, 16 - x1, 16 - y1}, textures.get("_tint_side"));
+        addFace(faces, "south", "#side", cullfaces.get("south"), new double[]{x1, 16 - y2, x2, 16 - y1}, textures.get("_tint_side"));
+        addFace(faces, "up", "#top", cullfaces.get("up"), new double[]{x1, z1, x2, z2}, textures.get("_tint_top"));
+        addFace(faces, "down", "#bottom", cullfaces.get("down"), new double[]{x1, 16 - z2, x2, 16 - z1}, textures.get("_tint_bottom"));
+        addFace(faces, "east", "#side", cullfaces.get("east"), new double[]{16 - z2, 16 - y2, 16 - z1, 16 - y1}, textures.get("_tint_side"));
+        addFace(faces, "west", "#side", cullfaces.get("west"), new double[]{z1, 16 - y2, z2, 16 - y1}, textures.get("_tint_side"));
 
-        addFace(faces, "north", "#side", cullfaces.get("north"), new double[]{16 - x2, 16 - y2, 16 - x1, 16 - y1});
-        addFace(faces, "south", "#side", cullfaces.get("south"), new double[]{x1, 16 - y2, x2, 16 - y1});
-        addFace(faces, "up", "#top", cullfaces.get("up"), new double[]{x1, z1, x2, z2});
-        addFace(faces, "down", "#bottom", cullfaces.get("down"), new double[]{x1, 16 - z2, x2, 16 - z1});
-        addFace(faces, "east", "#side", cullfaces.get("east"), new double[]{16 - z2, 16 - y2, 16 - z1, 16 - y1});
-        addFace(faces, "west", "#side", cullfaces.get("west"), new double[]{z1, 16 - y2, z2, 16 - y1});
+        return element;
+    }
+
+    private static JsonObject createOverlaySegmentElement(double x1, double y1, double z1, double x2, double y2, double z2,
+                                                          Map<String, String> cullfaces, Map<String, String> textures) {
+        JsonObject element = new JsonObject();
+        setFromTo(element, x1, y1, z1, x2, y2, z2);
+
+        JsonObject faces = new JsonObject();
+        element.add("faces", faces);
+
+        if (textures.containsKey("side_overlay")) {
+            addFace(faces, "north", "#side_overlay", cullfaces.get("north"), new double[]{16 - x2, 16 - y2, 16 - x1, 16 - y1}, textures.get("_tint_side_overlay"));
+            addFace(faces, "south", "#side_overlay", cullfaces.get("south"), new double[]{x1, 16 - y2, x2, 16 - y1}, textures.get("_tint_side_overlay"));
+            addFace(faces, "east", "#side_overlay", cullfaces.get("east"), new double[]{16 - z2, 16 - y2, 16 - z1, 16 - y1}, textures.get("_tint_side_overlay"));
+            addFace(faces, "west", "#side_overlay", cullfaces.get("west"), new double[]{z1, 16 - y2, z2, 16 - y1}, textures.get("_tint_side_overlay"));
+        }
+        if (textures.containsKey("top_overlay")) {
+            addFace(faces, "up", "#top_overlay", cullfaces.get("up"), new double[]{x1, z1, x2, z2}, textures.get("_tint_top_overlay"));
+        }
+        if (textures.containsKey("bottom_overlay")) {
+            addFace(faces, "down", "#bottom_overlay", cullfaces.get("down"), new double[]{x1, 16 - z2, x2, 16 - z1}, textures.get("_tint_bottom_overlay"));
+        }
 
         return element;
     }
@@ -524,13 +645,25 @@ public class RuntimeResourceGenerator {
     public static String generateStepModelForSegments(boolean downFront, boolean downBack, boolean upFront, boolean upBack, Map<String, String> textures) {
         return generateSegmentedModel("models/block/step.json", textures, elements -> {
             if (downFront)
-                elements.add(createSegmentElement(8, 0, 0, 16, 8, 16, Map.of("north", "north", "south", "south", "east", "east", "down", "down")));
+                elements.add(createSegmentElement(8, 0, 0, 16, 8, 16, Map.of("north", "north", "south", "south", "east", "east", "down", "down"), textures));
             if (downBack)
-                elements.add(createSegmentElement(0, 0, 0, 8, 8, 16, Map.of("north", "north", "south", "south", "west", "west", "down", "down")));
+                elements.add(createSegmentElement(0, 0, 0, 8, 8, 16, Map.of("north", "north", "south", "south", "west", "west", "down", "down"), textures));
             if (upFront)
-                elements.add(createSegmentElement(8, 8, 0, 16, 16, 16, Map.of("north", "north", "south", "south", "up", "up", "east", "east")));
+                elements.add(createSegmentElement(8, 8, 0, 16, 16, 16, Map.of("north", "north", "south", "south", "up", "up", "east", "east"), textures));
             if (upBack)
-                elements.add(createSegmentElement(0, 8, 0, 8, 16, 16, Map.of("north", "north", "south", "south", "up", "up", "west", "west")));
+                elements.add(createSegmentElement(0, 8, 0, 8, 16, 16, Map.of("north", "north", "south", "south", "up", "up", "west", "west"), textures));
+
+            // Overlay pass
+            if (textures.containsKey("side_overlay") || textures.containsKey("top_overlay") || textures.containsKey("bottom_overlay")) {
+                if (downFront)
+                    elements.add(createOverlaySegmentElement(8, 0, 0, 16, 8, 16, Map.of("north", "north", "south", "south", "east", "east", "down", "down"), textures));
+                if (downBack)
+                    elements.add(createOverlaySegmentElement(0, 0, 0, 8, 8, 16, Map.of("north", "north", "south", "south", "west", "west", "down", "down"), textures));
+                if (upFront)
+                    elements.add(createOverlaySegmentElement(8, 8, 0, 16, 16, 16, Map.of("north", "north", "south", "south", "up", "up", "east", "east"), textures));
+                if (upBack)
+                    elements.add(createOverlaySegmentElement(0, 8, 0, 8, 16, 16, Map.of("north", "north", "south", "south", "up", "up", "west", "west"), textures));
+            }
         });
     }
 
@@ -540,13 +673,25 @@ public class RuntimeResourceGenerator {
     public static String generateVerticalStepModelForSegments(boolean nw, boolean ne, boolean sw, boolean se, Map<String, String> textures) {
         return generateSegmentedModel("models/block/vertical_step.json", textures, elements -> {
             if (nw)
-                elements.add(createSegmentElement(0, 0, 0, 8, 16, 8, Map.of("north", "north", "west", "west", "up", "up", "down", "down")));
+                elements.add(createSegmentElement(0, 0, 0, 8, 16, 8, Map.of("north", "north", "west", "west", "up", "up", "down", "down"), textures));
             if (ne)
-                elements.add(createSegmentElement(8, 0, 0, 16, 16, 8, Map.of("north", "north", "east", "east", "up", "up", "down", "down")));
+                elements.add(createSegmentElement(8, 0, 0, 16, 16, 8, Map.of("north", "north", "east", "east", "up", "up", "down", "down"), textures));
             if (sw)
-                elements.add(createSegmentElement(0, 0, 8, 8, 16, 16, Map.of("south", "south", "west", "west", "up", "up", "down", "down")));
+                elements.add(createSegmentElement(0, 0, 8, 8, 16, 16, Map.of("south", "south", "west", "west", "up", "up", "down", "down"), textures));
             if (se)
-                elements.add(createSegmentElement(8, 0, 8, 16, 16, 16, Map.of("south", "south", "east", "east", "up", "up", "down", "down")));
+                elements.add(createSegmentElement(8, 0, 8, 16, 16, 16, Map.of("south", "south", "east", "east", "up", "up", "down", "down"), textures));
+
+            // Overlay pass
+            if (textures.containsKey("side_overlay") || textures.containsKey("top_overlay") || textures.containsKey("bottom_overlay")) {
+                if (nw)
+                    elements.add(createOverlaySegmentElement(0, 0, 0, 8, 16, 8, Map.of("north", "north", "west", "west", "up", "up", "down", "down"), textures));
+                if (ne)
+                    elements.add(createOverlaySegmentElement(8, 0, 0, 16, 16, 8, Map.of("north", "north", "east", "east", "up", "up", "down", "down"), textures));
+                if (sw)
+                    elements.add(createOverlaySegmentElement(0, 0, 8, 8, 16, 16, Map.of("south", "south", "west", "west", "up", "up", "down", "down"), textures));
+                if (se)
+                    elements.add(createOverlaySegmentElement(8, 0, 8, 16, 16, 16, Map.of("south", "south", "east", "east", "up", "up", "down", "down"), textures));
+            }
         });
     }
 
@@ -565,10 +710,15 @@ public class RuntimeResourceGenerator {
         return template.toString();
     }
 
-    private static void addFace(JsonObject faces, String side, String texture, String cullface, double[] uv) {
+    private static void addFace(JsonObject faces, String side, String texture, String cullface, double[] uv, String tintIndex) {
         JsonObject face = new JsonObject();
         face.addProperty("texture", texture);
-        face.addProperty("tintindex", 0);
+        if (tintIndex != null) {
+            try {
+                face.addProperty("tintindex", Integer.parseInt(tintIndex));
+            } catch (NumberFormatException ignored) {
+            }
+        }
         if (cullface != null) face.addProperty("cullface", cullface);
 
         com.google.gson.JsonArray uvArray = new com.google.gson.JsonArray();
