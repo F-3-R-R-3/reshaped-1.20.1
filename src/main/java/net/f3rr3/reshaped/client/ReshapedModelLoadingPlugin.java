@@ -14,6 +14,8 @@ import net.minecraft.client.render.model.ModelRotation;
 import net.minecraft.client.render.model.json.JsonUnbakedModel;
 import net.minecraft.client.render.model.json.ModelVariant;
 import net.minecraft.client.render.model.json.WeightedUnbakedModel;
+import net.minecraft.util.math.AffineTransformation;
+import net.f3rr3.reshaped.block.Step.MixedStepBlock;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
 
@@ -36,12 +38,22 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
         }
     }
 
-    private static void addSegmentModels(Context context, String path, int randomCount) {
+    private static void addBlockSegmentModels(Context context, String path, int randomCount) {
         addModelWithRandomizedCopies(context, new Identifier(Reshaped.MOD_ID, "block/" + path), randomCount);
         int max = 1 << 4;
         for (int i = 0; i < max; i++) {
             addModelWithRandomizedCopies(context, new Identifier(Reshaped.MOD_ID, "block/" + path + "_" + toBitMask(i, 4)), randomCount);
         }
+    }
+
+    private static void addSegmentModels(Context context, String path, int randomCount) {
+        addBlockSegmentModels(context, path, randomCount);
+        context.addModels(new Identifier(Reshaped.MOD_ID, "item/" + path));
+    }
+
+    private static void addStepSegmentModels(Context context, String path, int randomCount) {
+        addBlockSegmentModels(context, path + "_nortsouth", randomCount);
+        addBlockSegmentModels(context, path + "_eastwest", randomCount);
         context.addModels(new Identifier(Reshaped.MOD_ID, "item/" + path));
     }
 
@@ -106,23 +118,27 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                             if (state.get(StepBlock.UP_FRONT)) bitmask |= 2;
                             if (state.get(StepBlock.UP_BACK)) bitmask |= 1;
 
-                            Identifier modelId = resolveSegmentModelId(block, path, bitmask, finalRandomCount > 0);
+                            StepBlock.StepAxis axis = state.get(StepBlock.AXIS);
+                            String axisSuffix = axis == StepBlock.StepAxis.NORTH_SOUTH ? "_nortsouth" : "_eastwest";
+                            Identifier modelId = resolveSegmentModelId(block, path + axisSuffix, bitmask, finalRandomCount > 0);
+                            ModelRotation rotation = ModelRotation.X0_Y0;
+
                             if (finalRandomCount > 0 && modelId.getNamespace().equals(Reshaped.MOD_ID)) {
                                 List<ModelVariant> variants = new ArrayList<>();
                                 for (int i = 0; i < finalRandomCount; i++) {
                                     int weight = finalBaseCandidates.get(i).weight();
-                                    variants.add(new ModelVariant(withRandomSuffix(modelId, i), ModelRotation.X0_Y0.getRotation(), true, Math.max(1, weight)));
+                                    variants.add(new ModelVariant(withRandomSuffix(modelId, i), rotation.getRotation(), true, Math.max(1, weight)));
                                 }
                                 resolverContext.setModel(state, new WeightedUnbakedModel(variants));
                             } else {
-                                ModelVariant variant = new ModelVariant(modelId, ModelRotation.X0_Y0.getRotation(), true, 1);
+                                ModelVariant variant = new ModelVariant(modelId, rotation.getRotation(), true, 1);
                                 resolverContext.setModel(state, new WeightedUnbakedModel(Collections.singletonList(variant)));
                             }
                         }
                     });
 
                     // Pre-register all possible segment combinations
-                    addSegmentModels(context, path, randomCount);
+                    addStepSegmentModels(context, path, randomCount);
                     continue; // Skip generic handling
                 }
 
@@ -167,8 +183,15 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
                 if (path.startsWith("mixed_")) {
                     Identifier placeholder = new Identifier(Reshaped.MOD_ID, "block/mixed_placeholder");
                     context.registerBlockStateResolver(block, resolverContext -> {
-                        WeightedUnbakedModel model = new WeightedUnbakedModel(Collections.singletonList(new ModelVariant(placeholder, null, false, 1)));
                         for (BlockState state : block.getStateManager().getStates()) {
+                            AffineTransformation rotation = AffineTransformation.identity();
+                            if (block instanceof MixedStepBlock) {
+                                StepBlock.StepAxis axis = state.get(StepBlock.AXIS);
+                                if (axis == StepBlock.StepAxis.NORTH_SOUTH) {
+                                    rotation = ModelRotation.X0_Y90.getRotation();
+                                }
+                            }
+                            WeightedUnbakedModel model = new WeightedUnbakedModel(Collections.singletonList(new ModelVariant(placeholder, rotation, true, 1)));
                             resolverContext.setModel(state, model);
                         }
                     });

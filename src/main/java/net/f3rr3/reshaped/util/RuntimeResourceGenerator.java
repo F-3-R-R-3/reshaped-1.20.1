@@ -179,13 +179,22 @@ public class RuntimeResourceGenerator {
                 .replace("_south", "")
                 .replace("_east", "")
                 .replace("_west", "")
-                .replaceAll("_\\d{4}$", "");
+                .replace("_nortsouth", "")
+                .replace("_eastwest", "")
+                .replaceAll("_\\d+$", "");
+        // Use regex for mask to avoid partial matches
+        baseBlockPath = baseBlockPath.replaceAll("_\\d{4}$", "");
 
         String variantJson = VariantRegistry.generateModelJson(variantRegistryPath, Registries.BLOCK.get(new Identifier(Reshaped.MOD_ID, baseBlockPath)));
         if (variantJson != null) return variantJson;
 
         // Slab and Stair fallbacks (Efficient lookup)
-        Identifier blockId = new Identifier(Reshaped.MOD_ID, blockPath.replace("_top", "").replace("_inner", "").replace("_outer", "").replace("_2", "").replace("_3", ""));
+        Identifier blockId = new Identifier(Reshaped.MOD_ID, stripMaskSuffix(blockPath)
+                .replace("_top", "")
+                .replace("_inner", "")
+                .replace("_outer", "")
+                .replace("_2", "")
+                .replace("_3", ""));
         Block block = Registries.BLOCK.get(blockId);
         Block baseBlock = Reshaped.MATRIX != null ? Reshaped.MATRIX.getBaseBlock(block) : null;
 
@@ -205,22 +214,26 @@ public class RuntimeResourceGenerator {
                     boolean[] segments = parseMaskOrDefault(mask, true, false, false, false);
                     return generateVerticalStepModelForSegments(segments[0], segments[1], segments[2], segments[3], textures);
                 }
-                // Fallback for item model: full block or single segment?
-                // StepBlock uses single segment (true, false, false, false).
-                // Let's stick with single segment (NW) for the item model as well.
+                // If the path contains the suffix, it's a generated full model request
+                if (blockPath.endsWith("_vertical_step")) {
+                    return generateVerticalStepModelForSegments(true, true, true, true, textures);
+                }
+                // Fallback for item model/base path: single segment (NW)
                 return generateVerticalStepModelForSegments(true, false, false, false, textures);
             } else if (block instanceof StepBlock) {
                 // Check for segment mask suffix (e.g., "_1010")
                 String mask = extractMaskSuffix(blockPath);
-                if (mask != null) {
+                StepBlock.StepAxis axis = extractStepAxis(blockPath);
+                if (mask != null && axis != null) {
                     boolean[] segments = parseMaskOrDefault(mask, true, false, false, false);
-                    return generateStepModelForSegments(segments[0], segments[1], segments[2], segments[3], textures);
+                    return generateStepModelForSegments(axis, segments[0], segments[1], segments[2], segments[3], textures);
                 }
-                // Fallback for base item/block (full block or single step)
-                // If it's the item or just the block name, usually we want the full block or a default state
-                // But for "step" block, default model is usually the single step (down front)
-                // Let's assume default is DOWN_FRONT if no mask
-                return generateStepModelForSegments(true, false, false, false, textures);
+                // If it's a generated axis-specific model request but no mask, it's the full block
+                if (axis != null) {
+                    return generateStepModelForSegments(axis, true, true, true, true, textures);
+                }
+                // Fallback for base item/block (single step icon)
+                return generateStepModelForSegments(StepBlock.StepAxis.EAST_WEST, true, false, false, false, textures);
             } else if (block instanceof SlabBlock) {
                 if (blockPath.endsWith("_top")) {
                     return generateSimpleModel("minecraft:block/slab_top", textures);
@@ -642,27 +655,42 @@ public class RuntimeResourceGenerator {
     /**
      * Generates a step model JSON for a specific combination of quadrants.
      */
-    public static String generateStepModelForSegments(boolean downFront, boolean downBack, boolean upFront, boolean upBack, Map<String, String> textures) {
+    public static String generateStepModelForSegments(StepBlock.StepAxis axis, boolean downFront, boolean downBack, boolean upFront, boolean upBack, Map<String, String> textures) {
         return generateSegmentedModel("models/block/step.json", textures, elements -> {
+            double xMinF = 0, xMaxF = 8, xMinB = 8, xMaxB = 16, zMinF = 0, zMaxF = 16, zMinB = 0, zMaxB = 16;
+            Map<String, String> cullF = Map.of("west", "west", "down", "down", "up", "up", "north", "north", "south", "south");
+            Map<String, String> cullB = Map.of("east", "east", "down", "down", "up", "up", "north", "north", "south", "south");
+
+            if (axis == StepBlock.StepAxis.NORTH_SOUTH) {
+                xMinF = 0;
+                xMaxF = 16;
+                xMinB = 0;
+                zMinF = 0;
+                zMaxF = 8;
+                zMinB = 8;
+                cullF = Map.of("north", "north", "down", "down", "up", "up", "west", "west", "east", "east");
+                cullB = Map.of("south", "south", "down", "down", "up", "up", "west", "west", "east", "east");
+            }
+
             if (downFront)
-                elements.add(createSegmentElement(8, 0, 0, 16, 8, 16, Map.of("north", "north", "south", "south", "east", "east", "down", "down"), textures));
+                elements.add(createSegmentElement(xMinF, 0, zMinF, xMaxF, 8, zMaxF, cullF, textures));
             if (downBack)
-                elements.add(createSegmentElement(0, 0, 0, 8, 8, 16, Map.of("north", "north", "south", "south", "west", "west", "down", "down"), textures));
+                elements.add(createSegmentElement(xMinB, 0, zMinB, xMaxB, 8, zMaxB, cullB, textures));
             if (upFront)
-                elements.add(createSegmentElement(8, 8, 0, 16, 16, 16, Map.of("north", "north", "south", "south", "up", "up", "east", "east"), textures));
+                elements.add(createSegmentElement(xMinF, 8, zMinF, xMaxF, 16, zMaxF, cullF, textures));
             if (upBack)
-                elements.add(createSegmentElement(0, 8, 0, 8, 16, 16, Map.of("north", "north", "south", "south", "up", "up", "west", "west"), textures));
+                elements.add(createSegmentElement(xMinB, 8, zMinB, xMaxB, 16, zMaxB, cullB, textures));
 
             // Overlay pass
             if (textures.containsKey("side_overlay") || textures.containsKey("top_overlay") || textures.containsKey("bottom_overlay")) {
                 if (downFront)
-                    elements.add(createOverlaySegmentElement(8, 0, 0, 16, 8, 16, Map.of("north", "north", "south", "south", "east", "east", "down", "down"), textures));
+                    elements.add(createOverlaySegmentElement(xMinF, 0, zMinF, xMaxF, 8, zMaxF, cullF, textures));
                 if (downBack)
-                    elements.add(createOverlaySegmentElement(0, 0, 0, 8, 8, 16, Map.of("north", "north", "south", "south", "west", "west", "down", "down"), textures));
+                    elements.add(createOverlaySegmentElement(xMinB, 0, zMinB, xMaxB, 8, zMaxB, cullB, textures));
                 if (upFront)
-                    elements.add(createOverlaySegmentElement(8, 8, 0, 16, 16, 16, Map.of("north", "north", "south", "south", "up", "up", "east", "east"), textures));
+                    elements.add(createOverlaySegmentElement(xMinF, 8, zMinF, xMaxF, 16, zMaxF, cullF, textures));
                 if (upBack)
-                    elements.add(createOverlaySegmentElement(0, 8, 0, 8, 16, 16, Map.of("north", "north", "south", "south", "up", "up", "west", "west"), textures));
+                    elements.add(createOverlaySegmentElement(xMinB, 8, zMinB, xMaxB, 16, zMaxB, cullB, textures));
             }
         });
     }
@@ -903,9 +931,13 @@ public class RuntimeResourceGenerator {
     }
 
     public static String extractMaskSuffix(String path) {
-        if (path.matches(".*_\\d{4}$")) {
-            return path.substring(path.length() - 4);
-        }
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("_(\\d{4})$").matcher(path);
+        return matcher.find() ? matcher.group(1) : null;
+    }
+
+    public static StepBlock.StepAxis extractStepAxis(String path) {
+        if (path.contains("_nortsouth")) return StepBlock.StepAxis.NORTH_SOUTH;
+        if (path.contains("_eastwest")) return StepBlock.StepAxis.EAST_WEST;
         return null;
     }
 
@@ -922,10 +954,13 @@ public class RuntimeResourceGenerator {
     }
 
     public static String stripMaskSuffix(String path) {
-        if (path.matches(".*_\\d{4}$")) {
-            return path.substring(0, path.length() - 5);
+        String stripped = path.replaceAll("_\\d{4}$", "");
+        if (stripped.equals(path)) {
+            stripped = path.replaceAll("_\\d+$", "");
         }
-        return path;
+        return stripped
+                .replace("_nortsouth", "")
+                .replace("_eastwest", "");
     }
 
     public static boolean isTransparentBlock(Block block) {

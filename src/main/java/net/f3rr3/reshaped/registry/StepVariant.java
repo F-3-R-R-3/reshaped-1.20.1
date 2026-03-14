@@ -150,7 +150,11 @@ public class StepVariant implements BlockVariantType {
             Block baseBlock = Reshaped.MATRIX.getBaseBlock(targetBlock);
             if (baseBlock != null) {
                 Map<String, String> textures = RuntimeResourceGenerator.getModelTextures(baseBlock, randomIndex);
+                StepBlock.StepAxis axis = RuntimeResourceGenerator.extractStepAxis(cleanPath);
+                if (axis == null) axis = StepBlock.StepAxis.EAST_WEST;
+
                 return RuntimeResourceGenerator.generateStepModelForSegments(
+                        axis,
                         segments[0],
                         segments[1],
                         segments[2],

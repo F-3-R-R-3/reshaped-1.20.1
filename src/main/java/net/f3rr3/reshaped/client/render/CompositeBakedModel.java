@@ -24,7 +24,6 @@ import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.BlockRenderView;
 
@@ -117,45 +116,12 @@ public class CompositeBakedModel extends ForwardingBakedModel {
                 }
 
                 String path = cleanPath(materialId.getPath(), "_step");
-                String mask = getStepBitMask(i);
-                Identifier segmentModelId = new Identifier(Reshaped.MOD_ID, "block/" + path + "_step_" + mask);
-
                 StepBlock.StepAxis axis = state.get(StepBlock.AXIS);
-                boolean rotate180 = axis == StepBlock.StepAxis.EAST_WEST;
-                boolean rotate270 = axis == StepBlock.StepAxis.NORTH_SOUTH;
-
-                context.pushTransform(quad -> {
-                    for (int idx = 0; idx < 4; idx++) {
-                        float x = quad.x(idx);
-                        float z = quad.z(idx);
-                        float newX = x;
-                        float newZ = z;
-
-                        if (rotate180) {
-                            newX = 1.0f - x;
-                            newZ = 1.0f - z;
-                        } else if (rotate270) {
-                            newX = z;
-                            newZ = 1.0f - x;
-                        }
-
-                        quad.pos(idx, newX, quad.y(idx), newZ);
-                    }
-
-                    // Rotate Normal (Light Face)
-                    Direction rotatedCull = rotateY(quad.cullFace(), rotate180, rotate270);
-                    if (rotatedCull != quad.cullFace()) {
-                        quad.cullFace(rotatedCull);
-                    }
-                    Direction rotatedNominal = rotateY(quad.nominalFace(), rotate180, rotate270);
-                    if (rotatedNominal != quad.nominalFace()) {
-                        quad.nominalFace(rotatedNominal);
-                    }
-                    return true;
-                });
+                String axisSuffix = axis == StepBlock.StepAxis.NORTH_SOUTH ? "_nortsouth" : "_eastwest";
+                String mask = getStepBitMask(i);
+                Identifier segmentModelId = new Identifier(Reshaped.MOD_ID, "block/" + path + "_step" + axisSuffix + "_" + mask);
 
                 renderModel(segmentModelId, blockView, state, pos, randomSupplier, context);
-                context.popTransform();
             }
         }
     }
@@ -307,19 +273,5 @@ public class CompositeBakedModel extends ForwardingBakedModel {
             return index == 0 ? state.get(MixedSlabBlock.BOTTOM) : state.get(MixedSlabBlock.TOP);
         }
         return false;
-    }
-
-    private Direction rotateY(Direction dir, boolean rotate180, boolean rotate270) {
-        if (dir == null) {
-            return null;
-        }
-        if (dir.getAxis().isVertical() || (!rotate180 && !rotate270)) {
-            return dir;
-        }
-        if (rotate180) {
-            return dir.getOpposite();
-        }
-        // rotate270 is always true if it gets here
-        return dir.rotateYCounterclockwise();
     }
 }

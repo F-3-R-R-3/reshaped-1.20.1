@@ -6,7 +6,8 @@
       "y": 270
     },
     "facing=east,half=bottom,shape=inner_right": {
-      "model": "reshaped:block/{{path}}_inner"
+      "model": "reshaped:block/{{path}}_inner",
+      "uvlock": true
     },
     "facing=east,half=bottom,shape=outer_left": {
       "model": "reshaped:block/{{path}}_outer",
@@ -14,10 +15,12 @@
       "y": 270
     },
     "facing=east,half=bottom,shape=outer_right": {
-      "model": "reshaped:block/{{path}}_outer"
+      "model": "reshaped:block/{{path}}_outer",
+      "uvlock": true
     },
     "facing=east,half=bottom,shape=straight": {
-      "model": "reshaped:block/{{path}}"
+      "model": "reshaped:block/{{path}}",
+      "uvlock": true
     },
     "facing=east,half=top,shape=inner_left": {
       "model": "reshaped:block/{{path}}_inner",
@@ -100,7 +103,8 @@
       "y": 270
     },
     "facing=south,half=bottom,shape=inner_left": {
-      "model": "reshaped:block/{{path}}_inner"
+      "model": "reshaped:block/{{path}}_inner",
+      "uvlock": true
     },
     "facing=south,half=bottom,shape=inner_right": {
       "model": "reshaped:block/{{path}}_inner",
@@ -108,7 +112,8 @@
       "y": 90
     },
     "facing=south,half=bottom,shape=outer_left": {
-      "model": "reshaped:block/{{path}}_outer"
+      "model": "reshaped:block/{{path}}_outer",
+      "uvlock": true
     },
     "facing=south,half=bottom,shape=outer_right": {
       "model": "reshaped:block/{{path}}_outer",
