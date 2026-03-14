@@ -33,6 +33,11 @@ jobs:
           loaders: fabric
           game-versions: 1.20.1
 
+          dependencies: |
+            fabric-api(required){modrinth:fabric-api}
+            cloth-config(required){modrinth:cloth-config}
+            modmenu(optional){modrinth:modmenu}
+
           changelog: ${{ github.event.release.body }}
 
       - name: Upload to CurseForge
@@ -48,4 +53,9 @@ jobs:
           loaders: fabric
           game-versions: 1.20.1
 
+          dependencies: |
+            fabric-api(required){curseforge:306612}
+            cloth-config(required){curseforge:348521}
+            modmenu(optional){curseforge:308702}
+            
           changelog: ${{ github.event.release.body }}
