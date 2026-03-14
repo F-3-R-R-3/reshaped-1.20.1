@@ -32,15 +32,14 @@ jobs:
           files: build/libs/reshaped-${{ github.ref_name }}.jar
           name: ReShaped ${{ github.ref_name }}
           version: ${{ github.ref_name }}
-          loaders: fabric
-          game-versions: 1.20,1.20.1,1.20.2,1.20.3,1.20.4,1.20.5,1.20.6
-          version-type: alpha
-          modrinth-side: client,server
-          dependencies: |
+          modrinth-loaders: fabric
+          modrinth-game-versions: 1.20,1.20.1,1.20.2,1.20.3,1.20.4,1.20.5,1.20.6
+          modrinth-version-type: alpha
+          modrinth-dependencies: |
             fabric-api(required){modrinth:fabric-api;side:client,server}
             cloth-config(required){modrinth:cloth-config;side:client,server}
             modmenu(optional){modrinth:modmenu;side:client,server}
-          changelog: ${{ github.event.release.body }}
+          modrinth-changelog: ${{ github.event.release.body }}
 
       # --- CurseForge upload ---
       - name: Upload to CurseForge
@@ -55,8 +54,8 @@ jobs:
           game-versions: 1.20,1.20.1,1.20.2,1.20.3,1.20.4,1.20.5,1.20.6
           version-type: alpha
           curseforge-side: client,server
-          dependencies: |
+          curseforge-dependencies: |
             fabric-api(required){curseforge:306612}
             cloth-config(required){curseforge:348521}
             modmenu(optional){curseforge:308702}
-          changelog: ${{ github.event.release.body }}
+          curseforge-changelog: ${{ github.event.release.body }}
