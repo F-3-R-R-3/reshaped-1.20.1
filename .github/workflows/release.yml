@@ -33,7 +33,7 @@ jobs:
           name: ReShaped ${{ github.ref_name }}
           version: ${{ github.ref_name }}
           modrinth-loaders: fabric
-          modrinth-game-versions: 1.20,1.20.1,1.20.2,1.20.3,1.20.4,1.20.5,1.20.6
+          game-versions: 1.20,1.20.1,1.20.2,1.20.3,1.20.4,1.20.5,1.20.6
           modrinth-version-type: alpha
           modrinth-dependencies: |
             fabric-api(required){modrinth:fabric-api;side:client,server}
@@ -51,7 +51,7 @@ jobs:
           name: ReShaped ${{ github.ref_name }}
           version: ${{ github.ref_name }}
           loaders: fabric
-          game-versions: 1.20,1.20.1,1.20.2,1.20.3,1.20.4,1.20.5,1.20.6
+          versions: 1.20,1.20.1,1.20.2,1.20.3,1.20.4,1.20.5,1.20.6
           version-type: alpha
           curseforge-side: client,server
           curseforge-dependencies: |
