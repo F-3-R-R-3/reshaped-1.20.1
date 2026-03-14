@@ -1,0 +1,29 @@
+name: Update Modrinth README
+
+on:
+  push:
+    paths:
+      - README.md
+    branches:
+      - master
+
+jobs:
+  update-modrinth:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Update Modrinth description
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+        run: |
+          # lees README.md en escape voor JSON
+          BODY=$(jq -Rs . < README.md)
+
+          # PATCH request naar Modrinth API
+          curl -X PATCH "https://api.modrinth.com/v2/project/reshaped" \
+            -H "Authorization: $MODRINTH_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"body\": $BODY}"
