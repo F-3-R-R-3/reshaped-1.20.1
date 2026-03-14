@@ -123,5 +123,36 @@ public class ReshapedClient implements ClientModInitializer {
         });
 
         registerVariantRenderLayers();
+        registerVariantColorProviders();
+    }
+
+    private void registerVariantColorProviders() {
+        if (Reshaped.MATRIX == null) return;
+
+        net.fabricmc.fabric.api.client.rendering.v1.ColorProviderRegistry.BLOCK.register((state, world, pos, tintIndex) -> {
+            if (world != null && pos != null) {
+                Block baseBlock = Reshaped.MATRIX.getBaseBlock(state.getBlock());
+                if (baseBlock != null) {
+                    return net.minecraft.client.MinecraftClient.getInstance().getBlockColors().getColor(baseBlock.getDefaultState(), world, pos, tintIndex);
+                }
+            }
+            return -1;
+        }, Reshaped.MATRIX.getMatrix().values().stream().flatMap(java.util.Collection::stream).toArray(Block[]::new));
+
+        net.fabricmc.fabric.api.client.rendering.v1.ColorProviderRegistry.ITEM.register((stack, tintIndex) -> {
+            if (stack.getItem() instanceof net.minecraft.item.BlockItem blockItem) {
+                Block baseBlock = Reshaped.MATRIX.getBaseBlock(blockItem.getBlock());
+                if (baseBlock != null) {
+                    try {
+                        java.lang.reflect.Field field = net.minecraft.client.MinecraftClient.class.getDeclaredField("itemColors");
+                        field.setAccessible(true);
+                        return ((net.minecraft.client.color.item.ItemColors) field.get(net.minecraft.client.MinecraftClient.getInstance())).getColor(new net.minecraft.item.ItemStack(baseBlock), tintIndex);
+                    } catch (Exception e) {
+                        return -1;
+                    }
+                }
+            }
+            return -1;
+        }, Reshaped.MATRIX.getMatrix().values().stream().flatMap(java.util.Collection::stream).toArray(Block[]::new));
     }
 }

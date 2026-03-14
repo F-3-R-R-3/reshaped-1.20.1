@@ -1,6 +1,5 @@
 package net.f3rr3.reshaped.util;
 
-import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -23,17 +22,10 @@ import net.minecraft.resource.Resource;
 import net.minecraft.util.Identifier;
 
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class RuntimeResourceGenerator {
-
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     /**
      * Cache for analyzed texture mappings. Prevents repeated analysis of the same base block
@@ -49,6 +41,10 @@ public class RuntimeResourceGenerator {
     private static final Map<Identifier, List<ModelCandidate>> MODEL_CANDIDATE_CACHE = new ConcurrentHashMap<>();
     private static final Map<Identifier, Optional<Identifier>> RESOLVED_MODEL_ID_CACHE = new ConcurrentHashMap<>();
 
+    static {
+        new GsonBuilder().setPrettyPrinting().create();
+    }
+
     public static void clearCaches() {
         TEXTURE_CACHE.clear();
         TEMPLATE_TEXT_CACHE.clear();
@@ -56,9 +52,6 @@ public class RuntimeResourceGenerator {
         GENERATED_MODEL_JSON_CACHE.clear();
         MODEL_CANDIDATE_CACHE.clear();
         RESOLVED_MODEL_ID_CACHE.clear();
-    }
-
-    public record ModelCandidate(Identifier modelId, int x, int y, boolean uvlock, int weight) {
     }
 
     public static String getTemplateType(Block block, Identifier id) {
@@ -575,6 +568,7 @@ public class RuntimeResourceGenerator {
     private static void addFace(JsonObject faces, String side, String texture, String cullface, double[] uv) {
         JsonObject face = new JsonObject();
         face.addProperty("texture", texture);
+        face.addProperty("tintindex", 0);
         if (cullface != null) face.addProperty("cullface", cullface);
 
         com.google.gson.JsonArray uvArray = new com.google.gson.JsonArray();
@@ -652,10 +646,6 @@ public class RuntimeResourceGenerator {
             result = result.replace("{{" + entry.getKey() + "}}", entry.getValue());
         }
         return result;
-    }
-
-    public static Map<String, String> getModelTextures(Block block) {
-        return getModelTextures(block, -1);
     }
 
     public static Map<String, String> getModelTextures(Block block, int preferredCandidateIndex) {
@@ -799,14 +789,6 @@ public class RuntimeResourceGenerator {
         }
         Identifier blockId = new Identifier(Reshaped.MOD_ID, basePath);
         return Registries.BLOCK.get(blockId);
-    }
-
-    private static Block findBaseBlock(Block variant) {
-        if (Reshaped.MATRIX == null) return null;
-        for (Map.Entry<Block, List<Block>> entry : Reshaped.MATRIX.getMatrix().entrySet()) {
-            if (entry.getValue().contains(variant)) return entry.getKey();
-        }
-        return null;
     }
 
     /**
@@ -990,5 +972,8 @@ public class RuntimeResourceGenerator {
             return path.substring(0, marker);
         }
         return path;
+    }
+
+    public record ModelCandidate(Identifier modelId, int x, int y, boolean uvlock, int weight) {
     }
 }
