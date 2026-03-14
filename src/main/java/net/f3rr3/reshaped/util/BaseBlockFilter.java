@@ -3,6 +3,8 @@ package net.f3rr3.reshaped.util;
 import net.minecraft.block.*;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.tag.TagKey;
 import net.minecraft.state.property.Properties;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
@@ -17,6 +19,9 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 public final class BaseBlockFilter {
+    public static final TagKey<Block> ALLOW_TAG = TagKey.of(RegistryKeys.BLOCK, new Identifier("reshaped", "base_block_allow"));
+    public static final TagKey<Block> DENY_TAG = TagKey.of(RegistryKeys.BLOCK, new Identifier("reshaped", "base_block_deny"));
+
     private BaseBlockFilter() {
     }
 
@@ -43,12 +48,23 @@ public final class BaseBlockFilter {
             // if (isModded) net.f3rr3.reshaped.Reshaped.LOGGER.info("BaseBlockFilter: Rejected {} - Ignored Namespace/Path", id);
             return false;
         }
+
+        BlockState state = block.getDefaultState();
+
+        // 0. Tag-based overrides: highest priority
+        if (state.isIn(DENY_TAG)) {
+            if (isModded) net.f3rr3.reshaped.Reshaped.LOGGER.info("BaseBlockFilter: Rejected {} - Denied by Tag", id);
+            return false;
+        }
+        if (state.isIn(ALLOW_TAG)) {
+            if (isModded) net.f3rr3.reshaped.Reshaped.LOGGER.info("BaseBlockFilter: Accepted {} - Allowed by Tag", id);
+            return true;
+        }
+
         if (block instanceof BlockEntityProvider) {
             if (isModded) net.f3rr3.reshaped.Reshaped.LOGGER.info("BaseBlockFilter: Rejected {} - Has BlockEntity", id);
             return false;
         }
-
-        BlockState state = block.getDefaultState();
 
         // 1. Interactive detection: check for overrides of key interactive/functional methods.
         if (hasFunctionalOverride(block)) {
