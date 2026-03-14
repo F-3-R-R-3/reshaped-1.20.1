@@ -61,7 +61,7 @@ jobs:
 
           loaders: fabric
           game-versions: 1.20.1
-          release-type: alpha
+          version-type: alpha
 
           dependencies: |
             fabric-api(required){curseforge:306612}
