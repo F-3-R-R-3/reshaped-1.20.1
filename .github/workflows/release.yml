@@ -24,7 +24,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build mod
-        run: ./gradlew build
+        run: ./gradlew build -Pmod_version=${{ github.ref_name }}
 
       # --- Modrinth upload ---
       - name: Upload to Modrinth
