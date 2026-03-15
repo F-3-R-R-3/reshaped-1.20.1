@@ -3,7 +3,23 @@ plugins {
     id 'maven-publish'
 }
 
-version = project.mod_version
+def getLastGitTag() {
+    try {
+        def stdout = new ByteArrayOutputStream()
+        exec {
+            commandLine 'git', 'describe', '--tags', '--abbrev=0'
+            standardOutput = stdout
+        }
+        return stdout.toString().trim()
+    } catch (Exception ignored) {
+        return "0.0-alpha"
+    }
+}
+
+// If you are running on a branch/build that does not have an exact tag
+def gitTag = getLastGitTag()
+version = "${gitTag}-devbuild"
+
 group = project.maven_group
 
 base {
