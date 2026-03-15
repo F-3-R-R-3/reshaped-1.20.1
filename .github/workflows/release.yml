@@ -7,7 +7,10 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-
+    
+    permissions:
+      contents: write
+      
     steps:
       - uses: actions/checkout@v4
 
@@ -30,22 +33,7 @@ jobs:
           modrinth-id: reshaped
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
           files: build/libs/reshaped-${{ github.ref_name }}.jar
-          name: ReShaped ${{ github.ref_name }}
-          version: ${{ github.ref_name }}
-          loaders: fabric
-          game-versions: |
-            - 1.20
-            - 1.20.1
-            - 1.20.2
-            - 1.20.3
-            - 1.20.4
-            - 1.20.5
-            - 1.20.6
           version-type: alpha
-          dependencies: |
-            fabric-api(required){modrinth:fabric-api;side:client,server}
-            cloth-config(required){modrinth:cloth-config;side:client,server}
-            modmenu(optional){modrinth:modmenu;side:client,server}
           changelog: ${{ github.event.release.body }}
 
       # --- CurseForge upload ---
@@ -55,21 +43,5 @@ jobs:
           curseforge-id: 1463309
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
           files: build/libs/reshaped-${{ github.ref_name }}.jar
-          name: ReShaped ${{ github.ref_name }}
-          version: ${{ github.ref_name }}
-          loaders: fabric
-          game-versions: |
-            - 1.20
-            - 1.20.1
-            - 1.20.2
-            - 1.20.3
-            - 1.20.4
-            - 1.20.5
-            - 1.20.6
           version-type: alpha
-          side: client,server
-          dependencies: |
-            fabric-api(required){curseforge:306612}
-            cloth-config(required){curseforge:348521}
-            modmenu(optional){curseforge:308702}
           changelog: ${{ github.event.release.body }}
