@@ -33,7 +33,6 @@ jobs:
           modrinth-id: reshaped
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
           files: build/libs/reshaped-${{ github.ref_name }}.jar
-          version-type: alpha
           changelog: ${{ github.event.release.body }}
 
       # --- CurseForge upload ---
@@ -43,5 +42,4 @@ jobs:
           curseforge-id: 1463309
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
           files: build/libs/reshaped-${{ github.ref_name }}.jar
-          version-type: alpha
           changelog: ${{ github.event.release.body }}
