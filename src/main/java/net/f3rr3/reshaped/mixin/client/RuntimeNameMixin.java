@@ -5,6 +5,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.resource.language.TranslationStorage;
 import net.minecraft.registry.Registries;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -48,13 +49,16 @@ public class RuntimeNameMixin {
                 .replace(" Block", "")
                 .replace(" Bricks", " Brick");
 
-        if (path.endsWith("_vertical_slab")) return cleanedBase + " Vertical Slab";
-        if (path.endsWith("_vertical_stairs")) return cleanedBase + " Vertical Stairs";
-        if (path.endsWith("_vertical_step")) return cleanedBase + " Vertical Step";
-        if (path.endsWith("_corner")) return cleanedBase + " Corner";
-        if (path.endsWith("_slab")) return cleanedBase + " Slab";
-        if (path.endsWith("_stairs")) return cleanedBase + " Stairs";
-        if (path.endsWith("_step")) return cleanedBase + " Step";
+        if (path.endsWith("_vertical_slab"))
+            return cleanedBase + " " + Text.translatable("block.reshaped.vertical_slab").getString();
+        if (path.endsWith("_vertical_stairs"))
+            return cleanedBase + " " + Text.translatable("block.reshaped.vertical_stairs").getString();
+        if (path.endsWith("_vertical_step"))
+            return cleanedBase + " " + Text.translatable("block.reshaped.vertical_step").getString();
+        if (path.endsWith("_corner")) return cleanedBase + " " + Text.translatable("block.reshaped.corner").getString();
+        if (path.endsWith("_slab")) return cleanedBase + " " + Text.translatable("block.reshaped.slab").getString();
+        if (path.endsWith("_stairs")) return cleanedBase + " " + Text.translatable("block.reshaped.stairs").getString();
+        if (path.endsWith("_step")) return cleanedBase + " " + Text.translatable("block.reshaped.step").getString();
 
         return null;
     }
