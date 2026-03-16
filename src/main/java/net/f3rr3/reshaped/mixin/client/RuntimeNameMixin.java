@@ -50,15 +50,19 @@ public class RuntimeNameMixin {
                 .replace(" Bricks", " Brick");
 
         if (path.endsWith("_vertical_slab"))
-            return cleanedBase + " " + Text.translatable("block.reshaped.vertical_slab").getString();
+            return cleanedBase + " " + Text.translatableWithFallback("block.reshaped.vertical_slab", "Vertical Slab").getString();
         if (path.endsWith("_vertical_stairs"))
-            return cleanedBase + " " + Text.translatable("block.reshaped.vertical_stairs").getString();
+            return cleanedBase + " " + Text.translatableWithFallback("block.reshaped.vertical_stairs", "Vertical Stairs").getString();
         if (path.endsWith("_vertical_step"))
-            return cleanedBase + " " + Text.translatable("block.reshaped.vertical_step").getString();
-        if (path.endsWith("_corner")) return cleanedBase + " " + Text.translatable("block.reshaped.corner").getString();
-        if (path.endsWith("_slab")) return cleanedBase + " " + Text.translatable("block.reshaped.slab").getString();
-        if (path.endsWith("_stairs")) return cleanedBase + " " + Text.translatable("block.reshaped.stairs").getString();
-        if (path.endsWith("_step")) return cleanedBase + " " + Text.translatable("block.reshaped.step").getString();
+            return cleanedBase + " " + Text.translatableWithFallback("block.reshaped.vertical_step", "Vertical Step").getString();
+        if (path.endsWith("_corner"))
+            return cleanedBase + " " + Text.translatableWithFallback("block.reshaped.corner", "Corner").getString();
+        if (path.endsWith("_slab"))
+            return cleanedBase + " " + Text.translatableWithFallback("block.reshaped.slab", "Slab").getString();
+        if (path.endsWith("_stairs"))
+            return cleanedBase + " " + Text.translatableWithFallback("block.reshaped.stairs", "Stairs").getString();
+        if (path.endsWith("_step"))
+            return cleanedBase + " " + Text.translatableWithFallback("block.reshaped.step", "Step").getString();
 
         return null;
     }
