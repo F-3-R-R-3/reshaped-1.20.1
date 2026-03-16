@@ -33,7 +33,7 @@ public class RuntimeNameMixin {
         // Try to find the block in the registry using the path
         Identifier id = new Identifier(Reshaped.MOD_ID, path);
         Block block = Registries.BLOCK.get(id);
-        
+
         // If not found as a block, it might be an item-only registration (unlikely for us)
         // or we just can't find it.
         if (block == Blocks.AIR) return null;
@@ -44,14 +44,18 @@ public class RuntimeNameMixin {
 
         String baseName = baseBlock.getName().getString();
         String cleanedBase = baseName
-            .replace(" Planks", "")
-            .replace(" Block", "")
-            .replace(" Bricks", " Brick");
+                .replace(" Planks", "")
+                .replace(" Block", "")
+                .replace(" Bricks", " Brick");
 
         if (path.endsWith("_vertical_slab")) return cleanedBase + " Vertical Slab";
+        if (path.endsWith("_vertical_stairs")) return cleanedBase + " Vertical Stairs";
+        if (path.endsWith("_vertical_step")) return cleanedBase + " Vertical Step";
+        if (path.endsWith("_corner")) return cleanedBase + " Corner";
         if (path.endsWith("_slab")) return cleanedBase + " Slab";
         if (path.endsWith("_stairs")) return cleanedBase + " Stairs";
-        
+        if (path.endsWith("_step")) return cleanedBase + " Step";
+
         return null;
     }
 }

@@ -108,10 +108,6 @@ public class StepBlock extends ReshapedBlock {
         return BlockSegmentUtils.getStepProperty(quadrant, axis);
     }
 
-    @Override
-    public String getTranslationKey() {
-        return "block.reshaped.step";
-    }
 
     @Override
     protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {

@@ -105,11 +105,6 @@ public class VerticalSlabBlock extends ReshapedBlock {
     }
 
     @Override
-    public String getTranslationKey() {
-        return "block.reshaped.vertical_slab";
-    }
-
-    @Override
     public List<ItemStack> getDroppedStacks(BlockState state, LootContextParameterSet.Builder builder) {
         builder.add(LootContextParameters.BLOCK_STATE, state);
         LootContextParameterSet context = builder.build(LootContextTypes.BLOCK);

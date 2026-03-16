@@ -118,10 +118,6 @@ public class CornerBlock extends ReshapedBlock {
         return BlockSegmentUtils.getCornerProperty(quadrant);
     }
 
-    @Override
-    public String getTranslationKey() {
-        return "block.reshaped.corner";
-    }
 
     @Override
     protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {

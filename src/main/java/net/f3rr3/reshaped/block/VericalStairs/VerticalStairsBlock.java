@@ -99,10 +99,6 @@ public class VerticalStairsBlock extends ReshapedBlock {
                 .with(WATERLOGGED, fluidState.getFluid() == Fluids.WATER);
     }
 
-    @Override
-    public String getTranslationKey() {
-        return "block.reshaped.vertical_stairs";
-    }
 
     @Override
     protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {

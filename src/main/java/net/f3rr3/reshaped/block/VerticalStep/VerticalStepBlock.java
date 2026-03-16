@@ -127,10 +127,6 @@ public class VerticalStepBlock extends ReshapedBlock {
         }
     }
 
-    @Override
-    public String getTranslationKey() {
-        return "block.reshaped.vertical_step";
-    }
 
     @Override
     protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
