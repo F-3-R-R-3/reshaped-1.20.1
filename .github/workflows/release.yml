@@ -7,7 +7,10 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-
+    
+    permissions:
+      contents: write
+      
     steps:
       - uses: actions/checkout@v4
 
@@ -15,47 +18,26 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: 21
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
 
       - name: Build mod
-        run: ./gradlew build
+        run: ./gradlew build -Pmod_version=${{ github.ref_name }}
 
-      - name: Upload to Modrinth
+      # --- upload ---
+      - name: Upload to Modrinth and CurseForge
         uses: Kir-Antipov/mc-publish@v3.3
         with:
+          # ---Modrinth settings ---
           modrinth-id: reshaped
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
 
-          files: build/libs/*.jar
-          name: ReShaped ${{ github.ref_name }}
-          version: ${{ github.ref_name }}
-
-          loaders: fabric
-          game-versions: 1.20.1
-
-          dependencies: |
-            fabric-api(required){modrinth:fabric-api}
-            cloth-config(required){modrinth:cloth-config}
-            modmenu(optional){modrinth:modmenu}
-
-          changelog: ${{ github.event.release.body }}
-
-      - name: Upload to CurseForge
-        uses: Kir-Antipov/mc-publish@v3.3
-        with:
+          # --- Curseforge settings ---
           curseforge-id: 1463309
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
 
-          files: build/libs/*.jar
-          name: ReShaped ${{ github.ref_name }}
-          version: ${{ github.ref_name }}
-
-          loaders: fabric
-          game-versions: 1.20.1
-
-          dependencies: |
-            fabric-api(required){curseforge:306612}
-            cloth-config(required){curseforge:348521}
-            modmenu(optional){curseforge:308702}
-            
+          # --- Common settings ---
+          files: build/libs/reshaped-${{ github.ref_name }}.jar
           changelog: ${{ github.event.release.body }}
