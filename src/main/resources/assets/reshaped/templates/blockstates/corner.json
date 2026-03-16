@@ -1,5 +1,5 @@
 {
-  "variants": {
-    "": { "model": "reshaped:block/{{path}}" }
-  }
+	"variants": {
+		"": {"model": "reshaped:block/{{path}}"}
+	}
 }
