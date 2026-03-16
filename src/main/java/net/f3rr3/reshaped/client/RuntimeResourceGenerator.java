@@ -239,20 +239,20 @@ public class RuntimeResourceGenerator {
                     return generateSimpleModel("minecraft:block/slab_top", textures);
                 }
                 return generateSimpleModel("minecraft:block/slab", textures);
-            } else if (block instanceof StairsBlock) {
-                boolean useTransparentModel = isTransparentBlock(baseBlock);
-                if (blockPath.endsWith("_inner")) {
-                    return useTransparentModel
-                            ? generateModelFromTemplate("block/transparent/inner_stairs", textures)
-                            : generateSimpleModel("minecraft:block/inner_stairs", textures);
-                } else if (blockPath.endsWith("_outer")) {
-                    return useTransparentModel
-                            ? generateModelFromTemplate("block/transparent/outer_stairs", textures)
-                            : generateSimpleModel("minecraft:block/outer_stairs", textures);
-                }
+                } else if (block instanceof StairsBlock) {
+                    boolean useTransparentModel = isTransparentBlock(baseBlock);
+                    if (blockPath.endsWith("_inner")) {
+                        return useTransparentModel
+                                ? generateModelFromTemplate("block/transparent/inner_stairs", textures)
+                                : generateSimpleModel("minecraft:block/inner_stairs", textures);
+                    } else if (blockPath.endsWith("_outer")) {
+                        return useTransparentModel
+                                ? generateModelFromTemplate("block/transparent/outer_stairs", textures)
+                                : generateSimpleModel("minecraft:block/outer_stairs", textures);
+                    }
                 return useTransparentModel
                         ? generateModelFromTemplate("block/transparent/stairs", textures)
-                        : generateSimpleModel("minecraft:block/stairs", textures);
+                        : generateModelFromTemplate("block/stairs", textures);
             }
         }
         return null;
