@@ -1,5 +1,6 @@
 package net.f3rr3.reshaped.block.Template;
 
+import net.f3rr3.reshaped.block.BlockSegmentUtils;
 import net.f3rr3.reshaped.block.Corner.CornerBlock;
 import net.f3rr3.reshaped.block.Corner.MixedCornerBlock;
 import net.f3rr3.reshaped.block.Slab.MixedSlabBlock;
@@ -8,7 +9,6 @@ import net.f3rr3.reshaped.block.Step.StepBlock;
 import net.f3rr3.reshaped.block.VerticalSlab.MixedVerticalSlabBlock;
 import net.f3rr3.reshaped.block.VerticalStep.MixedVerticalStepBlock;
 import net.f3rr3.reshaped.block.VerticalStep.VerticalStepBlock;
-import net.f3rr3.reshaped.util.BlockSegmentUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;

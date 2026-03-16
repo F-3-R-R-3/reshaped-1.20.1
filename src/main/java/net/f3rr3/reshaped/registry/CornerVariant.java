@@ -4,7 +4,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.f3rr3.reshaped.Reshaped;
 import net.f3rr3.reshaped.block.Corner.CornerBlock;
-import net.f3rr3.reshaped.util.BlockMatrix;
+import net.f3rr3.reshaped.client.RuntimeResourceGenerator;
+import net.f3rr3.reshaped.matrix.BlockMatrix;
+import net.f3rr3.reshaped.matrix.MatrixRebuilder;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.BlockItem;
@@ -40,7 +42,7 @@ public class CornerVariant implements BlockVariantType {
             return;
         }
 
-        if (net.f3rr3.reshaped.util.MatrixRebuilder.isRegistryFrozen()) {
+        if (MatrixRebuilder.isRegistryFrozen()) {
             return;
         }
 
@@ -55,12 +57,12 @@ public class CornerVariant implements BlockVariantType {
 
     @Override
     public String generateModelJson(String path, Block block) {
-        String cleanPath = net.f3rr3.reshaped.util.RuntimeResourceGenerator.stripRandomVariantSuffix(path);
-        int randomIndex = net.f3rr3.reshaped.util.RuntimeResourceGenerator.extractRandomVariantIndex(path);
+        String cleanPath = RuntimeResourceGenerator.stripRandomVariantSuffix(path);
+        int randomIndex = RuntimeResourceGenerator.extractRandomVariantIndex(path);
         if (cleanPath.contains("_corner")) {
             Block baseBlock = Reshaped.MATRIX.getBaseBlock(block);
             if (baseBlock != null) {
-                Map<String, String> textures = net.f3rr3.reshaped.util.RuntimeResourceGenerator.getModelTextures(baseBlock, randomIndex);
+                Map<String, String> textures = RuntimeResourceGenerator.getModelTextures(baseBlock, randomIndex);
 
                 // Extract bits from path (e.g., _11010010)
                 int bitIndex = cleanPath.lastIndexOf('_');
@@ -71,7 +73,7 @@ public class CornerVariant implements BlockVariantType {
                     root.addProperty("parent", "minecraft:block/block");
 
                     com.google.gson.JsonObject texturesObj = new com.google.gson.JsonObject();
-                    net.f3rr3.reshaped.util.RuntimeResourceGenerator.applyTextures(texturesObj, textures);
+                    RuntimeResourceGenerator.applyTextures(texturesObj, textures);
                     root.add("textures", texturesObj);
 
                     com.google.gson.JsonArray elements = new com.google.gson.JsonArray();
@@ -85,7 +87,7 @@ public class CornerVariant implements BlockVariantType {
 
                     for (int i = 0; i < 8; i++) {
                         if (bits.charAt(i) == '1') {
-                            com.google.gson.JsonObject segment = net.f3rr3.reshaped.util.RuntimeResourceGenerator.loadTemplateJson("models/block/" + segmentTemplates[i] + ".json");
+                            com.google.gson.JsonObject segment = RuntimeResourceGenerator.loadTemplateJson("models/block/" + segmentTemplates[i] + ".json");
                             if (segment != null && segment.has("elements")) {
                                 elements.addAll(segment.getAsJsonArray("elements"));
                                 if (hasOverlay) {
@@ -126,7 +128,7 @@ public class CornerVariant implements BlockVariantType {
                     elements.addAll(overlayElements);
                     root.add("elements", elements);
 
-                    net.f3rr3.reshaped.util.RuntimeResourceGenerator.applyTints(root, textures);
+                    RuntimeResourceGenerator.applyTints(root, textures);
                     return root.toString();
                 } else if (cleanPath.endsWith("_corner")) {
                     // Item model default (just NW corner bitmask: 10000000)

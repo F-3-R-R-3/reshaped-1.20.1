@@ -3,8 +3,9 @@ package net.f3rr3.reshaped.registry;
 import net.f3rr3.reshaped.Reshaped;
 import net.f3rr3.reshaped.block.VerticalSlab.OxidizableVerticalSlabBlock;
 import net.f3rr3.reshaped.block.VerticalSlab.VerticalSlabBlock;
-import net.f3rr3.reshaped.util.BlockMatrix;
-import net.f3rr3.reshaped.util.RuntimeResourceGenerator;
+import net.f3rr3.reshaped.client.RuntimeResourceGenerator;
+import net.f3rr3.reshaped.matrix.BlockMatrix;
+import net.f3rr3.reshaped.matrix.MatrixRebuilder;
 import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;
 import net.fabricmc.fabric.api.registry.OxidizableBlocksRegistry;
 import net.fabricmc.fabric.api.registry.StrippableBlockRegistry;
@@ -73,7 +74,7 @@ public class VerticalSlabVariant implements BlockVariantType {
             verticalSlab = new VerticalSlabBlock(settings);
         }
 
-        if (net.f3rr3.reshaped.util.MatrixRebuilder.isRegistryFrozen()) {
+        if (MatrixRebuilder.isRegistryFrozen()) {
             return;
         }
 

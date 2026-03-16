@@ -1,18 +1,21 @@
 package net.f3rr3.reshaped.client.render;
 
 import net.f3rr3.reshaped.Reshaped;
+import net.f3rr3.reshaped.block.BlockSegmentUtils;
 import net.f3rr3.reshaped.block.Corner.CornerBlock;
 import net.f3rr3.reshaped.block.Corner.CornerBlockEntity;
 import net.f3rr3.reshaped.block.Corner.MixedCornerBlock;
 import net.f3rr3.reshaped.block.Slab.MixedSlabBlock;
-import net.f3rr3.reshaped.block.Step.*;
+import net.f3rr3.reshaped.block.Slab.SlabBlockEntity;
+import net.f3rr3.reshaped.block.Step.MixedStepBlock;
+import net.f3rr3.reshaped.block.Step.StepBlock;
+import net.f3rr3.reshaped.block.Step.StepBlockEntity;
 import net.f3rr3.reshaped.block.VerticalSlab.MixedVerticalSlabBlock;
 import net.f3rr3.reshaped.block.VerticalSlab.VerticalSlabBlock;
 import net.f3rr3.reshaped.block.VerticalSlab.VerticalSlabBlockEntity;
 import net.f3rr3.reshaped.block.VerticalStep.MixedVerticalStepBlock;
 import net.f3rr3.reshaped.block.VerticalStep.VerticalStepBlock;
 import net.f3rr3.reshaped.block.VerticalStep.VerticalStepBlockEntity;
-import net.f3rr3.reshaped.block.Slab.SlabBlockEntity;
 import net.fabricmc.fabric.api.renderer.v1.model.ForwardingBakedModel;
 import net.fabricmc.fabric.api.renderer.v1.render.RenderContext;
 import net.minecraft.block.Block;
@@ -202,10 +205,10 @@ public class CompositeBakedModel extends ForwardingBakedModel {
     // --- Bit Helpers ---
 
     private boolean isCornerBitSet(BlockState state, int index) {
-        if (index < 0 || index >= net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_PROPERTIES.length) {
+        if (index < 0 || index >= BlockSegmentUtils.CORNER_PROPERTIES.length) {
             return false;
         }
-        return state.get(net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_PROPERTIES[index]);
+        return state.get(BlockSegmentUtils.CORNER_PROPERTIES[index]);
     }
 
     private String getCornerBitMask(int index) {

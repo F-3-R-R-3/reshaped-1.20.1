@@ -1,7 +1,7 @@
 package net.f3rr3.reshaped.mixin;
 
 import net.f3rr3.reshaped.Reshaped;
-import net.f3rr3.reshaped.util.BlockSourceTracker;
+import net.f3rr3.reshaped.block.BlockSourceTracker;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.item.ItemStack;

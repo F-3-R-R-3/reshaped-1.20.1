@@ -1,4 +1,4 @@
-package net.f3rr3.reshaped.util;
+package net.f3rr3.reshaped.matrix;
 
 import net.f3rr3.reshaped.Reshaped;
 import net.f3rr3.reshaped.registry.VariantCompleter;

@@ -1,9 +1,11 @@
 package net.f3rr3.reshaped.block.VerticalStep;
 
+import net.f3rr3.reshaped.block.BlockSegmentUtils;
 import net.f3rr3.reshaped.block.Template.ReshapedBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.ShapeContext;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.item.ItemPlacementContext;
@@ -15,7 +17,6 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
-import net.minecraft.entity.LivingEntity;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -39,7 +40,7 @@ public class VerticalStepBlock extends ReshapedBlock {
 
     @Override
     public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
-        return net.f3rr3.reshaped.util.BlockSegmentUtils.buildVerticalStepShape(state);
+        return BlockSegmentUtils.buildVerticalStepShape(state);
     }
 
     @Override
@@ -103,8 +104,8 @@ public class VerticalStepBlock extends ReshapedBlock {
      * @return The BooleanProperty for the hit quadrant
      */
     public BooleanProperty getPropertyFromHit(double hitX, double hitY, double hitZ, Direction side, boolean isPlacement) {
-        var quadrant = net.f3rr3.reshaped.util.BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement);
-        return net.f3rr3.reshaped.util.BlockSegmentUtils.getVerticalStepProperty(quadrant);
+        var quadrant = BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement);
+        return BlockSegmentUtils.getVerticalStepProperty(quadrant);
     }
 
 
@@ -114,12 +115,12 @@ public class VerticalStepBlock extends ReshapedBlock {
         if (!world.isClient) {
             // Check if we merged into a MixedVerticalStepBlock
             if (state.getBlock() instanceof MixedVerticalStepBlock) {
-                net.f3rr3.reshaped.util.BlockSegmentUtils.fillMissingMaterialsFromItem(
+                BlockSegmentUtils.fillMissingMaterialsFromItem(
                         world,
                         pos,
                         state,
                         itemStack,
-                        net.f3rr3.reshaped.util.BlockSegmentUtils.VERTICAL_STEP_PROPERTIES,
+                        BlockSegmentUtils.VERTICAL_STEP_PROPERTIES,
                         VerticalStepBlockEntity.class
                 );
             }

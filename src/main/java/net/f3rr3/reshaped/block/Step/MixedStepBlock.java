@@ -1,5 +1,6 @@
 package net.f3rr3.reshaped.block.Step;
 
+import net.f3rr3.reshaped.block.BlockSegmentUtils;
 import net.f3rr3.reshaped.block.Template.ReshapedBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockEntityProvider;
@@ -45,7 +46,7 @@ public class MixedStepBlock extends ReshapedBlock implements BlockEntityProvider
 
     @Override
     public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
-        return net.f3rr3.reshaped.util.BlockSegmentUtils.buildStepShape(state);
+        return BlockSegmentUtils.buildStepShape(state);
     }
 
 
@@ -87,21 +88,21 @@ public class MixedStepBlock extends ReshapedBlock implements BlockEntityProvider
     public void onPlaced(World world, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack itemStack) {
         super.onPlaced(world, pos, state, placer, itemStack);
         if (!world.isClient) {
-            net.f3rr3.reshaped.util.BlockSegmentUtils.fillMissingMaterialsFromItem(
+            BlockSegmentUtils.fillMissingMaterialsFromItem(
                     world,
                     pos,
                     state,
                     itemStack,
-                    net.f3rr3.reshaped.util.BlockSegmentUtils.STEP_PROPERTIES,
+                    BlockSegmentUtils.STEP_PROPERTIES,
                     StepBlockEntity.class
             );
         }
     }
 
     public BooleanProperty getPropertyFromHit(double hitX, double hitY, double hitZ, Direction side, boolean isPlacement, BlockState state) {
-        var quadrant = net.f3rr3.reshaped.util.BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement);
+        var quadrant = BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement);
         StepBlock.StepAxis axis = state.get(AXIS);
-        return net.f3rr3.reshaped.util.BlockSegmentUtils.getStepProperty(quadrant, axis);
+        return BlockSegmentUtils.getStepProperty(quadrant, axis);
     }
 
     @Override

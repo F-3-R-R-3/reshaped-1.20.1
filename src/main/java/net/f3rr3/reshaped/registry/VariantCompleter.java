@@ -2,7 +2,7 @@ package net.f3rr3.reshaped.registry;
 
 import net.f3rr3.reshaped.Reshaped;
 import net.f3rr3.reshaped.block.Slab.ReshapedSlabBlock;
-import net.f3rr3.reshaped.util.BlockMatrix;
+import net.f3rr3.reshaped.matrix.BlockMatrix;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.SlabBlock;

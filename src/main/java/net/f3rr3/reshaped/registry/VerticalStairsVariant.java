@@ -3,8 +3,9 @@ package net.f3rr3.reshaped.registry;
 import net.f3rr3.reshaped.Reshaped;
 import net.f3rr3.reshaped.block.VericalStairs.OxidizableVerticalStairsBlock;
 import net.f3rr3.reshaped.block.VericalStairs.VerticalStairsBlock;
-import net.f3rr3.reshaped.util.BlockMatrix;
-import net.f3rr3.reshaped.util.RuntimeResourceGenerator;
+import net.f3rr3.reshaped.client.RuntimeResourceGenerator;
+import net.f3rr3.reshaped.matrix.BlockMatrix;
+import net.f3rr3.reshaped.matrix.MatrixRebuilder;
 import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;
 import net.fabricmc.fabric.api.registry.OxidizableBlocksRegistry;
 import net.fabricmc.fabric.api.registry.StrippableBlockRegistry;
@@ -69,7 +70,7 @@ public class VerticalStairsVariant implements BlockVariantType {
             verticalStairs = new VerticalStairsBlock(settings);
         }
 
-        if (net.f3rr3.reshaped.util.MatrixRebuilder.isRegistryFrozen()) {
+        if (MatrixRebuilder.isRegistryFrozen()) {
             return;
         }
 

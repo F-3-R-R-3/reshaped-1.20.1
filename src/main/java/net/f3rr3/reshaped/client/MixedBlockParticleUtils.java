@@ -1,12 +1,12 @@
 package net.f3rr3.reshaped.client;
 
+import net.f3rr3.reshaped.block.BlockSegmentUtils;
 import net.f3rr3.reshaped.block.Corner.MixedCornerBlock;
 import net.f3rr3.reshaped.block.Slab.MixedSlabBlock;
 import net.f3rr3.reshaped.block.Step.MixedStepBlock;
-import net.f3rr3.reshaped.block.VerticalStep.MixedVerticalStepBlock;
-import net.f3rr3.reshaped.block.VerticalSlab.MixedVerticalSlabBlock;
 import net.f3rr3.reshaped.block.Template.MixedBlockEntity;
-import net.f3rr3.reshaped.util.BlockSegmentUtils;
+import net.f3rr3.reshaped.block.VerticalSlab.MixedVerticalSlabBlock;
+import net.f3rr3.reshaped.block.VerticalStep.MixedVerticalStepBlock;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.state.property.BooleanProperty;

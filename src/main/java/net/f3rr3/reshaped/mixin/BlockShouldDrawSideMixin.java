@@ -2,7 +2,7 @@ package net.f3rr3.reshaped.mixin;
 
 import it.unimi.dsi.fastutil.objects.Object2ByteLinkedOpenHashMap;
 import net.f3rr3.reshaped.Reshaped;
-import net.f3rr3.reshaped.util.BlockMatrix;
+import net.f3rr3.reshaped.matrix.BlockMatrix;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.util.function.BooleanBiFunction;

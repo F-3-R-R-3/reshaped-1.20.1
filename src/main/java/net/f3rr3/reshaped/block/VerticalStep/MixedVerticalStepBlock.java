@@ -1,5 +1,6 @@
 package net.f3rr3.reshaped.block.VerticalStep;
 
+import net.f3rr3.reshaped.block.BlockSegmentUtils;
 import net.f3rr3.reshaped.block.Template.ReshapedBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockEntityProvider;
@@ -42,7 +43,7 @@ public class MixedVerticalStepBlock extends ReshapedBlock implements BlockEntity
 
     @Override
     public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
-        return net.f3rr3.reshaped.util.BlockSegmentUtils.buildVerticalStepShape(state);
+        return BlockSegmentUtils.buildVerticalStepShape(state);
     }
 
     @Override
@@ -79,20 +80,20 @@ public class MixedVerticalStepBlock extends ReshapedBlock implements BlockEntity
     public void onPlaced(World world, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack itemStack) {
         super.onPlaced(world, pos, state, placer, itemStack);
         if (!world.isClient) {
-            net.f3rr3.reshaped.util.BlockSegmentUtils.fillMissingMaterialsFromItem(
+            BlockSegmentUtils.fillMissingMaterialsFromItem(
                     world,
                     pos,
                     state,
                     itemStack,
-                    net.f3rr3.reshaped.util.BlockSegmentUtils.VERTICAL_STEP_PROPERTIES,
+                    BlockSegmentUtils.VERTICAL_STEP_PROPERTIES,
                     VerticalStepBlockEntity.class
             );
         }
     }
 
     public BooleanProperty getPropertyFromHit(double hitX, double hitY, double hitZ, Direction side, boolean isPlacement) {
-        var quadrant = net.f3rr3.reshaped.util.BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement);
-        return net.f3rr3.reshaped.util.BlockSegmentUtils.getVerticalStepProperty(quadrant);
+        var quadrant = BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement);
+        return BlockSegmentUtils.getVerticalStepProperty(quadrant);
     }
 
     @Override

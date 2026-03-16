@@ -1,6 +1,6 @@
 package net.f3rr3.reshaped.mixin;
 
-import net.f3rr3.reshaped.util.BlockSourceTracker;
+import net.f3rr3.reshaped.block.BlockSourceTracker;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import org.spongepowered.asm.mixin.Mixin;
@@ -14,6 +14,13 @@ public class AbstractBlockSettingsMixin implements BlockSourceTracker {
     @Unique
     private Block reshaped$sourceBlock;
 
+    @Inject(method = "copy", at = @At("RETURN"))
+    private static void onCopy(AbstractBlock block, CallbackInfoReturnable<AbstractBlock.Settings> cir) {
+        if (block instanceof Block b) {
+            ((BlockSourceTracker) cir.getReturnValue()).reshaped$setSourceBlock(b);
+        }
+    }
+
     @Override
     public void reshaped$setSourceBlock(Block block) {
         this.reshaped$sourceBlock = block;
@@ -22,12 +29,5 @@ public class AbstractBlockSettingsMixin implements BlockSourceTracker {
     @Override
     public Block reshaped$getSourceBlock() {
         return this.reshaped$sourceBlock;
-    }
-
-    @Inject(method = "copy", at = @At("RETURN"))
-    private static void onCopy(AbstractBlock block, CallbackInfoReturnable<AbstractBlock.Settings> cir) {
-        if (block instanceof Block b) {
-            ((BlockSourceTracker) cir.getReturnValue()).reshaped$setSourceBlock(b);
-        }
     }
 }

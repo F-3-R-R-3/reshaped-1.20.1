@@ -1,4 +1,4 @@
-package net.f3rr3.reshaped.util;
+package net.f3rr3.reshaped.client;
 
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;

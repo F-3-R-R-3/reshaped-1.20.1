@@ -1,6 +1,6 @@
 package net.f3rr3.reshaped.mixin;
 
-import net.f3rr3.reshaped.util.BlockSourceTracker;
+import net.f3rr3.reshaped.block.BlockSourceTracker;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import org.spongepowered.asm.mixin.Mixin;

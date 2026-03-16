@@ -1,5 +1,6 @@
 package net.f3rr3.reshaped.block.Corner;
 
+import net.f3rr3.reshaped.block.BlockSegmentUtils;
 import net.f3rr3.reshaped.block.Template.ReshapedBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -41,7 +42,7 @@ public class CornerBlock extends ReshapedBlock {
 
     @Override
     public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
-        return net.f3rr3.reshaped.util.BlockSegmentUtils.buildCornerShape(state);
+        return BlockSegmentUtils.buildCornerShape(state);
     }
 
     @Override
@@ -100,12 +101,12 @@ public class CornerBlock extends ReshapedBlock {
             // Note: 'state' passed here is the state *after* placement.
             // If we merged into Mixed, 'state' is MixedCornerBlock.
             if (state.getBlock() instanceof MixedCornerBlock) {
-                net.f3rr3.reshaped.util.BlockSegmentUtils.fillMissingMaterialsFromItem(
+                BlockSegmentUtils.fillMissingMaterialsFromItem(
                         world,
                         pos,
                         state,
                         itemStack,
-                        net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_PROPERTIES,
+                        BlockSegmentUtils.CORNER_PROPERTIES,
                         CornerBlockEntity.class
                 );
             }
@@ -113,8 +114,8 @@ public class CornerBlock extends ReshapedBlock {
     }
 
     public BooleanProperty getPropertyFromHit(double hitX, double hitY, double hitZ, Direction side, boolean isPlacement) {
-        var quadrant = net.f3rr3.reshaped.util.BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement);
-        return net.f3rr3.reshaped.util.BlockSegmentUtils.getCornerProperty(quadrant);
+        var quadrant = BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement);
+        return BlockSegmentUtils.getCornerProperty(quadrant);
     }
 
     @Override

@@ -1,6 +1,7 @@
 package net.f3rr3.reshaped.interaction;
 
 import net.f3rr3.reshaped.Reshaped;
+import net.f3rr3.reshaped.block.BlockSegmentUtils;
 import net.f3rr3.reshaped.block.Corner.CornerBlock;
 import net.f3rr3.reshaped.block.Corner.CornerBlockEntity;
 import net.f3rr3.reshaped.block.Corner.MixedCornerBlock;
@@ -90,13 +91,13 @@ public final class BlockInteractionService {
 
     private static BooleanProperty[] getSegmentProperties(Block block) {
         if (block instanceof CornerBlock || block instanceof MixedCornerBlock) {
-            return net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_PROPERTIES;
+            return BlockSegmentUtils.CORNER_PROPERTIES;
         }
         if (block instanceof StepBlock || block instanceof MixedStepBlock) {
-            return net.f3rr3.reshaped.util.BlockSegmentUtils.STEP_PROPERTIES;
+            return BlockSegmentUtils.STEP_PROPERTIES;
         }
         if (block instanceof VerticalStepBlock || block instanceof MixedVerticalStepBlock) {
-            return net.f3rr3.reshaped.util.BlockSegmentUtils.VERTICAL_STEP_PROPERTIES;
+            return BlockSegmentUtils.VERTICAL_STEP_PROPERTIES;
         }
         if (block instanceof MixedSlabBlock) {
             return new BooleanProperty[]{MixedSlabBlock.BOTTOM, MixedSlabBlock.TOP};
@@ -152,7 +153,7 @@ public final class BlockInteractionService {
                     if (property != null && !state.get(property)) {
                         if (!world.isClient) {
                             net.minecraft.block.BlockState mixedState = Reshaped.MIXED_CORNER.getDefaultState();
-                            BooleanProperty[] allProps = net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_PROPERTIES;
+                            BooleanProperty[] allProps = BlockSegmentUtils.CORNER_PROPERTIES;
                             mixedState = applyProperties(state, mixedState, allProps);
                             mixedState = mixedState.with(property, true);
                             mixedState = mixedState.with(CornerBlock.WATERLOGGED, state.get(CornerBlock.WATERLOGGED));
@@ -187,7 +188,7 @@ public final class BlockInteractionService {
                         if (!world.isClient) {
                             // Transition VerticalStep -> MixedVerticalStep
                             BlockState mixedState = Reshaped.MIXED_VERTICAL_STEP.getDefaultState();
-                            BooleanProperty[] allProps = net.f3rr3.reshaped.util.BlockSegmentUtils.VERTICAL_STEP_PROPERTIES;
+                            BooleanProperty[] allProps = BlockSegmentUtils.VERTICAL_STEP_PROPERTIES;
                             mixedState = applyProperties(state, mixedState, allProps);
                             mixedState = mixedState.with(property, true);
                             mixedState = mixedState.with(VerticalStepBlock.WATERLOGGED, state.get(VerticalStepBlock.WATERLOGGED));
@@ -217,7 +218,7 @@ public final class BlockInteractionService {
                     if (property != null && !state.get(property)) {
                         if (!world.isClient) {
                             BlockState mixedState = Reshaped.MIXED_STEP.getDefaultState().with(StepBlock.AXIS, state.get(StepBlock.AXIS));
-                            BooleanProperty[] allProps = net.f3rr3.reshaped.util.BlockSegmentUtils.STEP_PROPERTIES;
+                            BooleanProperty[] allProps = BlockSegmentUtils.STEP_PROPERTIES;
                             mixedState = applyProperties(state, mixedState, allProps);
                             mixedState = mixedState.with(property, true);
                             mixedState = mixedState.with(StepBlock.WATERLOGGED, state.get(StepBlock.WATERLOGGED));
@@ -338,7 +339,7 @@ public final class BlockInteractionService {
                         BlockEntity be = world.getBlockEntity(pos);
                         if (be instanceof CornerBlockEntity cbe) {
                             Identifier newMaterial = Registries.BLOCK.getId(itemBlock);
-                            BooleanProperty[] allProps = net.f3rr3.reshaped.util.BlockSegmentUtils.CORNER_PROPERTIES;
+                            BooleanProperty[] allProps = BlockSegmentUtils.CORNER_PROPERTIES;
 
                             for (int i = 0; i < 8; i++) {
                                 if (allProps[i] == property) {
@@ -364,7 +365,7 @@ public final class BlockInteractionService {
                         BlockEntity be = world.getBlockEntity(pos);
                         if (be instanceof VerticalStepBlockEntity verticalStepBlockEntity) {
                             Identifier newMaterial = Registries.BLOCK.getId(itemBlock);
-                            BooleanProperty[] allProps = net.f3rr3.reshaped.util.BlockSegmentUtils.VERTICAL_STEP_PROPERTIES;
+                            BooleanProperty[] allProps = BlockSegmentUtils.VERTICAL_STEP_PROPERTIES;
 
                             for (int i = 0; i < 4; i++) {
                                 if (allProps[i] == property) {
@@ -392,7 +393,7 @@ public final class BlockInteractionService {
                         BlockEntity be = world.getBlockEntity(pos);
                         if (be instanceof StepBlockEntity sbe) {
                             Identifier newMaterial = Registries.BLOCK.getId(itemBlock);
-                            BooleanProperty[] allProps = net.f3rr3.reshaped.util.BlockSegmentUtils.STEP_PROPERTIES;
+                            BooleanProperty[] allProps = BlockSegmentUtils.STEP_PROPERTIES;
 
                             for (int i = 0; i < 4; i++) {
                                 if (allProps[i] == property) {

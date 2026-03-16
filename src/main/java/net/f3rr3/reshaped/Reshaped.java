@@ -13,9 +13,10 @@ import net.f3rr3.reshaped.block.VerticalStep.VerticalStepBlockEntity;
 import net.f3rr3.reshaped.command.MatrixCommand;
 import net.f3rr3.reshaped.config.server.ServerConfig;
 import net.f3rr3.reshaped.interaction.BlockInteractionService;
+import net.f3rr3.reshaped.matrix.BlockMatrix;
+import net.f3rr3.reshaped.matrix.BlockRegistryScanner;
+import net.f3rr3.reshaped.matrix.MatrixRebuilder;
 import net.f3rr3.reshaped.network.NetworkHandler;
-import net.f3rr3.reshaped.util.BlockMatrix;
-import net.f3rr3.reshaped.util.BlockRegistryScanner;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.minecraft.block.Block;
@@ -124,7 +125,7 @@ public class Reshaped implements ModInitializer {
         // Primary bootstrap: Catch all blocks already in the registry.
         // If some modded blocks haven't registered yet, they will be caught by 
         // the late-sync triggers in ReshapedModelLoadingPlugin or SERVER_STARTING.
-        net.f3rr3.reshaped.util.MatrixRebuilder.bootstrap(MATRIX, false);
+        MatrixRebuilder.bootstrap(MATRIX, false);
 
         LOGGER.info("Reshaping complete - Block matrix is now reactive.");
     }

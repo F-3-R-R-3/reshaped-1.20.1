@@ -1,6 +1,6 @@
 package net.f3rr3.reshaped.registry;
 
-import net.f3rr3.reshaped.util.BlockMatrix;
+import net.f3rr3.reshaped.matrix.BlockMatrix;
 import net.minecraft.block.Block;
 
 /**

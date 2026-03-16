@@ -1,10 +1,11 @@
 package net.f3rr3.reshaped.client;
 
 import net.f3rr3.reshaped.Reshaped;
+import net.f3rr3.reshaped.block.Step.MixedStepBlock;
 import net.f3rr3.reshaped.block.Step.StepBlock;
 import net.f3rr3.reshaped.block.VerticalStep.VerticalStepBlock;
 import net.f3rr3.reshaped.client.render.CompositeBakedModel;
-import net.f3rr3.reshaped.util.RuntimeResourceGenerator;
+import net.f3rr3.reshaped.matrix.MatrixRebuilder;
 import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -14,16 +15,11 @@ import net.minecraft.client.render.model.ModelRotation;
 import net.minecraft.client.render.model.json.JsonUnbakedModel;
 import net.minecraft.client.render.model.json.ModelVariant;
 import net.minecraft.client.render.model.json.WeightedUnbakedModel;
-import net.minecraft.util.math.AffineTransformation;
-import net.f3rr3.reshaped.block.Step.MixedStepBlock;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.AffineTransformation;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
 
@@ -91,7 +87,7 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
     @Override
     public void onInitializeModelLoader(Context context) {
         // Late-sync: Ensure the matrix is bootstrapped before we start resolving models.
-        net.f3rr3.reshaped.util.MatrixRebuilder.bootstrap(net.f3rr3.reshaped.Reshaped.MATRIX, true);
+        MatrixRebuilder.bootstrap(net.f3rr3.reshaped.Reshaped.MATRIX, true);
         context.addModels(new Identifier(Reshaped.MOD_ID, "block/mixed_placeholder"));
 
         // Register block state resolvers for all reshaped blocks currently in registry

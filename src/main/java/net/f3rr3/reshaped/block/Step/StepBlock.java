@@ -1,9 +1,11 @@
 package net.f3rr3.reshaped.block.Step;
 
+import net.f3rr3.reshaped.block.BlockSegmentUtils;
 import net.f3rr3.reshaped.block.Template.ReshapedBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.ShapeContext;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.item.ItemPlacementContext;
@@ -17,7 +19,6 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
-import net.minecraft.entity.LivingEntity;
 import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings("deprecation")
@@ -40,7 +41,7 @@ public class StepBlock extends ReshapedBlock {
 
     @Override
     public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
-        return net.f3rr3.reshaped.util.BlockSegmentUtils.buildStepShape(state);
+        return BlockSegmentUtils.buildStepShape(state);
     }
 
 
@@ -102,9 +103,9 @@ public class StepBlock extends ReshapedBlock {
     }
 
     public BooleanProperty getPropertyFromHit(double hitX, double hitY, double hitZ, Direction side, boolean isPlacement, BlockState state) {
-        var quadrant = net.f3rr3.reshaped.util.BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement);
+        var quadrant = BlockSegmentUtils.getQuadrantFromHit(hitX, hitY, hitZ, side, isPlacement);
         StepAxis axis = state.get(AXIS);
-        return net.f3rr3.reshaped.util.BlockSegmentUtils.getStepProperty(quadrant, axis);
+        return BlockSegmentUtils.getStepProperty(quadrant, axis);
     }
 
     @Override
@@ -128,12 +129,12 @@ public class StepBlock extends ReshapedBlock {
                 // Since onPlaced doesn't give us the hit result easily, we iterate.
                 // The segment that is TRUE in state but NULL in BE is the new one.
                 // (Assuming existing segments have materials).
-                net.f3rr3.reshaped.util.BlockSegmentUtils.fillMissingMaterialsFromItem(
+                BlockSegmentUtils.fillMissingMaterialsFromItem(
                         world,
                         pos,
                         state,
                         itemStack,
-                        net.f3rr3.reshaped.util.BlockSegmentUtils.STEP_PROPERTIES,
+                        BlockSegmentUtils.STEP_PROPERTIES,
                         StepBlockEntity.class
                 );
             }

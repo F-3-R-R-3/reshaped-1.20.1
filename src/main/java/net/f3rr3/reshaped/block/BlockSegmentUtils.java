@@ -1,9 +1,9 @@
-package net.f3rr3.reshaped.util;
+package net.f3rr3.reshaped.block;
 
 import net.f3rr3.reshaped.block.Corner.CornerBlock;
 import net.f3rr3.reshaped.block.Step.StepBlock;
-import net.f3rr3.reshaped.block.VerticalStep.VerticalStepBlock;
 import net.f3rr3.reshaped.block.Template.MixedBlockEntity;
+import net.f3rr3.reshaped.block.VerticalStep.VerticalStepBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
@@ -190,9 +190,6 @@ public class BlockSegmentUtils {
     }
 
     public record Quadrant(boolean isUp, boolean isNorth, boolean isWest) {
-        public boolean isPlusX() {
-            return !isWest;
-        }
 
         public boolean isPlusZ() {
             return !isNorth;
