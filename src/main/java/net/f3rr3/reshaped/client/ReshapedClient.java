@@ -45,7 +45,7 @@ public class ReshapedClient implements ClientModInitializer {
         return sizes;
     }
 
-    private static void registerVariantRenderLayers() {
+    public static void refreshVariantRenderLayers() {
         if (Reshaped.MATRIX == null) return;
 
         // Mixed blocks can contain any material (including translucent ones like glass),
@@ -121,7 +121,7 @@ public class ReshapedClient implements ClientModInitializer {
             }
         });
 
-        registerVariantRenderLayers();
+        refreshVariantRenderLayers();
         registerVariantColorProviders();
     }
 
