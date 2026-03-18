@@ -4,15 +4,25 @@ import net.f3rr3.reshaped.Reshaped;
 import net.f3rr3.reshaped.client.gui.RadialMenuScreen;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.block.Block;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.option.GraphicsMode;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemStack;
 
 import java.util.List;
 
 public class ClientTickHandler {
+    private static GraphicsMode lastGraphicsMode;
+
     public static void register() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.player == null || client.world == null) return;
+
+            GraphicsMode currentMode = MinecraftClient.getInstance().options.getGraphicsMode().getValue();
+            if (lastGraphicsMode != currentMode) {
+                lastGraphicsMode = currentMode;
+                ReshapedClient.refreshVariantRenderLayers();
+            }
 
             // If a screen is already open, we don't need to do anything here
             // The RadialMenuScreen itself handles closing if the key is released
