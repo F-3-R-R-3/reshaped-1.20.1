@@ -45,7 +45,7 @@ public class ReshapedClient implements ClientModInitializer {
         return sizes;
     }
 
-    private static void registerVariantRenderLayers() {
+    public static void refreshVariantRenderLayers() {
         if (Reshaped.MATRIX == null) return;
 
         // Mixed blocks can contain any material (including translucent ones like glass),
@@ -59,7 +59,6 @@ public class ReshapedClient implements ClientModInitializer {
         for (Map.Entry<Block, List<Block>> entry : Reshaped.MATRIX.getMatrix().entrySet()) {
             Block baseBlock = entry.getKey();
             RenderLayer baseLayer = RenderLayers.getBlockLayer(baseBlock.getDefaultState());
-            if (baseLayer == RenderLayer.getSolid()) continue;
 
             for (Block variant : entry.getValue()) {
                 BlockRenderLayerMap.INSTANCE.putBlock(variant, baseLayer);
@@ -121,7 +120,7 @@ public class ReshapedClient implements ClientModInitializer {
             }
         });
 
-        registerVariantRenderLayers();
+        refreshVariantRenderLayers();
         registerVariantColorProviders();
     }
 
