@@ -1,0 +1,30 @@
+name: Bug report
+description: Create a report to help us fix it
+labels: bug, feature suggestion, new
+title: "[BUG]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please first make sure your bug isn't reported already and you are on the latest verion of the mod.
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Describe the bug
+      description: >
+        Please provide a short summary of the bug, along with any information
+        you feel is relevant to replicating the bug.
+
+        You may include screenshots and videos in this section.
+  - type: textarea
+    validations:
+      required: false
+    attributes:
+      label: Version Information and installed mods
+      description: >
+        - ReShaped version 
+        - Fabric API version 
+        - Cloth config API version 
+        - modmenu version (if installed) 
+        - list of other mods related to the issue
