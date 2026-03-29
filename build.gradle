@@ -77,7 +77,7 @@ java {
 jar {
     inputs.property "archivesName", project.base.archivesName
 
-    from("LICENSE") {
+    from("LICENSE.md") {
         rename { "${it}_${inputs.properties.archivesName}" }
     }
 }
