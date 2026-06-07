@@ -18,8 +18,8 @@ Thank you for considering contributing to ReShaped. Contributions are welcome an
    git checkout -b feature/your-change
 ```
 > [!TIP]
-> Or alternatively, you can use the bultin Git functionallity of IDE's like Intellij (<- reccomended) or VSCode to clone this repo locally and create a branch.
-> You can always ask me for help setting up a coding environment and git branch by creating a Github issue!
+> Or alternatively, you can use the built-in Git functionality of IDEs like Intellij (<- recommended) or VSCode to clone this repo locally and create a branch.
+> You can always ask me for help setting up a coding environment and git branch by creating a GitHub issue!
 
 ## Development Setup
 
