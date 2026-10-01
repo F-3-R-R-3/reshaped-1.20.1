@@ -15,7 +15,6 @@ import net.f3rr3.reshaped.config.server.ServerConfig;
 import net.f3rr3.reshaped.interaction.BlockInteractionService;
 import net.f3rr3.reshaped.matrix.BlockMatrix;
 import net.f3rr3.reshaped.matrix.BlockRegistryScanner;
-import net.f3rr3.reshaped.matrix.MatrixRebuilder;
 import net.f3rr3.reshaped.network.NetworkHandler;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
@@ -122,12 +121,7 @@ public class Reshaped implements ModInitializer {
 
         BlockInteractionService.register();
 
-        // Primary bootstrap: Catch all blocks already in the registry.
-        // If some modded blocks haven't registered yet, they will be caught by 
-        // the late-sync triggers in ReshapedModelLoadingPlugin or SERVER_STARTING.
-        MatrixRebuilder.bootstrap(MATRIX, false);
-
-        LOGGER.info("Reshaping complete - Block matrix is now reactive.");
+        LOGGER.info("Reshaping complete - awaiting block registry freeze.");
     }
 }
 

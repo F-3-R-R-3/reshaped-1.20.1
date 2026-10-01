@@ -86,8 +86,7 @@ public class ReshapedModelLoadingPlugin implements ModelLoadingPlugin {
 
     @Override
     public void onInitializeModelLoader(Context context) {
-        // Late-sync: Ensure the matrix is bootstrapped before we start resolving models.
-        MatrixRebuilder.bootstrap(net.f3rr3.reshaped.Reshaped.MATRIX, true);
+        MatrixRebuilder.prepareForRegistryFreeze(Reshaped.MATRIX);
         context.addModels(new Identifier(Reshaped.MOD_ID, "block/mixed_placeholder"));
 
         // Register block state resolvers for all reshaped blocks currently in registry

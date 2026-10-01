@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public final class MatrixRebuilder {
     private static final AtomicBoolean REBUILDING = new AtomicBoolean(false);
+    private static final AtomicBoolean PRE_FREEZE_PREPARED = new AtomicBoolean(false);
     private static final AtomicBoolean PENDING_REBUILD = new AtomicBoolean(false);
     private static final AtomicInteger BOOTSTRAP_ADD_CALLS = new AtomicInteger(0);
     private static final AtomicInteger BOOTSTRAP_ADD_SKIPPED_BUSY = new AtomicInteger(0);
@@ -60,6 +61,77 @@ public final class MatrixRebuilder {
             HAS_BOOTSTRAPPED.set(true);
         } else {
             Reshaped.LOGGER.debug("[MatrixRebuilder] bootstrap() ignored - already bootstrapped.");
+        }
+    }
+
+    /**
+     * Performs a single deterministic pre-freeze pass:
+     * 1. Collect base blocks from the current block registry
+     * 2. Adopt existing variants and register missing ones while the registry is still writable
+     * 3. Publish the final immutable matrix snapshot
+     *
+     * This pass intentionally does not depend on recipes, because the final
+     * datapack-backed recipe manager is not available yet at block-registry freeze time.
+     */
+    public static void prepareForRegistryFreeze(BlockMatrix matrix) {
+        if (matrix == null) return;
+        if (!PRE_FREEZE_PREPARED.compareAndSet(false, true)) {
+            Reshaped.LOGGER.debug("[MatrixRebuilder] prepareForRegistryFreeze() ignored - already prepared.");
+            return;
+        }
+
+        Reshaped.LOGGER.info("[MatrixRebuilder] Preparing block matrix before block registry freeze...");
+
+        if (!REBUILDING.compareAndSet(false, true)) {
+            Reshaped.LOGGER.warn("[MatrixRebuilder] prepareForRegistryFreeze() skipped - REBUILDING already true");
+            return;
+        }
+
+        try {
+            matrix.clear();
+
+            Set<Block> baseCandidates = BaseBlockFilter.collectBaseCandidates();
+            Reshaped.LOGGER.info("[MatrixRebuilder] pre-freeze: collected {} base candidates", baseCandidates.size());
+
+            for (Block base : baseCandidates) {
+                matrix.addColumn(base, List.of(), false);
+                matrix.setReason(base, "Base block selected by state-based filter");
+            }
+
+            suppressCallback = true;
+            try {
+                List<Block> bases = new ArrayList<>(matrix.getMutableMatrix().keySet());
+                int completed = 0;
+
+                for (Block base : bases) {
+                    try {
+                        VariantCompleter.completeVariant(base, matrix);
+                        VariantRegistry.registerAll(base, matrix);
+                        completed++;
+                    } catch (Exception e) {
+                        Reshaped.LOGGER.warn("[MatrixRebuilder] pre-freeze: variant processing FAILED for base {} ({})",
+                                Registries.BLOCK.getId(base), e.getMessage(), e);
+                    }
+                }
+
+                Reshaped.LOGGER.info("[MatrixRebuilder] pre-freeze: completed variant registration for {}/{} bases", completed, bases.size());
+            } finally {
+                suppressCallback = false;
+            }
+
+            matrix.refresh();
+            HAS_BOOTSTRAPPED.set(true);
+            Reshaped.LOGGER.info(
+                    "[MatrixRebuilder] Pre-freeze matrix prepared: {} bases, {} columns (snapshot: {})",
+                    baseCandidates.size(),
+                    matrix.getMutableMatrix().size(),
+                    matrix.getMatrix().size()
+            );
+        } catch (Exception e) {
+            PRE_FREEZE_PREPARED.set(false);
+            Reshaped.LOGGER.error("[MatrixRebuilder] Failed to prepare matrix before registry freeze", e);
+        } finally {
+            REBUILDING.set(false);
         }
     }
 
